@@ -310,6 +310,13 @@ if (!selectedShipping) {
   setErrorMessage('Please choose a shipping option');
   return;
 }
+if (!addressData.addressLine1) {
+  setErrorMessage('Please add a Delivery Address');
+  setTimeout(() => {
+    setErrorMessage('');
+  }, 5000);
+  return;
+}
 setShowPopup(true);
 
   try {
@@ -528,7 +535,8 @@ setCompleted(true);
 
                         <div className="name-desc">
                         <h3>{product.txtVal}</h3>
-                        <p>{product.desc}</p>
+                        {product.color && <p><span>Color:</span> {product.color}</p>}
+                        {product.size && <p><span>Size:</span> {product.size}</p>}
                         {/* <p>{product.quantity}</p> */}
                          <p className="mobile">
                       &#8358;&nbsp;
@@ -569,7 +577,11 @@ setCompleted(true);
                   <p>Items(+QTY): <span>{totalItems}</span></p>
 
                   <div className="address">
-                  <h6>DELIVERY ADDRESS <NavLink to='/editAddress'>EDIT</NavLink></h6>
+                  <h6>DELIVERY ADDRESS  {addressData.addressLine1 ? (
+                    <NavLink to='/editAddress'>EDIT</NavLink>
+                  ) : (
+                    <NavLink to='/editAddress'>ADD</NavLink>
+                  )}</h6>
 
                   <p>{addressData.addressLine1}</p>
 

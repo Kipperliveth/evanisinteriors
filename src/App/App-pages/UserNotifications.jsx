@@ -6,6 +6,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase-config";
 import { PiNotePencilLight } from "react-icons/pi";
 import { CiDeliveryTruck } from "react-icons/ci";
+import { LuPackage } from "react-icons/lu";
+import { TbTruckDelivery } from "react-icons/tb";
 
 
 function UserNotifications() {
@@ -14,14 +16,13 @@ function UserNotifications() {
   const [user, setUser] = useState({})
   const [isLoading, setIsLoading] = useState(true);
   const [readNotifications, setReadNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0); // State to store the count of unread notifications
   // pop up spinner
 const [showPopup, setShowPopup] = useState(false);
 
 
   
   useEffect(() => {
-    document.title = "Notifications Evanis-Interiors";
+    document.title = "Notifications - Evanis Interiors";
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -52,10 +53,8 @@ const [showPopup, setShowPopup] = useState(false);
           ...doc.data(),
           timestamp: timestamp.toLocaleString([], {
             day: "numeric",
-            month: "numeric",
+            month: "short",
             year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
           }),
         };
       });
@@ -95,10 +94,8 @@ const [showPopup, setShowPopup] = useState(false);
           ...doc.data(),
           timestamp: timestamp.toLocaleString([], {
             day: "numeric",
-            month: "numeric",
+            month: "short",
             year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
           }),
         };
       });
@@ -117,9 +114,9 @@ const [showPopup, setShowPopup] = useState(false);
     try {
       const userId = currentUser.uid;
       await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/inbox`), notificationId));
-      console.log("Notification deleted");
+      // console.log("Notification deleted");
     } catch (error) {
-      console.error("Error deleting notification:", error);
+      // console.error("Error deleting notification:", error);
     }
   };
   
@@ -149,12 +146,12 @@ setShowPopup(true);
       }
   
       await addDoc(collection(txtdb, `userNotifications/${userId}/read`), readNotificationData);
-      console.log("Notification marked as read and moved to read notifications");
+      // console.log("Notification marked as read and moved to read notifications");
       await handleDeleteNotification(notification.id);
       setShowPopup(false);
       
     } catch (error) {
-      console.error("Error marking notification as read:", error);
+      // console.error("Error marking notification as read:", error);
       setShowPopup(false);
 
     }
@@ -186,7 +183,7 @@ setShowPopup(true);
           ...doc.data(),
           timestamp: timestamp.toLocaleString([], {
             day: "numeric",
-            month: "long",
+            month: "short",
             year: "numeric",
             // hour: "2-digit",
             // minute: "2-digit",
@@ -207,9 +204,9 @@ setShowPopup(true);
     try {
       const userId = currentUser.uid;
       await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/deliverynotifications`), deliveredId));
-      console.log("Notification deleted");
+      // console.log("Notification deleted");
     } catch (error) {
-      console.error("Error deleting notification:", error);
+      // console.error("Error deleting notification:", error);
     }
   };
   
@@ -225,12 +222,12 @@ setShowPopup(true);
           };
       
           await addDoc(collection(txtdb, `userNotifications/${userId}/deliveredread`), readDeliveredNotificationData);
-          console.log("Notification marked as read and moved to read notifications");
+          // console.log("Notification marked as read and moved to read notifications");
           await handleDeleteDeliveredNotification(delivered.id);
           setShowPopup(false);
           
         } catch (error) {
-          console.error("Error marking notification as read:", error);
+          // console.error("Error marking notification as read:", error);
           setShowPopup(false);
     
         }
@@ -278,6 +275,228 @@ useEffect(() => {
   return () => unsubscribe();
 }, [user]);
 
+//pickup notification
+
+const [readyForPickup, setReadyForPickup] = useState([])
+
+useEffect(() => {
+  if (!user) return; // Return early if user is null
+
+  const userId = user.uid;
+  const q = query(
+    collection(txtdb, `userNotifications/${userId}/pendingPickupNotification`),
+    orderBy("timestamp", "desc")
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const readDelivNotifications = snapshot.docs.map((doc) => {
+      let timestamp;
+      if (doc.data().timestamp instanceof Date) {
+        timestamp = doc.data().timestamp;
+      } else {
+        timestamp = new Date(doc.data().timestamp);
+      }
+      return {
+        id: doc.id,
+        ...doc.data(),
+        timestamp: timestamp.toLocaleString([], {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+      };
+    });
+    // Count the number of unread notifications
+    setReadyForPickup(readDelivNotifications);
+    // console.log(readyForPickup, 'ready')
+    setIsLoading(false);
+  });
+
+  return () => unsubscribe();
+}, [user]);
+
+//read pickup notification
+
+const handleDeleteReadyForPickupNotification = async (forPickupId) => {
+  try {
+    const userId = currentUser.uid;
+    await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/pendingPickupNotification`), forPickupId));
+    // console.log("Notification deleted");
+  } catch (error) {
+    // console.error("Error deleting notification:", error);
+  }
+};
+
+const handleMarkPickupNotificationAsRead = async (forPickup) => {
+  setShowPopup(true);
+  
+      try {
+        const userId = currentUser.uid;
+        const readDeliveredNotificationData = {
+            orderRefId: forPickup.orderRefId,
+        timestamp: forPickup.timestamp
+        };
+    
+        await addDoc(collection(txtdb, `userNotifications/${userId}/ReadPickupNotification`), readDeliveredNotificationData);
+        // console.log("Notification marked as read and moved to read notifications");
+        await handleDeleteReadyForPickupNotification(forPickup.id);
+        setShowPopup(false);
+        
+      } catch (error) {
+        // console.error("Error marking notification as read:", error);
+        setShowPopup(false);
+      }
+    };
+
+//delivery notification
+
+const [readyForDelivery, setReadyForDelivery] = useState([])
+
+useEffect(() => {
+  if (!user) return; // Return early if user is null
+
+  const userId = user.uid;
+  const q = query(
+    collection(txtdb, `userNotifications/${userId}/pendingDeliveryNotification`),
+    orderBy("timestamp", "desc")
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const readDelivNotifications = snapshot.docs.map((doc) => {
+      let timestamp;
+      if (doc.data().timestamp instanceof Date) {
+        timestamp = doc.data().timestamp;
+      } else {
+        timestamp = new Date(doc.data().timestamp);
+      }
+      return {
+        id: doc.id,
+        ...doc.data(),
+        timestamp: timestamp.toLocaleString([], {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+      };
+    });
+    // Count the number of unread notifications
+    setReadyForDelivery(readDelivNotifications);
+    setIsLoading(false);
+  });
+
+  return () => unsubscribe();
+}, [user]);
+
+const handleDeleteReadyForDeliveryNotification = async (forDeliveryId) => {
+  try {
+    const userId = currentUser.uid;
+    await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/pendingDeliveryNotification`), forDeliveryId));
+    // console.log("Notification deleted");
+  } catch (error) {
+    // console.error("Error deleting notification:", error);
+  }
+};
+
+const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
+  setShowPopup(true);
+  
+      try {
+        const userId = currentUser.uid;
+        const readDeliveredNotificationData = {
+            orderRefId: forDelivery.orderRefId,
+        timestamp: forDelivery.timestamp
+        };
+    
+        await addDoc(collection(txtdb, `userNotifications/${userId}/ReadDeliveryNotification`), readDeliveredNotificationData);
+        // console.log("Notification marked as read and moved to read notifications");
+        await handleDeleteReadyForDeliveryNotification(forDelivery.id);
+        setShowPopup(false);
+        
+      } catch (error) {
+        // console.error("Error marking notification as read:", error);
+        setShowPopup(false);
+      }
+    };
+
+//read pickup notifications
+    const [readPickupNotification, setReadPickupNotification] = useState([])
+
+    useEffect(() => {
+      if (!user) return; // Return early if user is null
+    
+      const userId = user.uid;
+      const q = query(
+        collection(txtdb, `userNotifications/${userId}/ReadPickupNotification`),
+        orderBy("timestamp", "desc")
+      );
+    
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const readDelivNotifications = snapshot.docs.map((doc) => {
+          let timestamp;
+          if (doc.data().timestamp instanceof Date) {
+            timestamp = doc.data().timestamp;
+          } else {
+            timestamp = new Date(doc.data().timestamp);
+          }
+          return {
+            id: doc.id,
+            ...doc.data(),
+            timestamp: timestamp.toLocaleString([], {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }),
+          };
+        });
+        // Count the number of unread notifications
+        setReadPickupNotification(readDelivNotifications);
+        setIsLoading(false);
+    
+    
+      });
+    
+      return () => unsubscribe();
+    }, [user]);
+
+//read delivery notifications
+    const [readDeliveryNotification, setreadDeliveryNotification] = useState([])    
+
+    useEffect(() => {
+      if (!user) return; // Return early if user is null
+    
+      const userId = user.uid;
+      const q = query(
+        collection(txtdb, `userNotifications/${userId}/ReadDeliveryNotification`),
+        orderBy("timestamp", "desc")
+      );
+    
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const readDelivNotifications = snapshot.docs.map((doc) => {
+          let timestamp;
+          if (doc.data().timestamp instanceof Date) {
+            timestamp = doc.data().timestamp;
+          } else {
+            timestamp = new Date(doc.data().timestamp);
+          }
+          return {
+            id: doc.id,
+            ...doc.data(),
+            timestamp: timestamp.toLocaleString([], {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }),
+          };
+        });
+        // Count the number of unread notifications
+        setreadDeliveryNotification(readDelivNotifications);
+        setIsLoading(false);
+    
+    
+      });
+    
+      return () => unsubscribe();
+    }, [user]);
 
   return (
     <div>
@@ -290,7 +509,7 @@ useEffect(() => {
 
         <h1>Notifications</h1>
 
-        {(notifications.length > 0 || deliveredNotifications.length > 0 )? (
+        {(notifications.length > 0 || deliveredNotifications.length > 0 || readyForDelivery.length> 0 || readyForPickup.length > 0 )? (
           <p className="recent"><span></span>New<span></span></p>
         ) : ('')}
 
@@ -342,30 +561,74 @@ useEffect(() => {
         ) : (
           <div className="new-notifications">
 
-            <div className="delivered notifications">
+        <div className="delivered notifications">
             
-              {deliveredNotifications.map((delivered) => (
+            {deliveredNotifications.map((delivered) => (
 
-                  <div className="container notification" key={delivered.id}>
-                          <div className="left"> <CiDeliveryTruck className="icon"/></div>
+                <div className="container notification" key={delivered.id}>
+                        <div className="left"> <CiDeliveryTruck className="icon"/></div>
 
-              <div className="right">
-                  <h4>Your order with ID: {delivered.orderRefId} has been Delivered </h4>
-                  <p style={{ fontWeight: '500' }}>on {delivered.timestamp} </p>
-                  <p>Use the live chat feature to reach us if you have any queries about this order</p>
-                  <h5>Thank You!</h5>
-                  <span>
+            <div className="right">
+                <h4>Your order with ID: {delivered.orderRefId} has been Delivered </h4>
+                <p style={{ fontWeight: '500' }}>on {delivered.timestamp} </p>
+                <p>Use the live chat feature to reach us if you have any queries about this order</p>
+                <h5>Thank You!</h5>
+                <span>
 
-                  <p className="date">{delivered.timestamp}</p> <button onClick={() => handleMarkDeliveredNotificationAsRead(delivered)}>Mark as Read</button>
-                  
-                  </span>
+                <p className="date">{delivered.timestamp}</p> <button onClick={() => handleMarkDeliveredNotificationAsRead(delivered)}>Mark as Read</button>
+                
+                </span>
+            </div>
+            
+                </div>
+
+            ))}
+          </div>
+
+          <div className="delivery notifications"> 
+            {readyForDelivery.map((forDelivery) => (
+
+              <div className="notification" key={forDelivery.id}>
+
+                <div className="left"> <TbTruckDelivery  className="icon"/></div>
+
+                <div className="right">
+                    <h4>Your order with ID: {forDelivery.orderRefId} is out for Delivery </h4>
+                    <p>We will contact you soon for the drop-off.</p>
+                    <span>
+
+                    <p className="date">{forDelivery.timestamp}</p> <button onClick={() => handleMarkDeliveryNotificationAsRead(forDelivery)}>Mark as Read</button>
+                    
+                    </span>
+                </div>
+
               </div>
               
-                  </div>
-
-              ))}
+            ))}
             </div>
 
+           <div className="pickup notifications"> 
+            {readyForPickup.map((forPickup) => (
+
+              <div className="notification" key={forPickup.id}>
+
+                <div className="left"> <LuPackage  className="icon"/></div>
+
+                <div className="right">
+                    <h4>Your order with ID: {forPickup.orderRefId} is ready for Pickup </h4>
+                    <p>We will contact you soon for the drop-off.</p>
+                    <span>
+
+                    <p className="date">{forPickup.timestamp}</p> <button onClick={() => handleMarkPickupNotificationAsRead(forPickup)}>Mark as Read</button>
+                    
+                    </span>
+                </div>
+
+              </div>
+              
+            ))}
+            </div>
+        
             <div className="notifications">
             {notifications.map((notification) => (
 
@@ -398,8 +661,8 @@ useEffect(() => {
 
         </div>
 
-        {(readNotifications.length > 0 || readDeliveredNotifications.length > 0 ) ? (
-          <p className="recent"><span></span>Older<span></span></p>
+        {(readNotifications.length > 0 || readDeliveredNotifications.length > 0 || readPickupNotification.length > 0 || readDeliveryNotification.length > 0 ) ? (
+          <p className="recent older"><span></span>Older<span></span></p>
 
         ) : ('')}
 
@@ -475,6 +738,50 @@ useEffect(() => {
               ))}
             </div>
 
+            <div className="delivery notifications"> 
+            {readDeliveryNotification.map((ReadforDelivery) => (
+
+              <div className="notification" key={ReadforDelivery.id}>
+
+                <div className="left"> <TbTruckDelivery  className="icon"/></div>
+
+                <div className="right">
+                    <h4>Your order with ID: {ReadforDelivery.orderRefId} is out for Delivery </h4>
+                    <p>We will contact you soon for the drop-off.</p>
+                    <span>
+
+                    <p className="date">{ReadforDelivery.timestamp}</p> <button>Read</button>
+                    
+                    </span>
+                </div>
+
+              </div>
+              
+            ))}
+            </div>
+
+            <div className="pickup notifications"> 
+            {readPickupNotification.map((ReadforPickup) => (
+
+              <div className="notification" key={ReadforPickup.id}>
+
+                <div className="left"> <LuPackage  className="icon"/></div>
+
+                <div className="right">
+                    <h4>Your order with ID: {ReadforPickup.orderRefId} is ready for Pickup </h4>
+                    <p>We will contact you soon for the drop-off.</p>
+                    <span>
+
+                    <p className="date">{ReadforPickup.timestamp}</p> <button>Read</button>
+                    
+                    </span>
+                </div>
+
+              </div>
+              
+            ))}
+            </div>
+
             <div className="notifications">
             {readNotifications.map((readNotification) => (
 
@@ -483,9 +790,9 @@ useEffect(() => {
                 <div className="left"> <PiNotePencilLight className="icon"/></div>
 
                 <div className="right">
-                    <h4>Your order with ID: {readNotification.orderRefId} has been confirmed </h4>
+                <h4>Your order with ID: {readNotification.orderRefId} has been confirmed </h4>
                     <p>Expected delivery for this item to {readNotification.state} is between {readNotification.formattedDate15DaysFromNow} and {readNotification.formattedDate20DaysFromNow}</p>
-                    <p>Please note that delivery fees are paid for seperately. </p>
+                    <p>Please note that delivery fees are paid for seperately</p>
                     <p>Use the live chat feature to inquire shipping fees</p>
                     <h5>To track your order please contact Evanis Interiors via Email</h5>
                     <span>
@@ -505,11 +812,13 @@ useEffect(() => {
 
         </div>
 
-        {notifications.length === 0 && readNotifications.length === 0 && readDeliveredNotifications.length === 0 && deliveredNotifications.length === 0 &&(
+        {notifications.length === 0 && readNotifications.length === 0 && readyForPickup.length === 0 && readDeliveredNotifications.length === 0 && readyForDelivery.length === 0 && deliveredNotifications.length === 0 && readPickupNotification.length === 0 && readDeliveryNotification.length === 0 &&(
           <p className="no-notifications">Your notifications will show here</p>
         )}
 
       </div>
+
+      
 
       {showPopup && (
         <div className="popup">

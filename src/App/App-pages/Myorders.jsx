@@ -10,9 +10,6 @@ import { FaCheck } from "react-icons/fa";
 import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 
 
-
-
-
 function Myorders() {
   const [user, setUser] = useState({})
   const [isLoading, setIsLoading] = useState(true);
@@ -23,7 +20,7 @@ function Myorders() {
 
 
   useEffect(() => {
-    document.title = "My orders Evanis-Interiors";
+    document.title = "My orders Evanis Interiors";
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -43,12 +40,13 @@ function Myorders() {
       try {
         const deliveredOrdersRef = collection(txtdb, `userNotifications/${userId}/deliveredOrders`);
         const deliveredOrdersSnapshot = await getDocs(deliveredOrdersRef);
-        const deliveredOrdersData = deliveredOrdersSnapshot.docs.map((doc) => ({
+        let deliveredOrdersData = deliveredOrdersSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        // You can store delivered orders in a separate state variable if needed
-        console.log("Delivered Orders:", deliveredOrdersData);
+               // Sort delivered orders by date (new to old)
+               deliveredOrdersData = deliveredOrdersData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
         setDeliveredOrders(deliveredOrdersData);
       } catch (error) {
         console.error("Error fetching delivered orders:", error);
@@ -197,6 +195,10 @@ function Myorders() {
               
             ))}
 
+            {deliveredOrders.length === 0 ? (
+              <p className='empty'>Your orders will show here</p>
+            ): null}
+
         <div className={`product-modal ${isModalOpen ? "open" : ""}`}>
 
                 {selectedOrder && (
@@ -210,7 +212,7 @@ function Myorders() {
               <div className="route"><p>Dashboard</p><MdOutlineKeyboardArrowRight className="icon"/><p>My orders</p><MdOutlineKeyboardArrowRight className="icon"/><p className='id'>ID {selectedOrder.orderRefId}</p></div>
 
               <div className="header">
-                <div className='span'>
+                <div className='refId'>
                 <p>Order ID: {selectedOrder.orderRefId}</p>
                   <button>{selectedOrder.status}</button>
                 </div>
@@ -232,7 +234,8 @@ function Myorders() {
                 
                                   <span>
                                 <p className="name">{item.txtVal}</p>
-                                <p>{item.desc}</p>
+                                <p>{item.color}</p>
+                                <p>{item.size}</p>
                                 </span>
                                 
                 
@@ -254,8 +257,15 @@ function Myorders() {
   
                         <div className="left">
                           <h2>Payment</h2>
-                          <h5>Total Price(shipping not included)</h5>
+
+                          <span>
+                          <h5>Items total: </h5><p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
+                          </span>
+
+                          <span>
+                          <h5>Amount Paid: </h5>
                       <p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
+                          </span>
 
                         </div>
 

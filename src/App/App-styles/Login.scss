@@ -186,6 +186,7 @@
 .login-page{
     width: 90vw;
     margin: 0 auto;
+    font-size: .8em;
 
 
     .login-page-container{
@@ -193,6 +194,7 @@
         justify-content: center;
         width: 90vw;
         position: relative;
+    
 
         .login-left{
             padding: 0;
@@ -212,6 +214,7 @@
     .login-page-container{
         .login-left{
             width: 90%;
+            margin-top: 1.5rem;
         }
     }
 }

@@ -90,11 +90,11 @@ useEffect(() => {
       } else if (userData.address) {
         navigate('/userDashboard'); // Redirect to user dashboard if address exists
       } else {
-        navigate('/onboarding'); // Redirect to onboarding if address doesn't exist
+        navigate('/onboarding/address'); // Redirect to onboarding if address doesn't exist
       }
     } else {
       console.log("No address data found for the current user.");
-      navigate('/onboarding');
+      navigate('/onboarding/address');
     }
   };
 

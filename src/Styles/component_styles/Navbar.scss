@@ -3,6 +3,7 @@
     justify-content: center;
     position: relative;
     // display: none;
+    z-index: 100000;
     }
 
 .navbar{
@@ -13,9 +14,9 @@
     align-items: center;
     // box-shadow: rgba(100, 100, 111, 0.1) 0px 7px 29px 0px;
     box-shadow: rgba(0, 0, 0, 0.04) 0px 3px 5px;
-    border: 0.5px solid #8888;
+    border: 0.5px solid hsl(0, 0%, 73%);
     border-radius: 25px;
-    margin-top: .5rem;
+    margin-top: .95rem;
     margin-bottom: 2em;
     position: fixed;
     top: 0;
@@ -52,7 +53,7 @@
     .logo-container{
         display: flex;
         text-decoration: none;
-        color: #523d35;
+        color: #000;
         margin-left: 1rem;
         align-items: center;
         
@@ -337,7 +338,9 @@
 
     .logo-container{
         margin-left: 0;
-        font-size: smaller;
+        font-size: .7em;
+
+       
     }
     
     .page-links{
@@ -351,6 +354,11 @@
         .notif-bars{
             position: relative;
             display: none;
+        }
+
+        .login-btn{
+            // display: none;
+            font-size: .8em;
         }
     }
 }

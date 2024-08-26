@@ -10,6 +10,7 @@
             padding-left: .5rem;
             letter-spacing: 1px;
             margin-bottom: 3rem;
+            font-size: 1em;
         }
 
         .loading-message{
@@ -206,7 +207,7 @@
 
                     .header{
 
-                        .span{
+                        .refId{
                             display: flex;
                             align-items: center;
                             justify-content: space-between;
@@ -407,7 +408,7 @@
 
                 .modal-container .modal-details{
 
-                    .header .span{
+                    .header .refId{
                         flex-direction: column;
                         gap: 1rem;
                         align-items: left;

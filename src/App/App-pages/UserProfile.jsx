@@ -10,6 +10,7 @@ import UserNav from "../App-components/UserNav";
 import { NavLink } from "react-router-dom";
 import { MdOutlineModeEdit } from "react-icons/md";
 import { ImSpinner8 } from "react-icons/im";
+import { RiAccountPinCircleLine } from "react-icons/ri";
 
 
 function UserProfile() {
@@ -35,20 +36,19 @@ function UserProfile() {
 
   const logout = async () => {
     setIsLoggedIn(true);
-
+  
     if (auth.currentUser) {
       await signOut(auth);
+      localStorage.clear();
       navigate("/login");
       setIsLoggedIn(false);
-
     } else {
-      // Handle the scenario where the user is not logged in
-      // For example, you might display an error message or redirect the user to the login page
-      console.log("User is not logged in");
+      localStorage.clear();
       navigate("/login");
       setIsLoggedIn(false);
     }
   };
+  
 
   useEffect(() => {
     document.title = "My Profile-Evanis enteriors";
@@ -62,6 +62,7 @@ function UserProfile() {
         if (userSnap.exists()) {
           const userData = userSnap.data();
           setAddressData(userData.address);
+          setLoading(false);
         } else {
           console.log("No address data found for the current user.");
         }
@@ -106,7 +107,8 @@ function UserProfile() {
       <div className="appContainer">
         <div className="info">
           <div className="profilePic-info">
-            <img src={user?.photoURL} alt="displayPicture" />
+            {/* <img src={user?.photoURL} alt="displayPicture" /> */}
+            <RiAccountPinCircleLine className="img"/>
 
             <div className="user-details-info">
               <p className="user-email">{user && user.email}</p>
@@ -115,37 +117,36 @@ function UserProfile() {
           </div>
 
           <div className="address-info-header">
-            <NavLink className='edit' to='/editprofile'>Edit Shipping Information <MdOutlineModeEdit /></NavLink>
+            <NavLink className='edit' to='/editprofile'>{addressData.addressLine1.length === 0 ? "Add" : "Edit"}  Shipping Information <MdOutlineModeEdit /></NavLink>
           </div>
 
           <div className="address-info">
             {loading ? ( // Render loading indicator while data is being fetched
               <p>Loading...</p>
-            ) : addressData ? ( // Render address data if available
-              <>
-                <span>
-                  <h3>Address:</h3>
-                  <p className="address">{addressData.addressLine1}</p>
-                </span>
-
-                <span>
-                  <h3>Your Number:</h3>
-                  <p > {addressData.addressPhone}</p>
-                </span>
-
-                <span>
-                  <h3>State:</h3>
-                  <p> {addressData.state}</p>
-                </span>
-
-                <span>
-                  <h3>City:</h3>
-                  <p> {addressData.city}</p>
-                </span>
-              </>
+            ) : addressData.addressLine1.length === 0 ?( 
+              <p className="no-address">Please add a shipping address for deliveries</p>
             ) : (
-              // Render message if no address data is found
-              <p>No address data found for the current user.</p>
+              <>
+              <span>
+                <h3>Address:</h3>
+                <p className="address">{addressData.addressLine1}</p>
+              </span>
+
+              <span>
+                <h3>Your Number:</h3>
+                <p > {addressData.addressPhone}</p>
+              </span>
+
+              <span>
+                <h3>State:</h3>
+                <p> {addressData.state}</p>
+              </span>
+
+              <span>
+                <h3>City:</h3>
+                <p> {addressData.city}</p>
+              </span>
+            </>
             )}
           </div>
 

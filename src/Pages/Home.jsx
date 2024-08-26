@@ -33,12 +33,12 @@ function Home() {
             data-aos-duration="800"
             data-aos-once="true"
           >
-            <h1 data-aos="fade-up" data-aos-duration="800" data-aos-once="true">
+            <h1 data-aos="zoom-in" data-aos-duration="800" data-aos-once="true">
               Transform Your Space to a Place of Beauty and Comfort
             </h1>
             <p
               data-aos-delay="300"
-              data-aos="fade-up" data-aos-duration="800" data-aos-once="true" 
+              data-aos="zoom-in" data-aos-duration="800" data-aos-once="true" 
              >
               Conceptual. Custom. Yours. We design interiors that tell your
               story through unique details and bespoke furniture
@@ -46,7 +46,7 @@ function Home() {
 
             <div
               className="button"
-              data-aos="fade-up"
+              data-aos="zoom-in"
               data-aos-duration="1000"
               data-aos-once="true"
               data-aos-delay="400"

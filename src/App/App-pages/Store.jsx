@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import React from "react";
 import UserNav from "../App-components/UserNav";
 // import { storage } from "../../firebase-config";
-import { ref, listAll, getDownloadURL } from "firebase/storage";
 import {
   addDoc,
   collection,
   getDocs,
   deleteDoc,
-  doc,
+  doc, updateDoc,
   setDoc, onSnapshot
 } from "firebase/firestore";
 import { CiSearch } from "react-icons/ci";
@@ -19,18 +18,19 @@ import room from "../../stock/roomicon.png";
 import lights from "../../stock/lighticon.png";
 import tables from "../../stock/tableicon.png";
 import storageicon from "../../stock/storageicon.png";
-import { MdCancel } from "react-icons/md";
 import { auth } from "../../firebase-config";
 import { txtdb } from "../../firebase-config";
 import { IoIosArrowBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
-
+import { MdCancel } from "react-icons/md";
 
 
 function Store() {
+  const [showPopup, setShowPopup] = useState(false);
+const [removedPopup, setremovedPopup] = useState(false);
+const [variationPopup, setVariationPopup] = useState(false)
   const navigate = useNavigate();
 
-  const [imageList, setImageList] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,26 +52,78 @@ function Store() {
     if (currentUser) {
       const userId = currentUser.uid;
       const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
+      
+
+      if(product.sizes.length > 0 || product.color.length > 0){
+        console.log("testing")
+        if (!selectedColor && product.color.length > 0) {
+          handleProductClick(product)
+          setPopupMessage("Please choose a color");
+            setVariationPopup(true);
+          setTimeout(() => setVariationPopup(false), 3000);
+          return;
+        }
     
-      addDoc(productRef, {
-        productId: product.id,
-        imgUrl: product.imgUrl,
-        txtVal: product.txtVal,
-        desc: product.desc,
-        category: product.category,
-        price: product.price,
-        quantity: 1
-        // Other product details
-      })
-      .then(() => {
-        console.log("Product added to user cart");
-      })
-      .catch((error) => {
-        console.error("Error adding product:", error);
-      });
+        if (!selectedSize && product.sizes.length > 0) {
+          handleProductClick(product)
+          setPopupMessage("Please choose a size");
+          setVariationPopup(true);
+          setTimeout(() => setVariationPopup(false), 3000);
+          return;
+        }
+        // return;
+        addDoc(productRef, {
+          imgUrl: product.imgUrl,
+          txtVal: product.txtVal,
+          desc: product.desc,
+          category: product.category,
+          price: product.price,
+          quantity: 1
+          // Other product details
+        })
+        .then((docRef) => {
+          console.log("Product added to user cart");
+          const documentId = docRef.id;
+          updateDoc(doc(txtdb, `userCart/${userId}/products/${documentId}`), {
+            productId: docRef.id,
+          });
+          setShowPopup(true);
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 3000); 
+        })
+        .catch((error) => {
+          console.error("Error adding product:", error);
+        });
+      }else{
+        console.log("aint")
+        addDoc(productRef, {
+          productId: product.id,
+          imgUrl: product.imgUrl,
+          txtVal: product.txtVal,
+          desc: product.desc,
+          category: product.category,
+          price: product.price,
+          quantity: 1
+          // Other product details
+        })
+        .then(() => {
+          setShowPopup(true);
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 3000); 
+        })
+        .catch((error) => {
+          console.error("Error adding product:", error);
+        });
+
+      }
+    
+    
     } else {
       // Implement logic for temporary cart (optional)
     }
+
   }
 
 
@@ -183,30 +235,80 @@ function Store() {
   }, []);
 
   //modal add to cart
+  const [popupMessage, setPopupMessage] = useState("");
 
   const popupcart = (selectedProductData) => {
     setCartItems((prevCartItems) => [...prevCartItems, selectedProductData]);
 
+    
+
     if (currentUser) {
       const userId = currentUser.uid;
       const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
+
+      if(selectedProductData.color.length > 0 ||  selectedProductData.sizes.length > 0){
+
+        if (!selectedColor && selectedProductData.color.length > 0) {
+          setPopupMessage("Please choose a color");
+            setVariationPopup(true);
+          setTimeout(() => setVariationPopup(false), 3000);
+          return;
+        }
     
-      addDoc(productRef, {
-        imgUrl: selectedProductData.imgUrl,
-        productId: selectedProductData.id,
-        txtVal: selectedProductData.txtVal,
-        desc: selectedProductData.desc,
-        category: selectedProductData.category,
-        price: selectedProductData.price,
-        quantity: 1
-        // Other product details
-      })
-      .then(() => {
-        console.log("Product added to user cart");
-      })
-      .catch((error) => {
-        console.error("Error adding product:", error);
-      });
+        if (!selectedSize && selectedProductData.sizes.length > 0) {
+          setPopupMessage("Please choose a size");
+          setVariationPopup(true);
+          setTimeout(() => setVariationPopup(false), 3000);
+          return;
+        }
+
+        addDoc(productRef, {
+          imgUrl: selectedProductData.imgUrl,
+          txtVal: selectedProductData.txtVal,
+          desc: selectedProductData.desc,
+          category: selectedProductData.category,
+          price: selectedProductData.price,
+          quantity: 1,
+          color: selectedColor,
+          // Other product details
+        })
+        .then((docRef) => {
+          console.log("Product added to user cart");
+          const documentId = docRef.id;
+          updateDoc(doc(txtdb, `userCart/${userId}/products/${documentId}`), {
+            productId: docRef.id,
+          });
+          setShowPopup(true);
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 3000); 
+        })
+        .catch((error) => {
+          console.error("Error adding product:", error);
+        });
+
+      }else{
+        addDoc(productRef, {
+          productId: selectedProductData.id,
+          imgUrl: selectedProductData.imgUrl,
+          txtVal: selectedProductData.txtVal,
+          desc: selectedProductData.desc,
+          category: selectedProductData.category,
+          price: selectedProductData.price,
+          quantity: 1
+          // Other product details
+        })
+        .then(() => {
+          setShowPopup(true);
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 3000); 
+        })
+        .catch((error) => {
+          console.error("Error adding product:", error);
+        });
+      }
+    
     } else {
       // Implement logic for temporary cart (optional)
     }
@@ -221,31 +323,90 @@ function Store() {
   const buynow = (selectedProductData) => {
     setCartItems((prevCartItems) => [...prevCartItems, selectedProductData]);
 
+
     if (currentUser) {
       const userId = currentUser.uid;
       const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
     
-      addDoc(productRef, {
-        imgUrl: selectedProductData.imgUrl,
-        productId: selectedProductData.id,
-        txtVal: selectedProductData.txtVal,
-        desc: selectedProductData.desc,
-        category: selectedProductData.category,
-        price: selectedProductData.price,
-        quantity: 1
-        // Other product details
-      })
-      .then(() => {
-        console.log("Product added to user cart");
-        navigate('/cart')
-      })
-      .catch((error) => {
-        console.error("Error adding product:", error);
-      });
+     if(selectedProductData.color.length > 0 ||  selectedProductData.sizes.length > 0){
+
+        if (!selectedColor && selectedProductData.color.length > 0) {
+          setPopupMessage("Please choose a color");
+            setVariationPopup(true);
+          setTimeout(() => setVariationPopup(false), 3000);
+          return;
+        }
+    
+        if (!selectedSize && selectedProductData.sizes.length > 0) {
+          setPopupMessage("Please choose a size");
+          setVariationPopup(true);
+          setTimeout(() => setVariationPopup(false), 3000);
+          return;
+        }
+
+        addDoc(productRef, {
+          imgUrl: selectedProductData.imgUrl,
+          txtVal: selectedProductData.txtVal,
+          desc: selectedProductData.desc,
+          category: selectedProductData.category,
+          price: selectedProductData.price,
+          quantity: 1,
+          color: selectedColor,
+          // Other product details
+        })
+        .then((docRef) => {
+          console.log("Product added to user cart");
+          const documentId = docRef.id;
+          updateDoc(doc(txtdb, `userCart/${userId}/products/${documentId}`), {
+            productId: docRef.id,
+          });
+          setShowPopup(true);
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 3000); 
+        })
+        .catch((error) => {
+          console.error("Error adding product:", error);
+        });
+
+      }else{
+        addDoc(productRef, {
+          productId: selectedProductData.id,
+          imgUrl: selectedProductData.imgUrl,
+          txtVal: selectedProductData.txtVal,
+          desc: selectedProductData.desc,
+          category: selectedProductData.category,
+          price: selectedProductData.price,
+          quantity: 1
+          // Other product details
+        })
+        .then(() => {
+          setShowPopup(true);
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 3000); 
+        })
+        .finally(() =>{
+          navigate('/cart')
+        })
+        .catch((error) => {
+          console.error("Error adding product:", error);
+        });
+      }
     } else {
       // Implement logic for temporary cart (optional)
     }
   }
+
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
+
+  function handleColorSelect(color) {
+    setSelectedColor(color);
+}
+function handleSizeSelect(size) {
+  setSelectedSize(size);
+}
 
 
 
@@ -419,8 +580,9 @@ function Store() {
               <div className="container">
 
               <div className="left">
-                <img src={selectedProductData.imgUrl} alt="Product" />
-
+              {selectedProductData.imgUrl && selectedProductData.imgUrl.map((url, index) => (
+                    <img key={index} src={url} alt="Product" />
+                  ))}
               </div>
 
               <div className="right">
@@ -430,20 +592,59 @@ function Store() {
 
               <p className="price"> &#8358; {parseFloat(selectedProductData.price).toLocaleString('en-us')}</p>
               <p>{selectedProductData.desc}</p>
+
+              {(selectedProductData.color.length > 0 || selectedProductData.sizes.length > 0) && (
+                <h5>VARIATIONS:</h5>
+              )}
+
+               {selectedProductData.color.length > 0? (
+              <div className="color">
+              {selectedProductData.color.map((color) => (
+                <button  onClick={() => handleColorSelect(color)} className='variation' key={color}    style={{
+                  border: selectedColor === color ? '2px solid black' : '1px solid gray', // Change border style based on selection
+                }}>
+                {color}
+              </button>
+              ))}
+              </div>
+              ) : null}
+
+                {selectedProductData.sizes.length > 0? (
+                <div className="size">
+                    {selectedProductData.sizes.map((size) => (
+                      <button onClick={() => handleSizeSelect(size)} className="variation" key={size}  style={{
+                        border: selectedSize === size ? '2px solid black' : '1px solid gray', // Change border style based on selection
+                      }}>{size}</button>
+                    ))}
+                </div>
+              ) : null}
+           
+              
               {/* ... other product details ... */}
               <div className="buy-now">
                
 
-                {cartItems.some(item => item.productId === selectedProductData.id) ? (
-                        <button onClick={() => gotocart()}>Buy now</button>
-                      ) : (
-                        <button  onClick={() => buynow(selectedProductData)}>Buy Now</button>
-                      )}
+              {
+                        selectedProductData.txtVal === "Vybez Universe X Unifest Shorts" || selectedProductData.txtVal === "Vybez Universe X Unifest Shirt" || selectedProductData.txtVal === "Vybez Universe Hoodie"  ? (
+                          <button style={{ backgroundColor: 'grey', color: "white" }}>Sold Out</button>
+                        ) : (
+                          cartItems.some(item => item.productId === selectedProductData.id) ? (
+                            <button onClick={() => gotocart()}>Buy now</button>
+                          ) : (
+                            <button  onClick={() => buynow(selectedProductData)}>Buy Now</button>
+                          )
+                        )
+                      }
 
-                {cartItems.some(item => item.productId === selectedProductData.id) ? (
+             
+                      {cartItems.some(item => item.productId === selectedProductData.id) ? (
                         <button onClick={() => removeFromCart(selectedProductData.id)}>Remove from cart</button>
                       ) : (
-                        <button onClick={() => popupcart(selectedProductData)}>Add to Cart</button>
+                        selectedProductData.txtVal === "Vybez Universe X Unifest Shorts" || selectedProductData.txtVal === "Vybez Universe X Unifest Shirt" || selectedProductData.txtVal === "Vybez Universe Hoodie"  ? (
+                          <button style={{ backgroundColor: 'grey', color: "white" }}>Sold Out</button>
+                        ) : (
+                          <button onClick={() => popupcart(selectedProductData)}>Add to Cart</button>
+                        )
                       )}
               </div>
 
@@ -455,6 +656,36 @@ function Store() {
             </div>
           )}
         </div>
+
+        {showPopup && (
+        <div className="popup">
+
+          <div className="spinner" onClick={() => setShowPopup(false)}>
+           <MdCancel className='icon' /> Item has been added to cart
+          </div>
+
+        </div>
+      )}
+
+    {variationPopup && (
+        <div className="popup">
+
+          <div className="spinner variation" onClick={() => setVariationPopup(false)}>
+           <MdCancel className='icon' /> {popupMessage}
+          </div>
+
+        </div>
+      )}
+
+        {removedPopup && (
+        <div className="popup">
+
+          <div className="spinner removed" onClick={() => setremovedPopup(false)}>
+           <MdCancel className='icon' /> Item has been removed from cart
+          </div>
+
+        </div>
+      )}
       </div>
     </div>
   );

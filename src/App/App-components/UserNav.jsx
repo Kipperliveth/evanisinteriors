@@ -35,10 +35,12 @@ function UserNav() {
   const logout = async () => {
     if (auth.currentUser) {
       await signOut(auth);
+      localStorage.clear();
       navigate("/login");
     } else {
       // Handle the scenario where the user is not logged in
       // For example, you might display an error message or redirect the user to the login page
+      localStorage.clear();
       console.log("User is not logged in");
       navigate("/login");
     }
@@ -215,7 +217,9 @@ function UserNav() {
           <div className="cart-cont" onClick={notifLink}>
             <div className="cart-container">
 
-            <div className="cart-total">{unreadCount}</div>
+            {unreadCount > 0 && (
+           <div className="cart-total">{unreadCount}</div>
+           )}
           <IoIosNotificationsOutline
             className="app-icon desktop-view cart"
             onClick={cartLink}
@@ -227,7 +231,9 @@ function UserNav() {
           <div className="cart-cont" onClick={cartLink}>
             <div className="cart-container">
 
-            <div className="cart-total">{cartItemCount}</div>
+            {cartItemCount > 0 && (
+              <div className="cart-total">{cartItemCount}</div>
+            )}
           <AiOutlineShoppingCart
             className="app-icon desktop-view cart"
             onClick={cartLink}
@@ -235,12 +241,8 @@ function UserNav() {
             </div>
 
           </div>
-          <img
-            src={user && user.email ? user.photoURL : ''}
-            alt="displayPicture"
-            className="app-icon user"
-            onClick={toggleUserInfo}
-          />
+          <CiUser className="app-icon user"
+            onClick={toggleUserInfo} />
 
           {showUserInfo && (
             <div className="currentUserInfo">
@@ -258,10 +260,20 @@ function UserNav() {
           )}
         </div>
 
-        <RiMenu4Fill
-          className="app-icon mobile-view menu"
-          onClick={toggleVisibilty}
-        />
+        <div className="cart-cont mobile-view mobile-menu-btn">
+
+          {(unreadCount > 0 || cartItemCount > 0) && (
+            <div  onClick={toggleVisibilty} className="mobile-view cartNote cart-total">{unreadCount+cartItemCount} </div>
+          )}
+
+          <RiMenu4Fill
+            className="app-icon mobile-view menu menu-icon"
+            onClick={toggleVisibilty}
+            />
+
+          </div>
+
+
       </div>
 
       <div
@@ -275,7 +287,9 @@ function UserNav() {
               <div className="cart-cont" onClick={notifLink}>
             <div className="cart-container">
 
-            <div className="cart-total">{unreadCount}</div>
+            {unreadCount > 0 && (
+                <div className="cart-total">{unreadCount}</div>
+              )}
           <IoIosNotificationsOutline
             className="app-icon desktop-view cart"
             onClick={cartLink}
@@ -287,7 +301,9 @@ function UserNav() {
           <div className="cart-cont" onClick={cartLink}>
             <div className="cart-container">
 
+            {cartItemCount > 0 && (
             <div className="cart-total">{cartItemCount}</div>
+          )}
           <AiOutlineShoppingCart
             className="app-icon desktop-view cart"
             onClick={cartLink}

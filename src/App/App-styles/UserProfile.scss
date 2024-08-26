@@ -1,6 +1,6 @@
 .appContainer{
     
-    padding-top: 6.5rem;
+    padding-top: 8.5rem;
   
 
     .info{
@@ -17,12 +17,13 @@
             align-items: center;
             gap: 1.5rem;
             
-            img{
-                width: 150px;
-                height:150px;
-                border-radius: 50%;
-                box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
-                object-fit: cover;
+            .img{
+                // width: 150px;
+                // height:150px;
+                // border-radius: 50%;
+                // box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+                // object-fit: cover;
+                font-size: 4rem;
             }
 
             .user-details-info{
@@ -68,6 +69,15 @@
             gap: 1rem;
             margin-top: 2rem;
 
+            .no-address{
+                position: relative;
+                width: 100%;
+                align-self: center;
+                line-height: 1.5;
+                text-align: center;
+                grid-column: span 2;
+            }
+
             span{
                 background: hsl(0, 0%, 97%);
                 padding: 1rem ;
@@ -85,6 +95,7 @@
                 p{
                     font-weight: 600;
                     color: #333;
+                    
                 }
 
                 .address{

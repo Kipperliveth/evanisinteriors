@@ -35,7 +35,7 @@ function Onboarding() {
         // Profile updated successfully
         console.log("Profile updated!");
       setIsLoggedIn(false);
-        navigate("/profilePic");
+        navigate("/onboarding/address");
         // You can navigate to the next page or perform any other action here
       })
       .catch((error) => {
@@ -64,7 +64,7 @@ function Onboarding() {
   return (
     <div className="onboarding">
       <div className="upload-username">
-        <div className="progress">
+        {/* <div className="progress">
           <div className="signUpPage">
             <span>
               <p>
@@ -93,7 +93,7 @@ function Onboarding() {
           </div>
 
           <div className="bar"></div>
-        </div>
+        </div> */}
 
         <div className="upload-Username-container">
           <h2>What should we call you?</h2>

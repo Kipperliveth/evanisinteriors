@@ -12,9 +12,11 @@ import { MdClose } from "react-icons/md";
 
 function Post() {
   const [txt, setTxt] = useState("");
-  const [img, setImg] = useState("");
+  const [imgs, setImgs] = useState("");
   const [desc, setDescTxt] = useState("");
   const [category, setCategory] = useState("");
+  const [color, setColor] = useState("");
+  const [sizes, setSize] = useState("");
   const [price, setPrice] = useState("");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -28,15 +30,43 @@ function Post() {
   const [data, setData] = useState([]);
 
   const handleUpload = (e) => {
-    // console.log(e.target.files[0]);
-    const imgs = ref(imgdb, `imgs/${v4()}`);
-    uploadBytes(imgs, e.target.files[0]).then((data) => {
-      console.log(data, "imgs");
-      getDownloadURL(data.ref).then((val) => {
-        setImg(val);
-        // setUploadSuccess(true);
-      });
+    const files = Array.from(e.target.files);
+    const uploadPromises = files.map((file) => {
+      const imgRef = ref(imgdb, `imgs/${v4()}`);
+      return uploadBytes(imgRef, file).then((snapshot) =>
+        getDownloadURL(snapshot.ref)
+      );
     });
+
+    Promise.all(uploadPromises)
+      .then((urls) => {
+        setImgs(urls);
+      })
+      .catch((error) => {
+        console.error("Error uploading images: ", error);
+      });
+  };
+
+   const handleSizing = (event) => {
+    const options = event.target.options;
+    const selectedSizes = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selectedSizes.push(options[i].value);
+      }
+    }
+    setSize(selectedSizes);
+  };
+
+  const handleColor = (event) => {
+    const options = event.target.options;
+    const selectedColor = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selectedColor.push(options[i].value);
+      }
+    }
+    setColor(selectedColor);
   };
 
   const handleClick = async () => {
@@ -44,7 +74,7 @@ function Post() {
 
     setUploadInProgress(true);
 
-    if (!txt || !desc || !category || !price || !img) {
+    if (!txt || !desc || !category || !price || imgs.length === 0) {
       setIsLoggedIn(false);
       setErrorMessage("Please fill in all fields before uploading.");
       return;
@@ -54,7 +84,7 @@ function Post() {
 
     try {
       const valRef = collection(txtdb, "txtData");
-      await addDoc(valRef, { txtVal: txt, desc, category, price, imgUrl: img });
+      await addDoc(valRef, { txtVal: txt, desc, category, color, sizes, price, imgUrl: imgs });
       setUploadSuccess(true);
       setIsLoggedIn(false);
       
@@ -85,7 +115,7 @@ function Post() {
   const handleClose = () => {
     setUploadSuccess(false)
     setTxt("");
-    setImg("");
+    setImgs("");
     setDescTxt("");
     setCategory("");
     setPrice("");
@@ -106,7 +136,8 @@ function Post() {
           <div className="post-container">
             <input
               type="file"
-              onChange={(e) => handleUpload(e)}
+              multiple
+              onChange={handleUpload}
               placeholder="browse"
               // value={img}
             />
@@ -143,6 +174,35 @@ function Post() {
               <option value="Lights">Lights</option>
               <option value="Storage">storage</option>
             </select>
+
+            {/* <select
+              name="Size"
+              value={sizes}
+              onChange={handleSizing}
+              multiple
+            >
+              <option value="Small">Small</option>
+              <option value="Medium">Medium</option>
+              <option value="XL">XL</option>
+              <option value="XXL">XXL</option>
+              <option value="XXX" >XXXL</option>
+            </select> */}
+
+              <select
+              name="Color"
+              value={color}
+              onChange={handleColor}
+              multiple
+            >
+              <option value="White">White</option>
+              <option value="Black">Black</option>
+              <option value="Red">Red</option>
+              <option value="Purple">Purple</option>
+              <option value="Pink" >Pink</option>
+              <option value="Blue" >Blue</option>
+            </select>
+
+
 
             <input
               type="number"

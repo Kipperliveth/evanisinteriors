@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { doc, collection, setDoc } from "firebase/firestore";
 import { auth, txtdb } from "../../firebase-config";
-import { IoIosCheckmarkCircle } from "react-icons/io";
 import { ImSpinner8 } from "react-icons/im";
 import { useNavigate } from "react-router-dom";
 import { FaCheck } from "react-icons/fa";
+import { NavLink } from "react-router-dom";
 
 function Address() {
   const [showPopup, setShowPopup] = useState(false);
@@ -30,7 +30,9 @@ function Address() {
       !addressData.state ||
       !addressData.city
     ) {
-      setErrorMessage("Please fill in all fields."); // Set error message
+      setErrorMessage("Please fill in all fields."); 
+      setIsLoggedIn(false);
+      // Set error message
       return; // Stop further execution
     }
 
@@ -76,47 +78,13 @@ function Address() {
     setTimeout(() => {
       setIsLoggedIn(false);
     }, 2000);
-    navigate("/userDashboard");
+    navigate("/store");
   };
 
   return (
     <div className="onboarding">
       <div className="uploadAddress">
-        <div className="progress">
-          <div className="signUpPage">
-            <span>
-              <p>
-                <IoIosCheckmarkCircle className="completed-icon" />
-              </p>
-              <h4>Email/Password</h4>
-            </span>
-          </div>
-          <div className="userNamePage">
-            <span>
-              <p>
-                <IoIosCheckmarkCircle className="completed-icon" />
-              </p>
-              <h4>Username</h4>
-            </span>
-          </div>
-          <div className="profilePicture">
-            <span>
-              <p>
-                <IoIosCheckmarkCircle className="completed-icon" />
-              </p>
-              <h4>Display Photo</h4>
-            </span>
-          </div>
-          <div className="addressPage">
-            <span>
-              <p className="current-page">4</p>
-              <h4>Shipping Address</h4>
-            </span>
-          </div>
-
-          <div className="bar"></div>
-        </div>
-
+    
         <div className="upload-address-container">
           <h2>Add your Shipping Address</h2>
 
@@ -143,53 +111,42 @@ function Address() {
               onChange={handleChange}
             >
               <option value="">Select State</option>
-              <option value="Abia">Abia</option>
-              <option value="Adamawa">Adamawa</option>
-              <option value="Akwa Ibom">Akwa Ibom</option>
-              <option value="Anambra">Anambra</option>
-              <option value="Bauchi">Bauchi</option>
-              <option value="Bayelsa">Bayelsa</option>
-              <option value="Benue">Benue</option>
-              <option value="Borno">Borno</option>
-              <option value="Cross River">Cross River</option>
-              <option value="Delta">Delta</option>
-              <option value="Ebonyi">Ebonyi</option>
-              <option value="Edo">Edo</option>
-              <option value="Ekiti">Ekiti</option>
-              <option value="Enugu">Enugu</option>
-              <option value="Gombe">Gombe</option>
-              <option value="Imo">Imo</option>
-              <option value="Jigawa">Jigawa</option>
-              <option value="Kaduna">Kaduna</option>
-              <option value="Kano">Kano</option>
-              <option value="Katsina">Katsina</option>
-              <option value="Kebbi">Kebbi</option>
-              <option value="Kogi">Kogi</option>
-              <option value="Kwara">Kwara</option>
-              <option value="Lagos">Lagos</option>
-              <option value="Nasarawa">Nasarawa</option>
-              <option value="Niger">Niger</option>
-              <option value="Ogun">Ogun</option>
-              <option value="Ondo">Ondo</option>
-              <option value="Osun">Osun</option>
-              <option value="Oyo">Oyo</option>
-              <option value="Plateau">Plateau</option>
-              <option value="Rivers">Rivers</option>
-              <option value="Sokoto">Sokoto</option>
-              <option value="Taraba">Taraba</option>
-              <option value="Yobe">Yobe</option>
-              <option value="Zamfara">Zamfara</option>
+              <option value="Rivers">Rivers State</option>
             </select>
 
-            <input
-              type="text"
-              name="city"
-              placeholder="City"
-              value={addressData.city}
-              onChange={handleChange}
-            />
+            <select
+                  name="city"
+                  value={addressData.city}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Region</option>
+                  <option value="Choba">Choba</option>
+                  <option value="Alakahia">Alakahia</option>
+                  <option value="Aluu">Aluu</option>
+                  <option value="Eliozu">Eliozu</option>
+                  <option value="Rumuokoro">Rumuokoro</option>
+                  <option value="Agip">Agip</option>
+                  <option value="Waterlines">Waterlines</option>
+                  <option value="Iwofe">Iwofe</option>
+                  <option value="Adageorge">Adageorge</option>
+                  <option value="Abuloma">Abuloma</option>
+                  <option value="Borokiri">Borokiri</option>
+                  <option value="Eleme Junction">Eleme Junction</option>
+                  <option value="Elelewon">Elelewon</option>
+                  <option value="Odili">Odili</option>
+                  <option value="Woji">Woji</option>
+                  <option value="Eneka">Eneka</option>
+                  <option value="Rupokwu">Rupokwu</option>
+                  <option value="Atali">Atali</option>
+                  <option value="Akpajo">Akpajo</option>
+                  <option value="Rumuosi">Rumuosi</option>
+                </select>
 
             {/* Add similar input fields for other address components */}
+            <div className="action-btn">
+
+             <NavLink to='/store'>Skip for now</NavLink>
+
             <button type="submit">
               {isLoggedIn ? (
                 <ImSpinner8 className="onboarding-spinner" />
@@ -197,6 +154,9 @@ function Address() {
                 "Save Address"
               )}
             </button>
+            </div>
+
+
           </form>
 
           {errorMessage && <p className="error-message">{errorMessage}</p>}
@@ -213,7 +173,7 @@ function Address() {
             {isLoggedIn ? (
               <ImSpinner8 className="onboarding-spinner" />
             ) : (
-              "My Dashboard"
+              "Continue Shopping"
             )}
           </button>
 

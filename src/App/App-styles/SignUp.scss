@@ -133,6 +133,7 @@
 .signup-page{
     width: 90vw;
     margin: 0 auto;
+    font-size: .8em;
 
     .signup-page-container{
         display: flex;
@@ -157,6 +158,7 @@
     .signup-page-container{
         .sign-right{
             width: 90%;
+            margin-top: 1.5rem;
         }
     }
 }

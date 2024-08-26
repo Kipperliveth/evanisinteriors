@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import logo from "../stock/logomain.png";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AiOutlineShoppingCart } from "react-icons/ai";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { RiMenu4Fill } from "react-icons/ri";
@@ -11,6 +11,12 @@ function Navbar() {
 
   const toggleVisibilty = () => {
     SetIsVisible(!isVisible);
+  };
+
+  const navigate = useNavigate();
+
+  const login = () => {
+    navigate('/login'); // Replace '/target-page' with your target route
   };
 
   const location = useLocation();
@@ -39,7 +45,7 @@ function Navbar() {
     "/", "/marketplace", "/store", "/address", "/userMasterclass", "/userDashboard",
     "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",
     "/notifications", "/uploads", "/onboarding", "/profilePic", "/editAddress",
-    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact','/reset'
+    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact','/reset', '/shop'
   ];
 
   const shouldHideComponent = hiddenPaths.includes(location.pathname) || !allPaths.includes(location.pathname);
@@ -61,7 +67,7 @@ function Navbar() {
                 className={({ isActive }) =>
                   isActive ? "active-link" : "link"
                 }
-                to="/store"
+                to="/shop"
               >
                 Shop
               </NavLink>
@@ -134,13 +140,13 @@ function Navbar() {
               <MdCancel onClick={toggleVisibilty} className="cancel-btn" />
 
               <span>
-                <IoIosNotificationsOutline className="span-icon" />
-                <AiOutlineShoppingCart className="span-icon" />
+                <IoIosNotificationsOutline  onClick={login} className="span-icon" />
+                <AiOutlineShoppingCart  onClick={login} className="span-icon" />
               </span>
 
               <div className="mobilepage-links">
                 <li>
-                  <NavLink to="/store" onClick={toggleVisibilty}>
+                  <NavLink to="/shop" onClick={toggleVisibilty}>
                     Shop
                   </NavLink>
                 </li>

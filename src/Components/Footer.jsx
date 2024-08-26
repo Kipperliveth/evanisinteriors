@@ -7,6 +7,9 @@ import { MdMailOutline } from "react-icons/md";
 import logo from "../stock/logomain.png";
 
 function Footer() {
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll animation
+  };
   const location = useLocation();
 
   const hiddenPaths = ["/adminHome", "/post", '/uploads', "/orders"]
@@ -14,8 +17,8 @@ function Footer() {
   const allPaths = [
     "/", "/marketplace", "/store", "/address", "/userMasterclass", "/userDashboard",
     "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",
-    "/notifications", "/uploads", "/onboarding", "/profilePic", "/editAddress",
-    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact', '/reset'
+    "/notifications", "/uploads", "/profilePic", "/editAddress",
+    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact', '/reset', '/shop', 
   ];
 
   const shouldHideComponent = hiddenPaths.includes(location.pathname) || !allPaths.includes(location.pathname);
@@ -25,7 +28,7 @@ function Footer() {
       <div className="footer-container">
         <div className="footer">
           <div className="footer-top">
-            <NavLink to="/" className="logo-container">
+            <NavLink onClick={handleScrollToTop} className="logo-container">
               <img src={logo} alt="evanis-interior-logo" />
               <p className="logo">
                 {" "}
