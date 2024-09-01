@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { AiOutlineForm } from "react-icons/ai";
 import { VscSend } from "react-icons/vsc";
@@ -10,9 +10,15 @@ import { MdMailOutline } from "react-icons/md";
 import "aos/dist/aos.css";
 import AOS from "aos";
 import "aos/dist/aos.js";
+import { useForm, ValidationError } from '@formspree/react';
+
 
 function Contact() {
   const [hasMounted, setHasMounted] = useState(false);
+  const [completed, setCompleted] = useState(false)
+  const [notCompleted, setNotCompleted] = useState(false)
+
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     document.title = "Contact-Evanis interiors";
@@ -26,6 +32,36 @@ function Contact() {
       AOS.refresh();
     }
   }, [hasMounted]);
+
+  const [wasSubmitting, setWasSubmitting] = useState(false);
+  const [state, handleSubmit] = useForm("mvgpyprj");
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const messageRef = useRef(null);
+
+  useEffect(() => {
+    if (state.succeeded) {
+      nameRef.current.value = "";
+      emailRef.current.value = "";
+      messageRef.current.value = "";
+      setShowPopup(false);
+      setCompleted(true);
+    } else if (!state.submitting && wasSubmitting && !state.succeeded) {
+      setShowPopup(false);
+      setNotCompleted(true);
+      console.log('didint work')
+    }
+
+    if (state.submitting) {
+      setWasSubmitting(true);
+    }
+  }, [state.succeeded, state.submitting, wasSubmitting]);
+
+  const handleFormSubmit = (event) => {
+    setShowPopup(true);
+    handleSubmit(event);
+  };
+
   return (
     <div className="pagewidth">
       <div className="contact">
@@ -73,20 +109,21 @@ function Contact() {
             data-aos-delay="600"
             data-aos-once="true"
           >
-            <form action="">
+          <form onSubmit={handleFormSubmit}>
               <div className="top">
-                <input type="text" placeholder="Name" required />
-                <input type="email" placeholder="yourmail@gmail.com" required />
+                <input type="text" id="name" name="name" placeholder="Name" ref={nameRef} required />
+                <input type="email" id="email" name="email" placeholder="Email or Phone" ref={emailRef} required />
               </div>
               <div className="bottom">
                 <textarea
-                  name=""
-                  id=""
+                  name="message"
+                  id="message"
                   placeholder="Message"
+                  ref={messageRef}
                   required
                 ></textarea>
               </div>
-              <button type="submit">
+              <button type="submit" disabled={state.submitting}>
                 <h3>Submit</h3> <VscSend className="submit-btn" />
               </button>
 
@@ -228,6 +265,78 @@ function Contact() {
             </div>
           </div>
         </div>
+
+
+        {showPopup && (
+        <div className="popup">
+
+          <div className="spinner">
+            <div></div>   
+            <div></div>    
+            <div></div>    
+            <div></div>    
+            <div></div>    
+            <div></div>    
+            <div></div>    
+            <div></div>    
+            <div></div>    
+            <div></div>    
+          </div>
+
+
+        </div>
+      )}
+
+      {completed && (
+        <div className='checkout-popup'>
+
+
+          <div className='checkout-container'>
+
+          <div className="checkbox-wrapper">
+          <input defaultChecked={false} type="checkbox" />
+          <svg viewBox="0 0 35.6 35.6">
+            <circle className="background" cx="17.8" cy="17.8" r="17.8"></circle>
+            <circle className="stroke" cx="17.8" cy="17.8" r="14.37"></circle>
+            <polyline className="check" points="11.78 18.12 15.55 22.23 25.17 12.87"></polyline>
+          </svg>
+                </div>
+
+        <h1>all done!</h1>
+
+
+        <p>Your message has been sent succesfully! <br /> We will get in touch soon.</p>
+
+       <div className='buttons'>
+            <button onClick={() => setCompleted(false)} className="a"> Close</button>
+        </div>
+
+          </div>
+          </div>
+      )}
+
+      {notCompleted && (
+        <div className='checkout-popup'>
+
+
+          <div className='checkout-container'>
+
+          <div className=" error">
+         <h1>X</h1>
+           </div>
+
+        <h1>oops!</h1>
+
+
+        <p>Something went wrong, your message didnt go through! <br /> Please try again.</p>
+
+       <div className='buttons'>
+            <button onClick={() => setNotCompleted(false)} className="a again"> try again</button>
+        </div>
+
+          </div>
+          </div>
+      )}
       </div>
     </div>
   );

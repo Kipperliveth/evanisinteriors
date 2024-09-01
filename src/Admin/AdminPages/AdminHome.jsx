@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import AdminDashboard from "../AdminComponents/AdminDashboard";
 
 function AdminHome() {
+  useEffect(()=> {
+    document.title = "Admin-Evanis interiors";
+  })
   return (
     <div className="adminHome">
       <AdminDashboard />
