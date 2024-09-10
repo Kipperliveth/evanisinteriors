@@ -52,7 +52,7 @@ function Home() {
               data-aos-delay="400"
             >
               <button className="cta">
-                <NavLink to='/login' className='span'>Get Started</NavLink>
+                <NavLink to='/shop' className='span'>Get Started</NavLink>
                 <FaAngleRight />
               </button>
             </div>
@@ -70,7 +70,7 @@ function Home() {
 
           <div className="shop-items">
             <NavLink
-              to="/store"
+              to="/shop"
               className="clm one"
               data-aos="fade-left"
               data-aos-duration="1000"
@@ -83,7 +83,7 @@ function Home() {
             </NavLink>
 
             <NavLink
-              to="/store"
+              to="/shop"
               className="clm two"
               data-aos="fade-left"
               data-aos-duration="1000"
@@ -96,7 +96,7 @@ function Home() {
             </NavLink>
 
             <NavLink
-              to="/store"
+              to="/shop"
               className="clm three"
               data-aos="fade-left"
               data-aos-duration="1000"
@@ -109,7 +109,7 @@ function Home() {
             </NavLink>
 
             <NavLink
-              to="/store"
+              to="/shop"
               className="clm four"
               data-aos="fade-left"
               data-aos-duration="1000"

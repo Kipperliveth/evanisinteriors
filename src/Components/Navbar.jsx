@@ -45,10 +45,13 @@ function Navbar() {
     "/", "/marketplace", "/store", "/address", "/userMasterclass", "/userDashboard",
     "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",
     "/notifications", "/uploads", "/onboarding", "/profilePic", "/editAddress",
-    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact','/reset', '/shop'
+    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact','/reset', '/shop', '/shop/*'
   ];
 
-  const shouldHideComponent = hiddenPaths.includes(location.pathname) || !allPaths.includes(location.pathname);
+  const shouldHideComponent =
+  hiddenPaths.includes(location.pathname) ||
+  (!allPaths.includes(location.pathname) && !location.pathname.startsWith("/shop/"));
+
 
   return (
     <div style={{ display: shouldHideComponent ? "none" : "block" }}>

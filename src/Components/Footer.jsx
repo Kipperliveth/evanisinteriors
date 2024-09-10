@@ -1,9 +1,9 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { FaInstagram } from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
 import { FaWhatsapp } from "react-icons/fa";
 import { MdMailOutline } from "react-icons/md";
+import { IoLogoTiktok } from "react-icons/io5";
 import logo from "../stock/logomain.png";
 
 function Footer() {
@@ -52,10 +52,18 @@ function Footer() {
             </div>
 
             <div className="socials">
+              <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
               <FaInstagram className="footer-icon" />
-              <FaXTwitter className="footer-icon" />
+              </a>
+              <a href="">
+              <IoLogoTiktok className="footer-icon" />
+              </a>
+              <a href="">
               <FaWhatsapp className="footer-icon" />
+              </a>
+              <a href="">
               <MdMailOutline className="footer-icon" />
+              </a>
             </div>
           </div>
 

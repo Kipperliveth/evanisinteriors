@@ -470,6 +470,33 @@
                         }
                     }
                 }
+
+                .share{
+                    display: flex;
+                    flex-direction: column;
+                    gap: .5rem;
+                    padding-top: .5rem;
+
+                    p{
+                        display: flex;
+                        align-items: center;
+                        gap: .35rem;
+                    }
+
+                    button{
+                        cursor: pointer;
+                        padding-block: 10px;
+                        background: #eee;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: .5em;
+                        border: hsl(0, 0%, 73%);
+                        border-radius: 10px;
+                        font-weight: 500;
+                        box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+                    }
+                }
             }
           }
 

@@ -23,9 +23,14 @@ import { txtdb } from "../../firebase-config";
 import { IoIosArrowBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import { MdCancel } from "react-icons/md";
+import { useParams } from "react-router-dom";
+import { FaRegShareFromSquare } from "react-icons/fa6";
+import { FaLink } from "react-icons/fa6";
 
 
 function Store() {
+  const { productId } = useParams();
+
   const [showPopup, setShowPopup] = useState(false);
 const [removedPopup, setremovedPopup] = useState(false);
 const [variationPopup, setVariationPopup] = useState(false)
@@ -180,11 +185,15 @@ const [variationPopup, setVariationPopup] = useState(false)
   const handleProductClick = (productData) => {
     setIsProductModalOpen(true);
     setSelectedProductData(productData); // Store clicked product data
+    //
+   // Update the URL with product ID
+  navigate(`/store/${productData.id}`);
   };
 
   const handleCloseModal = () => {
     setIsProductModalOpen(false);
     setSelectedProductData(null); // Clear selected product on close
+    navigate(`/shop`);
   };
 
   //get data
@@ -407,6 +416,37 @@ const [variationPopup, setVariationPopup] = useState(false)
 function handleSizeSelect(size) {
   setSelectedSize(size);
 }
+
+useEffect(() => {
+  if (productId) {
+    const product = data.find((item) => item.id === productId);
+    if (product) {
+      setSelectedProductData(product);
+      setIsProductModalOpen(true); // Automatically open modal if product ID exists
+    }
+  }
+}, [productId, data]);
+
+
+//sharing
+const [buttonText, setButtonText] = useState("Copy Link"); // Initial button text
+
+const shareLink = window.location.href; // Get the current URL
+
+const handleShare = () => {
+  navigator.clipboard.writeText(shareLink) // Copy the URL to the clipboard
+    .then(() => {
+      setButtonText("Copied!"); // Change button text to 'Copied!' after copying
+
+      // Reset the button text back to 'Copy Link' after 3 seconds
+      setTimeout(() => {
+        setButtonText("Copy Link");
+      }, 3000);
+    })
+    .catch((err) => {
+      console.error('Failed to copy the link', err);
+    });
+};
 
 
 
@@ -646,6 +686,13 @@ function handleSizeSelect(size) {
                           <button onClick={() => popupcart(selectedProductData)}>Add to Cart</button>
                         )
                       )}
+              </div>
+
+              <div className="share">
+                     <p>
+                        Share this  product <FaRegShareFromSquare />
+                     </p>
+                      <button  onClick={handleShare}>{buttonText}<FaLink /></button>
               </div>
 
               </div>

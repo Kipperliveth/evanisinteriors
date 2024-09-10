@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 import { AiOutlineForm } from "react-icons/ai";
 import { VscSend } from "react-icons/vsc";
 import { FaInstagram } from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
+import { IoLogoTiktok } from "react-icons/io5";
 import { FaWhatsapp } from "react-icons/fa";
 import { MdMailOutline } from "react-icons/md";
 import "aos/dist/aos.css";
@@ -128,10 +128,18 @@ function Contact() {
               </button>
 
               <div className="form-socials">
-                <FaInstagram className="icon" />
-                <FaXTwitter className="icon" />
-                <FaWhatsapp className="icon" />
-                <MdMailOutline className="icon" />
+              <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
+              <FaInstagram className="footer-icon" />
+              </a>
+              <a href="">
+              <IoLogoTiktok className="footer-icon" />
+              </a>
+              <a href="">
+              <FaWhatsapp className="footer-icon" />
+              </a>
+              <a href="">
+              <MdMailOutline className="footer-icon" />
+              </a>
               </div>
             </form>
           </div>

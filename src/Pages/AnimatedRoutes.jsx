@@ -78,6 +78,8 @@ function AnimatedRoutes() {
         <Route path="/onboarding/address" element={<Address />}/>
 
 
+        <Route path="/shop/:productId" element={<Shop />} /> {/* Dynamic product route */}
+        <Route path="/store/:productId" element={<Store />} /> {/* Dynamic product route */}
 
 
 

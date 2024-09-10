@@ -200,6 +200,8 @@ function Post() {
               <option value="Purple">Purple</option>
               <option value="Pink" >Pink</option>
               <option value="Blue" >Blue</option>
+              <option value="Brown" >Brown</option>
+              <option value="Biege" >Biege</option>
             </select>
 
 
