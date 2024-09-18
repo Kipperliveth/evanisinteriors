@@ -168,7 +168,6 @@ function Post() {
             >
               <option value="">Select Category</option>
               <option value="Sitting">Sitting</option>
-              <option value="Curtains">Curtains</option>
               <option value="Room">Room</option>
               <option value="Tables">Tables</option>
               <option value="Lights">Lights</option>

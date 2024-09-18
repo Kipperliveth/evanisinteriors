@@ -13,7 +13,7 @@ import {
 import { CiSearch } from "react-icons/ci";
 import all from "../../stock/allmain.png";
 import sitting from "../../stock/couchicon.png";
-import curtains from "../../stock/curtainicon.png";
+// import curtains from "../../stock/curtainicon.png";
 import room from "../../stock/roomicon.png";
 import lights from "../../stock/lighticon.png";
 import tables from "../../stock/tableicon.png";
@@ -488,12 +488,12 @@ const handleShare = () => {
               <p>Sitting</p>
             </span>
 
-            <span className="category-name">
+            {/* <span className="category-name">
               <button onClick={() => handleCategoryClick("Curtains")}>
                 <img src={curtains} alt="" />
               </button>
               <p>Curtains</p>
-            </span>
+            </span> */}
 
             <span className="category-name">
               <button onClick={() => handleCategoryClick("Tables")}>

@@ -2,15 +2,17 @@ import React from "react";
 import { useState, useEffect } from "react";
 import AdminDashboard from "../AdminComponents/AdminDashboard";
 import { txtdb } from "../../firebase-config";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { CiSearch } from "react-icons/ci";
 import all from "../../stock/allmain.png";
 import sitting from "../../stock/couchicon.png";
-import curtains from "../../stock/curtainicon.png";
+// import curtains from "../../stock/curtainicon.png";
 import room from "../../stock/roomicon.png";
 import lights from "../../stock/lighticon.png";
 import tables from "../../stock/tableicon.png";
 import storageicon from "../../stock/storageicon.png";
+import { IoCloudUploadOutline } from "react-icons/io5";
+import { IoIosArrowBack } from "react-icons/io";
 
 function Uploads() {
   const [data, setData] = useState([]);
@@ -19,6 +21,9 @@ function Uploads() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const [selectedPost, setSelectedPost] = useState(null); // State for selected post
+  const [showModal, setShowModal] = useState(false); // State to toggle modal visibility
 
   const getData = async () => {
     const valRef = collection(txtdb, "txtData");
@@ -70,6 +75,25 @@ function Uploads() {
     });
   }, []);
 
+  //edit
+  const handleEditClick = (post) => {
+    setSelectedPost(post);
+    setShowModal(true);
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const postDoc = doc(txtdb, "txtData", selectedPost.id);
+      await updateDoc(postDoc, selectedPost);
+      getData(); // Refresh data after update
+      setShowModal(false); // Close modal
+    } catch (error) {
+      console.error("Error updating document: ", error);
+    }
+  };
+
+
+
   return (
     <div className="adminHome">
       <AdminDashboard />
@@ -112,12 +136,12 @@ function Uploads() {
               <p>Sitting</p>
             </span>
 
-            <span className="category-name">
+            {/* <span className="category-name">
               <button onClick={() => handleCategoryClick("Curtains")}>
                 <img src={curtains} alt="" />
               </button>
               <p>Curtains</p>
-            </span>
+            </span> */}
 
             <span className="category-name">
               <button onClick={() => handleCategoryClick("Tables")}>
@@ -208,16 +232,58 @@ function Uploads() {
                             <p className="product-description">{value.desc}</p>
 
                             <p className="product-category">{value.category}</p>
+
+                            <p className="product-price">&#8358;&nbsp;{parseFloat(value.price).toLocaleString('en-US')}</p>
                             <span>
-                              <p className="product-price">&#8358;&nbsp;{parseFloat(value.price).toLocaleString('en-US')}</p>
-                              <button onClick={() => deleteItem(value.id)}>Delete</button>
+                              <button className="edit-btn"  onClick={() => handleEditClick(value)} >Edit</button>
+                             
+                              <button className="delete-btn" onClick={() => deleteItem(value.id)}>Delete</button>
                             </span>
                           </div>
                         </div>
                     ) ))}
           </div>
         )}
+        
       </div>
+
+
+        {/* Modal Popup */}
+        {showModal && selectedPost && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Edit Product Details</h2>
+
+            <input
+              type="text"
+              value={selectedPost.txtVal}
+              onChange={(e) =>
+                setSelectedPost({ ...selectedPost, txtVal: e.target.value })
+              }
+            />
+            <textarea
+              value={selectedPost.desc}
+              onChange={(e) =>
+                setSelectedPost({ ...selectedPost, desc: e.target.value })
+              }
+            />
+            <input
+              type="number"
+              value={selectedPost.price}
+              onChange={(e) =>
+                setSelectedPost({ ...selectedPost, price: e.target.value })
+              }
+            />
+
+            <div className="edit-buttons">
+            <button className="close" onClick={() => setShowModal(false)}>Close</button>
+            <button className="upload" onClick={handleUpdate}>Update <IoCloudUploadOutline className="icon" /> </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

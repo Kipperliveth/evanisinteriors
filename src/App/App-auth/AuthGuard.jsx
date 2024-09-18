@@ -7,8 +7,10 @@ import { PuffLoader } from "react-spinners";
 
 const ProtectedRoute = ({  children }) => {
   const [user, loading, error] = useAuthState(auth);
+  const admin = "CqhQfMc1LZdNCUgixbXpYT0SGaG2";  // Define the allowed UID here
 
-  if (loading) {
+
+  if (loading || user.uid !== admin) {
     // You can return a loading spinner or placeholder here
     return <div className="spinner-container">
           <PuffLoader color=" #888" size={25} />

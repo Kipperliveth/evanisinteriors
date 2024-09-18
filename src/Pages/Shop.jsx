@@ -19,7 +19,7 @@ import { IoIosArrowBack } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import all from "../stock/allmain.png";
 import sitting from "../stock/couchicon.png";
-import curtains from "../stock/curtainicon.png";
+// import curtains from "../stock/curtainicon.png";
 import room from "../stock/roomicon.png";
 import lights from "../stock/lighticon.png";
 import tables from "../stock/tableicon.png";
@@ -28,8 +28,21 @@ import { useParams } from "react-router-dom";
 import { FaRegShareFromSquare } from "react-icons/fa6";
 import { FaLink } from "react-icons/fa6";
 
+import { useLocation } from "react-router-dom";
+
+// Helper function to get the query parameter value
+function useQuery() {
+  return new URLSearchParams(useLocation().search);
+}
+
 
 function Shop() {
+
+  const query = useQuery();
+  const category = query.get("category") || "All";  // Get category from the query param
+
+
+
   const { productId } = useParams();
 
   const navigate = useNavigate();
@@ -208,6 +221,17 @@ const handleShare = () => {
 };
 
 
+//
+useEffect(() => {
+  if (category === "All") {
+    setFilteredData(data);  // Show all items if 'All' is selected
+  } else {
+    const filtered = data.filter(item => item.category.toLowerCase() === category.toLowerCase());
+    setFilteredData(filtered);  // Filter data by the selected category
+  }
+}, [category, data]);
+
+
 
   return (
     <div className="theStore ">
@@ -247,12 +271,12 @@ const handleShare = () => {
               <p>Sitting</p>
             </span>
 
-            <span className="category-name">
+            {/* <span className="category-name">
               <button onClick={() => handleCategoryClick("Curtains")}>
                 <img src={curtains} alt="" />
               </button>
               <p>Curtains</p>
-            </span>
+            </span> */}
 
             <span className="category-name">
               <button onClick={() => handleCategoryClick("Tables")}>

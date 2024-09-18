@@ -70,7 +70,7 @@ function Home() {
 
           <div className="shop-items">
             <NavLink
-              to="/shop"
+           to="/shop?category=sitting"
               className="clm one"
               data-aos="fade-left"
               data-aos-duration="1000"
@@ -83,7 +83,7 @@ function Home() {
             </NavLink>
 
             <NavLink
-              to="/shop"
+               to="/shop?category=tables"
               className="clm two"
               data-aos="fade-left"
               data-aos-duration="1000"
@@ -96,7 +96,7 @@ function Home() {
             </NavLink>
 
             <NavLink
-              to="/shop"
+               to="/shop?category=storage"
               className="clm three"
               data-aos="fade-left"
               data-aos-duration="1000"
