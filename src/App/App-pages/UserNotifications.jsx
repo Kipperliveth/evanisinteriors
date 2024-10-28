@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import UserNav from "../App-components/UserNav";
-import { collection, query, orderBy, deleteDoc, addDoc,doc, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, deleteDoc, addDoc,doc, onSnapshot, getDocs } from "firebase/firestore";
 import { txtdb } from "../../firebase-config";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase-config";
@@ -260,7 +260,7 @@ useEffect(() => {
         ...doc.data(),
         timestamp: timestamp.toLocaleString([], {
           day: "numeric",
-          month: "long",
+          month: "short",
           year: "numeric",
         }),
       };
@@ -301,7 +301,7 @@ useEffect(() => {
         ...doc.data(),
         timestamp: timestamp.toLocaleString([], {
           day: "numeric",
-          month: "long",
+          month: "short",
           year: "numeric",
         }),
       };
@@ -374,7 +374,7 @@ useEffect(() => {
         ...doc.data(),
         timestamp: timestamp.toLocaleString([], {
           day: "numeric",
-          month: "long",
+          month: "short",
           year: "numeric",
         }),
       };
@@ -443,7 +443,7 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
             ...doc.data(),
             timestamp: timestamp.toLocaleString([], {
               day: "numeric",
-              month: "long",
+              month: "short",
               year: "numeric",
             }),
           };
@@ -483,7 +483,7 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
             ...doc.data(),
             timestamp: timestamp.toLocaleString([], {
               day: "numeric",
-              month: "long",
+              month: "short",
               year: "numeric",
             }),
           };
@@ -498,6 +498,28 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
       return () => unsubscribe();
     }, [user]);
 
+//notification count
+    const deleteAllNotifications = async () => {
+      const userId = user.uid;
+
+      const notificationCollectionRef = collection(txtdb, `userNotifications/${userId}/notificationCount`);
+      
+      try {
+        const querySnapshot = await getDocs(notificationCollectionRef);
+        querySnapshot.forEach((doc) => {
+          deleteDoc(doc.ref);
+        });
+        console.log('All documents in notificationCount deleted successfully');
+      } catch (error) {
+        console.error('Error deleting documents:', error);
+      }
+    };
+
+    useEffect(() => {
+      deleteAllNotifications();
+    },);
+
+
   return (
     <div>
 
@@ -508,10 +530,6 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
         <div className="notification-container page">
 
         <h1>Notifications</h1>
-
-        {(notifications.length > 0 || deliveredNotifications.length > 0 || readyForDelivery.length> 0 || readyForPickup.length > 0 )? (
-          <p className="recent"><span></span>New<span></span></p>
-        ) : ('')}
 
         <div>
         {isLoading ? (
@@ -575,7 +593,7 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
                 <h5>Thank You!</h5>
                 <span>
 
-                <p className="date">{delivered.timestamp}</p> <button onClick={() => handleMarkDeliveredNotificationAsRead(delivered)}>Mark as Read</button>
+                <p className="date">{delivered.timestamp}</p> 
                 
                 </span>
             </div>
@@ -597,7 +615,7 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
                     <p>We will contact you soon for the drop-off.</p>
                     <span>
 
-                    <p className="date">{forDelivery.timestamp}</p> <button onClick={() => handleMarkDeliveryNotificationAsRead(forDelivery)}>Mark as Read</button>
+                    <p className="date">{forDelivery.timestamp}</p>
                     
                     </span>
                 </div>
@@ -615,12 +633,11 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
                 <div className="left"> <LuPackage  className="icon"/></div>
 
                 <div className="right">
-                    <h4>Your order with ID: {forPickup.orderRefId} is ready for Pickup </h4>
-                    <p>We will contact you soon for the drop-off.</p>
+                    <h4>Your order with ID: {forPickup.orderRefId} has been Shipped </h4>
+                    <p>We will contact you when it's ready to be delivered.</p>
                     <span>
 
-                    <p className="date">{forPickup.timestamp}</p> <button onClick={() => handleMarkPickupNotificationAsRead(forPickup)}>Mark as Read</button>
-                    
+                    <p className="date">{forPickup.timestamp}</p> 
                     </span>
                 </div>
 
@@ -644,160 +661,7 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
                     <h5>To track your order please contact Evanis Interiors via Email</h5>
                     <span>
 
-                    <p className="date">{notification.timestamp}</p> <button onClick={() => handleMarkNotificationAsRead(notification)}>Mark as Read</button>
-                    
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
-
-          
-
-            </div>
-        )}
-
-        </div>
-
-        {(readNotifications.length > 0 || readDeliveredNotifications.length > 0 || readPickupNotification.length > 0 || readDeliveryNotification.length > 0 ) ? (
-          <p className="recent older"><span></span>Older<span></span></p>
-
-        ) : ('')}
-
-        <div className="read">
-        {isLoading ? (
-          <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-          </div>
-        ) : (
-            <div className="readnotificationa">
-
-              <div className="delivered notifications">
-            
-              {readDeliveredNotifications.map((readdelivered) => (
-
-                  <div className="container notification" key={readdelivered.id}>
-                          <div className="left"> <CiDeliveryTruck className="icon"/></div>
-
-              <div className="right">
-                  <h4>Your order with ID: {readdelivered.orderRefId} has been Delivered </h4>
-                  <p style={{ fontWeight: '500' }}>on {readdelivered.timestamp} </p>
-                  <p>Use the live chat feature to reach us if you have any queries about this order</p>
-                  <h5>Thank You!</h5>
-                  <span>
-
-                  <p className="date">{readdelivered.timestamp}</p> <button>Read</button>
-                  
-                  </span>
-              </div>
-              
-                  </div>
-
-              ))}
-            </div>
-
-            <div className="delivery notifications"> 
-            {readDeliveryNotification.map((ReadforDelivery) => (
-
-              <div className="notification" key={ReadforDelivery.id}>
-
-                <div className="left"> <TbTruckDelivery  className="icon"/></div>
-
-                <div className="right">
-                    <h4>Your order with ID: {ReadforDelivery.orderRefId} is out for Delivery </h4>
-                    <p>We will contact you soon for the drop-off.</p>
-                    <span>
-
-                    <p className="date">{ReadforDelivery.timestamp}</p> <button>Read</button>
-                    
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
-
-            <div className="pickup notifications"> 
-            {readPickupNotification.map((ReadforPickup) => (
-
-              <div className="notification" key={ReadforPickup.id}>
-
-                <div className="left"> <LuPackage  className="icon"/></div>
-
-                <div className="right">
-                    <h4>Your order with ID: {ReadforPickup.orderRefId} is ready for Pickup </h4>
-                    <p>We will contact you soon for the drop-off.</p>
-                    <span>
-
-                    <p className="date">{ReadforPickup.timestamp}</p> <button>Read</button>
-                    
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
-
-            <div className="notifications">
-            {readNotifications.map((readNotification) => (
-
-              <div className="notification" key={readNotification.id}>
-
-                <div className="left"> <PiNotePencilLight className="icon"/></div>
-
-                <div className="right">
-                <h4>Your order with ID: {readNotification.orderRefId} has been confirmed </h4>
-                    <p>Expected delivery for this item to {readNotification.state} is between {readNotification.formattedDate15DaysFromNow} and {readNotification.formattedDate20DaysFromNow}</p>
-                    <p>Please note that delivery fees are paid for seperately</p>
-                    <p>Use the live chat feature to inquire shipping fees</p>
-                    <h5>To track your order please contact Evanis Interiors via Email</h5>
-                    <span>
-
-                    <p className="date">{readNotification.timestamp}</p> <button>Read</button>
+                    <p className="date">{notification.timestamp}</p> 
                     
                     </span>
                 </div>
@@ -812,9 +676,6 @@ const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
 
         </div>
 
-        {notifications.length === 0 && readNotifications.length === 0 && readyForPickup.length === 0 && readDeliveredNotifications.length === 0 && readyForDelivery.length === 0 && deliveredNotifications.length === 0 && readPickupNotification.length === 0 && readDeliveryNotification.length === 0 &&(
-          <p className="no-notifications">Your notifications will show here</p>
-        )}
 
       </div>
 

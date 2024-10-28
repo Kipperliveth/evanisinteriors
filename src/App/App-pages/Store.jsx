@@ -56,7 +56,7 @@ const [variationPopup, setVariationPopup] = useState(false)
 
     if (currentUser) {
       const userId = currentUser.uid;
-      const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
+      const productRef = collection(txtdb, `users/${userId}/products`); // User-specific cart collection
       
 
       if(product.sizes.length > 0 || product.color.length > 0){
@@ -83,14 +83,17 @@ const [variationPopup, setVariationPopup] = useState(false)
           desc: product.desc,
           category: product.category,
           price: product.price,
-          quantity: 1
+          quantity: 1,
+          productnumber: selectedProductData.id,
+          isInStock: true
           // Other product details
         })
         .then((docRef) => {
           console.log("Product added to user cart");
           const documentId = docRef.id;
-          updateDoc(doc(txtdb, `userCart/${userId}/products/${documentId}`), {
+          updateDoc(doc(txtdb, `users/${userId}/products/${documentId}`), {
             productId: docRef.id,
+            
           });
           setShowPopup(true);
           setTimeout(() => {
@@ -109,7 +112,10 @@ const [variationPopup, setVariationPopup] = useState(false)
           desc: product.desc,
           category: product.category,
           price: product.price,
-          quantity: 1
+          quantity: 1,
+          productnumber: product.id,
+          isInStock: true
+
           // Other product details
         })
         .then(() => {
@@ -136,7 +142,7 @@ const [variationPopup, setVariationPopup] = useState(false)
   useEffect(() => {
     if (currentUser) {
       const userId = currentUser.uid;
-      const cartRef = collection(txtdb, `userCart/${userId}/products`);
+      const cartRef = collection(txtdb, `users/${userId}/products`);
       const unsubscribe = onSnapshot(cartRef, (querySnapshot) => {
         const cartItems = querySnapshot.docs.map((doc) => doc.data());
         setCartItems(cartItems);
@@ -150,7 +156,7 @@ const [variationPopup, setVariationPopup] = useState(false)
     const removeFromCart = async (productId) => {
       if (currentUser) {
         const userId = currentUser.uid;
-        const cartRef = collection(txtdb, `userCart/${userId}/products`); // Reference the collection of products in the user's cart
+        const cartRef = collection(txtdb, `users/${userId}/products`); // Reference the collection of products in the user's cart
         try {
           // Query the cart collection to find the document that contains the product with the given ID
           const querySnapshot = await getDocs(cartRef);
@@ -193,7 +199,7 @@ const [variationPopup, setVariationPopup] = useState(false)
   const handleCloseModal = () => {
     setIsProductModalOpen(false);
     setSelectedProductData(null); // Clear selected product on close
-    navigate(`/shop`);
+    navigate(`/store`);
   };
 
   //get data
@@ -253,7 +259,7 @@ const [variationPopup, setVariationPopup] = useState(false)
 
     if (currentUser) {
       const userId = currentUser.uid;
-      const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
+      const productRef = collection(txtdb, `users/${userId}/products`); // User-specific cart collection
 
       if(selectedProductData.color.length > 0 ||  selectedProductData.sizes.length > 0){
 
@@ -279,12 +285,14 @@ const [variationPopup, setVariationPopup] = useState(false)
           price: selectedProductData.price,
           quantity: 1,
           color: selectedColor,
+          productnumber: selectedProductData.id,
+          isInStock: true
           // Other product details
         })
         .then((docRef) => {
           console.log("Product added to user cart");
           const documentId = docRef.id;
-          updateDoc(doc(txtdb, `userCart/${userId}/products/${documentId}`), {
+          updateDoc(doc(txtdb, `users/${userId}/products/${documentId}`), {
             productId: docRef.id,
           });
           setShowPopup(true);
@@ -335,7 +343,7 @@ const [variationPopup, setVariationPopup] = useState(false)
 
     if (currentUser) {
       const userId = currentUser.uid;
-      const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
+      const productRef = collection(txtdb, `users/${userId}/products`); // User-specific cart collection
     
      if(selectedProductData.color.length > 0 ||  selectedProductData.sizes.length > 0){
 
@@ -361,12 +369,14 @@ const [variationPopup, setVariationPopup] = useState(false)
           price: selectedProductData.price,
           quantity: 1,
           color: selectedColor,
+          productnumber: selectedProductData.id,
+          isInStock: true
           // Other product details
         })
         .then((docRef) => {
           console.log("Product added to user cart");
           const documentId = docRef.id;
-          updateDoc(doc(txtdb, `userCart/${userId}/products/${documentId}`), {
+          updateDoc(doc(txtdb, `users/${userId}/products/${documentId}`), {
             productId: docRef.id,
           });
           setShowPopup(true);
@@ -591,9 +601,12 @@ const handleShare = () => {
                       </p>
                       {isInCart ? (
                         <button onClick={() => removeFromCart(product.id)}>Remove</button>
-                      ) : (
+                      ) : product.isInStock ? (
                         <button onClick={() => addToCart(product)}>Add to Cart</button>
+                      ) : (
+                        <button style={{ backgroundColor: 'grey' }}>Sold Out</button>
                       )}
+
                     </span>
                   </div>
                 </div>
@@ -662,31 +675,27 @@ const handleShare = () => {
               
               {/* ... other product details ... */}
               <div className="buy-now">
-               
+                {/* Check if product is sold out */}
+                {selectedProductData.isInStock ? (
+                  cartItems.some(item => item.productId === selectedProductData.id) ? (
+                    <button onClick={() => gotocart()}>Buy now</button>
+                  ) : (
+                    <button onClick={() => buynow(selectedProductData)}>Buy Now</button>
+                  )
+                ) : (
+                  <button style={{ backgroundColor: 'grey', color: "white" }}>Sold Out</button>
+                )}
 
-              {
-                        selectedProductData.txtVal === "Vybez Universe X Unifest Shorts" || selectedProductData.txtVal === "Vybez Universe X Unifest Shirt" || selectedProductData.txtVal === "Vybez Universe Hoodie"  ? (
-                          <button style={{ backgroundColor: 'grey', color: "white" }}>Sold Out</button>
-                        ) : (
-                          cartItems.some(item => item.productId === selectedProductData.id) ? (
-                            <button onClick={() => gotocart()}>Buy now</button>
-                          ) : (
-                            <button  onClick={() => buynow(selectedProductData)}>Buy Now</button>
-                          )
-                        )
-                      }
-
-             
-                      {cartItems.some(item => item.productId === selectedProductData.id) ? (
-                        <button onClick={() => removeFromCart(selectedProductData.id)}>Remove from cart</button>
-                      ) : (
-                        selectedProductData.txtVal === "Vybez Universe X Unifest Shorts" || selectedProductData.txtVal === "Vybez Universe X Unifest Shirt" || selectedProductData.txtVal === "Vybez Universe Hoodie"  ? (
-                          <button style={{ backgroundColor: 'grey', color: "white" }}>Sold Out</button>
-                        ) : (
-                          <button onClick={() => popupcart(selectedProductData)}>Add to Cart</button>
-                        )
-                      )}
+                {/* Remove from cart or add to cart */}
+                {cartItems.some(item => item.productId === selectedProductData.id) ? (
+                  <button onClick={() => removeFromCart(selectedProductData.id)}>Remove from cart</button>
+                ) : selectedProductData.isInStock ? (
+                  <button onClick={() => popupcart(selectedProductData)}>Add to Cart</button>
+                ) : (
+                  <button style={{ backgroundColor: 'grey', color: "white" }}>Sold Out</button>
+                )}
               </div>
+
 
               <div className="share">
                      <p>

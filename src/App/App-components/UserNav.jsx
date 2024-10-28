@@ -72,7 +72,7 @@ function UserNav() {
 
     if (currentUser) {
       const userId = currentUser.uid;
-      const productRef = collection(txtdb, `userCart/${userId}/products`); // User-specific cart collection
+      const productRef = collection(txtdb, `users/${userId}/products`); // User-specific cart collection
 
       try {
         const querySnapshot = await getDocs(productRef);
@@ -96,7 +96,7 @@ function UserNav() {
       fetchProducts();
   
       // Listen for changes to the cart collection in real-time
-      const unsubscribe = onSnapshot(collection(txtdb, `userCart/${currentUser.uid}/products`), (snapshot) => {
+      const unsubscribe = onSnapshot(collection(txtdb, `users/${currentUser.uid}/products`), (snapshot) => {
         const updatedProducts = snapshot.docs.map((doc) => doc.data());
         const totalCount = updatedProducts.length;
         setCartItemCount(totalCount);
@@ -132,7 +132,7 @@ function UserNav() {
 
     const userId = user.uid;
     const q = query(
-      collection(txtdb, `userNotifications/${userId}/inbox`),
+      collection(txtdb, `userNotifications/${userId}/notificationCount`),
       orderBy("timestamp", "desc")
     );
 

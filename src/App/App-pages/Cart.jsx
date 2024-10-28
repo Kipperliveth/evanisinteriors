@@ -40,7 +40,7 @@ function Cart() {
   
     if (currentUser) {
       const userId = currentUser.uid;
-      const productRef = collection(txtdb, `userCart/${userId}/products`);
+      const productRef = collection(txtdb, `users/${userId}/products`);
       try {
         const querySnapshot = await getDocs(productRef);
         const products = querySnapshot.docs.map((doc) => {
@@ -63,13 +63,14 @@ function Cart() {
       }
     }
   };
+  
 
   // Inside the fetchProducts function
 useEffect(() => {
   if (currentUser) {
     fetchProducts();
 
-  const unsubscribe = onSnapshot(collection(txtdb, `userCart/${currentUser.uid}/products`), (snapshot) => {
+  const unsubscribe = onSnapshot(collection(txtdb, `users/${currentUser.uid}/products`), (snapshot) => {
     const updatedProducts = [];
     snapshot.forEach((doc) => {
       updatedProducts.push({ id: doc.id, ...doc.data() });
@@ -86,7 +87,7 @@ useEffect(() => {
 //
 const handleDeleteProduct = async (productId) => {
   const userId = currentUser.uid;
-  const productRef = collection(txtdb, `userCart/${userId}/products`);
+  const productRef = collection(txtdb, `users/${userId}/products`);
   const querySnapshot = await getDocs(query(productRef, where("productId", "==", productId)));
 
   try {
@@ -101,14 +102,19 @@ const handleDeleteProduct = async (productId) => {
 };
 
   // Calculate total price of products in the cart
-const getTotalPrice = () => {
-  let totalPrice = 0;
-  fetchedProducts.forEach((product) => {
-    totalPrice += parseFloat(product.price) *
-    ( product.quantity).toLocaleString('en-US');
-  });
-  return totalPrice.toLocaleString('en-US', { style: 'currency', currency: 'NGN' });
-};
+  const getTotalPrice = () => {
+    return fetchedProducts.reduce((total, product) => {
+      if (product.isInStock) {
+        return total + parseFloat(product.price) * product.quantity;
+      }
+      return total; // Ignore out-of-stock items
+    }, 0).toLocaleString("en-US");
+  };
+  
+  const totalItems = fetchedProducts.reduce((count, product) => {
+    return product.isInStock ? count + product.quantity : count; // Only count in-stock items
+  }, 0);
+  
 //
 
 
@@ -153,7 +159,7 @@ setProductQuantities(productQuantities)
 const handleIncreaseQuantity = async (productId) => {
   try {
     const userId = currentUser.uid;
-    const productQuery = query(collection(txtdb, `userCart/${userId}/products`), where("productId", "==", productId));
+    const productQuery = query(collection(txtdb, `users/${userId}/products`), where("productId", "==", productId));
     const querySnapshot = await getDocs(productQuery);
 
     if (!querySnapshot.empty) {
@@ -181,21 +187,26 @@ const handleIncreaseQuantity = async (productId) => {
 const handleDecreaseQuantity = async (productId) => {
   try {
     const userId = currentUser.uid;
-    const productRef = collection(txtdb, `userCart/${userId}/products`);
+    const productRef = collection(txtdb, `users/${userId}/products`);
     const querySnapshot = await getDocs(query(productRef, where("productId", "==", productId)));
 
     if (!querySnapshot.empty) {
       // If a document with the matching product ID is found, update its quantity
       const docSnapshot = querySnapshot.docs[0];
       const productData = docSnapshot.data();
-      const newQuantity = Math.max((productData.quantity || 0) - 1, 0);
-      await setDoc(docSnapshot.ref, { ...productData, quantity: newQuantity });
+      const currentQuantity = productData.quantity || 0;
 
-      // Update the local state
-      setProductQuantities((prevQuantities) => ({
-        ...prevQuantities,
-        [productId]: newQuantity,
-      }));
+      // Prevent quantity from going below 1
+      if (currentQuantity > 1) {
+        const newQuantity = currentQuantity - 1;
+        await setDoc(docSnapshot.ref, { ...productData, quantity: newQuantity });
+
+        // Update the local state
+        setProductQuantities((prevQuantities) => ({
+          ...prevQuantities,
+          [productId]: newQuantity,
+        }));
+      }
     } else {
       console.error("Product not found in the cart.");
     }
@@ -205,7 +216,7 @@ const handleDecreaseQuantity = async (productId) => {
 };
 
 // Inside the Cart component
-const totalItems = fetchedProducts.reduce((total, product) => total + product.quantity, 0);
+// const totalItems = fetchedProducts.reduce((total, product) => total + product.quantity, 0);
 
 //address
  const [addressData, setAddressData] = useState({
@@ -296,6 +307,30 @@ const [completed, setCompleted] = useState(false)
 const [orderID, setOrderID] = useState(""); // New state variable for Order ID
 
 
+//delete cart
+// Function to delete all documents in the user's cart
+const deletecart = async () => {
+  try {
+    const userId = currentUser.uid;
+
+    // Get a reference to the user's cart collection
+    const productRef = collection(txtdb, `users/${userId}/products`);
+    // Fetch all documents in the user's cart collection
+    const querySnapshot = await getDocs(productRef);
+
+    // Create an array of delete promises for each document in the collection
+    const deletePromises = querySnapshot.docs.map((document) => 
+      deleteDoc(doc(txtdb, `users/${userId}/products`, document.id))
+    );
+
+    // Wait for all delete promises to resolve
+    await Promise.all(deletePromises);
+    console.log("All items in the cart have been deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting cart items:", error);
+  }
+};
+
 
 
 // order email
@@ -303,6 +338,64 @@ const userEmail = auth.currentUser?.email;
 const userName = user.displayName;
 
 //checkout logic
+//checkout logic
+const [notCompleted, setNotCompleted] = useState(false)
+
+console.log(window.PaystackPop,userEmail,  "pasystack" );
+const amount = getTotalPriceNumeric; // Total amount including shipping
+
+const check = () => {
+  if (!selectedShipping) {
+    setErrorMessage('Please choose a shipping option');
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 5000);
+    return;
+  }
+  
+  if (selectedShipping === "DOOR DELIVERY" && !addressData.addressLine1) {
+    setErrorMessage('Please add a Delivery Address');
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 5000);
+    return;
+  }
+  
+  if (selectedShipping === "PICKUP" && !addressData.addressPhone) {
+    setErrorMessage('Add a number for pick up');
+    setNotCompleted(true);
+    setTimeout(() => {
+      setErrorMessage('');
+    }, 5000);
+    return;
+  }
+  handlePaystackPayment()
+};
+
+const [transactionReference, setTransactionReference] = useState('')
+
+
+const handlePaystackPayment = async () => {
+  const paystackPublicKey = "pk_live_ebd855719072a4c2ac87beac3780b30f955d54c6";
+ 
+
+  const handler = window.PaystackPop.setup({
+    key: paystackPublicKey,
+    email: userEmail, 
+    amount: amount * 100, 
+    currency: 'NGN', 
+    callback: function(response) {
+      setTransactionReference(response.reference);
+      handleCheckout();
+    },
+    onClose: function() {
+      setTransactionReference('Payment was not completed');
+      console.warn('Payment was not completed')
+    }
+  });
+
+  handler.openIframe();
+};
 
 const handleCheckout = async () => {
   
@@ -335,6 +428,7 @@ setShowPopup(true);
       state: addressData.state,
       userEmail: userEmail,
       username: userName,
+      reference: transactionReference,
       formattedDate15DaysFromNow: formattedDate15DaysFromNow,
       formattedDate20DaysFromNow: formattedDate20DaysFromNow,
       createdAt: new Date(), // Store the current date and time as the creation date
@@ -342,125 +436,123 @@ setShowPopup(true);
   
 
    // Get the email content
-let emailContent = `
-Order Details:
-- Order ID: ${orderRef.id}
-
-- Items:
-`;
-// Loop through fetchedProducts array to include product name and quantity
-fetchedProducts.forEach((product, index) => {
-emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
-});
-
-// Add the total price and shipping address to the email content
-emailContent += `
-
-- Total: ${getTotalPriceNumeric} (Shipping fees not included)
-
-- Shipping Address:
-  ${addressData.addressLine1}
-  ${addressData.addressPhone}
-  ${addressData.city}
-  ${addressData.state}
-
-estimated delivery between ${formattedDate15DaysFromNow} and ${formattedDate20DaysFromNow}
-
-If you have any questions or need assistance, please don't contact our customer support team at [Customer Support Email Address] or visit our FAQs page: [FAQs Link].
-`;
-
-         
-
-    //  await sendEmailNotification(userEmail, orderRef.id);
-    emailjs.send("service_r60nfme", "template_max8cdd", {
-  to_email: userEmail,
-  userEmail: userEmail,
-  message: emailContent,
-  orderRefId: orderRef.id,
-  to_name: userName,
-  from_name: "Evanis Interiors"
-  // other variables you want to include in your email template
-})
-.then((response) => {
-  console.log('Email sent successfully:', response);
-  setOrderID(orderRef.id)
-  //user app notifications
-
-  try {
-    const timestamp = new Date().toISOString();
-     addDoc(collection(txtdb, `userNotifications/${userId}/inbox`), {
-      orderRefId: orderRef.id,
-      state: addressData.state,
-      formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-      formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-      timestamp: timestamp
-    });
-    // addDoc(collection(txtdb, `userNotifications/${userId}/myorders`), {
-    //   orderRefId: orderRef.id,
-    //   state: addressData.state,
-    //   cartItems: fetchedProducts, // Store the contents of the user's cart
-    //   totalPrice: getTotalPriceNumeric, // Store the total price of the order
-    //   shippingOption: selectedShipping, // Store the selected shipping option
-    //   formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-    //   formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-    //   timestamp: timestamp,
-    //   satus: "pending delivery"
-    // });
-     addDoc(collection(txtdb, 'notifications'), {
-      orderRefId: orderRef.id,
-      timestamp: timestamp,
-      userEmail: userEmail,
-      username: userName,
-
-    });
-
-    const orderData = {
-      status: "Pending delivery",
-      date: timestamp,
-         orderRefId: orderRef.id,
-      state: addressData.state,
-      cartItems: fetchedProducts, // Store the contents of the user's cart
-      totalPrice: getTotalPriceNumeric, // Store the total price of the order
-      shippingOption: selectedShipping, // Store the selected shipping option
-      formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-      formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-      address: addressData.addressLine1,
-      callLine: addressData.addressPhone,
-      delivery: 'Ordered on'
-    };
-    const neworder = collection(txtdb, `userNotifications/${userId}/deliveredOrders`)
-    addDoc(neworder, orderData)
-  .then((docRef) => {
-    const documentId = docRef.id; // Access the automatically generated ID
-    console.log('Document successfully added with ID:', documentId);
-    // You can now use the documentId for further operations
-    updateDoc(doc(txtdb, `userNotifications/${userId}/deliveredOrders/${documentId}`), {
-     docRef: docRef.id,
+   let emailContent = `
+   `;
+   // Loop through fetchedProducts array to include product name and quantity
+   fetchedProducts.forEach((product, index) => {
+   emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
    });
-  })
- 
+   ;
 
-    console.log("Notification added");
-  } catch (error) {
-    console.error("Error adding notification:", error);
-  }
-setShowPopup(false);
-setCompleted(true);
+              
+   const date = new Date();
+    const formattedDate = date.toISOString().split('T')[0];
+    const timestamp = formattedDate;
+          //  await sendEmailNotification(userEmail, orderRef.id);
+          emailjs.send("service_r60nfme", "template_max8cdd", {
+        to_email: userEmail,
+        userEmail: userEmail,
+        message: emailContent,
+        orderRefId: orderRef.id,
+        to_name: userName,
+        from_name: "Evanis Interiors",
+        city: addressData.city,
+        state: addressData.state,
+        totalPrice: getTotalPriceNumeric,
+        timestamp: timestamp,
+        estimatedDelivery: `${formattedDate15DaysFromNow} and ${formattedDate20DaysFromNow}`,
+        // other variables you want to include in your email template
+      })
+      .then((response) => {
+        console.log('Email sent successfully:', response);
+        setOrderID(orderRef.id)
+        //user app notifications
+
+        try {
+          const timestamp = new Date().toISOString();
+          addDoc(collection(txtdb, `userNotifications/${userId}/inbox`), {
+            orderRefId: orderRef.id,
+            state: addressData.state,
+            formattedDate15DaysFromNow: formattedDate15DaysFromNow,
+            formattedDate20DaysFromNow: formattedDate20DaysFromNow,
+            timestamp: timestamp
+          });
+          // notification count
+          addDoc(collection(txtdb, `userNotifications/${userId}/notificationCount`), {
+            orderRefId: orderRef.id,
+            timestamp: timestamp
+          });
+          // addDoc(collection(txtdb, `userNotifications/${userId}/myorders`), {
+          //   orderRefId: orderRef.id,
+          //   state: addressData.state,
+          //   cartItems: fetchedProducts, // Store the contents of the user's cart
+          //   totalPrice: getTotalPriceNumeric, // Store the total price of the order
+          //   shippingOption: selectedShipping, // Store the selected shipping option
+          //   formattedDate15DaysFromNow: formattedDate15DaysFromNow,
+          //   formattedDate20DaysFromNow: formattedDate20DaysFromNow,
+          //   timestamp: timestamp,
+          //   satus: "pending delivery"
+          // });
+          addDoc(collection(txtdb, 'notifications'), {
+            orderRefId: orderRef.id,
+            timestamp: timestamp,
+            userEmail: userEmail,
+            username: userName,
+          });
 
 
-})
-.catch((error) => {
-  console.error('Email send error:', error);
-  setShowPopup(false);
 
-});
-    console.log("Order created with ID: ", orderRef.id);
-  } catch (error) {
-    console.error("Error creating order:", error);
-    setShowPopup(false);
+          const orderData = {
+            status: "Order Confirmed",
+            date: timestamp,
+              orderRefId: orderRef.id,
+            state: addressData.state,
+            cartItems: fetchedProducts, // Store the contents of the user's cart
+            totalPrice: getTotalPriceNumeric, // Store the total price of the order
+            shippingOption: selectedShipping, // Store the selected shipping option
+            formattedDate15DaysFromNow: formattedDate15DaysFromNow,
+            formattedDate20DaysFromNow: formattedDate20DaysFromNow,
+            address: addressData.addressLine1,
+            callLine: addressData.addressPhone,
+            delivery: 'Ordered on'
+          };
+          const neworder = collection(txtdb, `userNotifications/${userId}/deliveredOrders`)
+          addDoc(neworder, orderData)
+        .then((docRef) => {
+          const documentId = docRef.id; // Access the automatically generated ID
+          console.log('Document successfully added with ID:', documentId);
+          // You can now use the documentId for further operations
+          updateDoc(doc(txtdb, `userNotifications/${userId}/deliveredOrders/${documentId}`), {
+          docRef: docRef.id,
+        }).then(() => {
+          deletecart();
+         })
+        })
+      
 
-  }
-};
+          console.log("Notification added");
+        } catch (error) {
+          console.error("Error adding notification:", error);
+        }
+      setShowPopup(false);
+      setCompleted(true);
+
+
+      })
+      .catch((error) => {
+        console.error('Email send error:', error);
+        setShowPopup(false);
+
+      });
+          console.log("Order created with ID: ", orderRef.id);
+        } catch (error) {
+          console.error("Error creating order:", error);
+          setShowPopup(false);
+
+        }
+      };
+
+
 
 
 
@@ -522,127 +614,138 @@ setCompleted(true);
                 ) : (
                   <div className='cart'>
 
-                    <div className="cart-container main-container">
-                      
-                {fetchedProducts.map((product, index) => (
-                    <div key={index} className="cart-item">
-                        {/* <p>{product.productId}</p> */}
+        <div className="cart-container main-container">
+          {(() => {
+            // Separate products into in-stock and out-of-stock
+            const inStockProducts = fetchedProducts.filter(product => product.isInStock);
+            const outOfStockProducts = fetchedProducts.filter(product => !product.isInStock);
 
-                        <div className="product-info">
+            // Combine the two arrays, in-stock first, out-of-stock last
+            const combinedProducts = [...inStockProducts, ...outOfStockProducts];
 
-                          <div className="info">
-                        <img src={product.imgUrl} alt={product.txtVal} />
-
-                        <div className="name-desc">
-                        <h3>{product.txtVal}</h3>
-                        {product.color && <p><span>Color:</span> {product.color}</p>}
-                        {product.size && <p><span>Size:</span> {product.size}</p>}
-                        {/* <p>{product.quantity}</p> */}
-                         <p className="mobile">
-                      &#8358;&nbsp;
-                        {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
-                      </p>
-                        </div>
-
-                          </div>
-
-                        <div className="price desktop">
-                        <p>
-                      &#8358;&nbsp;
-                        {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
-                      </p>
-                        </div>
-
-                        </div>
-
-                        <div className="cart-control">
-                        <button className="delete-btn"  onClick={() => handleDeleteProduct(product.productId)}> <CiTrash className="delete-icon"/> <p>Remove</p></button>
-
-                        <div className="quantity-counter">
-                          <button  onClick={() => handleDecreaseQuantity(product.productId)}><FiMinus className="count-icon" /></button>
-                          <p>{product.quantity}</p>
-                          <button onClick={() => handleIncreaseQuantity(product.productId)}><FaPlus  className="count-icon" /></button>
-                        </div>
-                        </div>
-
-                        {/* Render other product details */}
+            return combinedProducts.map((product, index) => (
+              <div key={index} className="cart-item">
+                <div className="product-info">
+                  <div className="info">
+                    <img src={product.imgUrl} alt={product.txtVal} />
+                    <div className="name-desc">
+                      <h3>
+                        {product.txtVal} {product.isInStock ? '' : '(Out of Stock)'}
+                      </h3>
+                      {product.color && <p><span>Color:</span> {product.color}</p>}
+                      {product.size && <p><span>Size:</span> {product.size}</p>}
+                      {product.isInStock && (
+                        <p className="mobile">
+                          &#8358;&nbsp;
+                          {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
+                        </p>
+                      )}
                     </div>
-                ))}
+                  </div>
+                  {product.isInStock && (
+                    <div className="price desktop">
+                      <p>
+                        &#8358;&nbsp;
+                        {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="cart-control">
+                  {product.isInStock ? (
+                    // Render controls for in-stock products
+                    <>
+                      <button className="delete-btn" onClick={() => handleDeleteProduct(product.productId)}>
+                        <CiTrash className="delete-icon" /> <p>Remove</p>
+                      </button>
+                      <div className="quantity-counter">
+                        <button onClick={() => handleDecreaseQuantity(product.productId)}><FiMinus className="count-icon" /></button>
+                        <p>{product.quantity}</p>
+                        <button onClick={() => handleIncreaseQuantity(product.productId)}><FaPlus className="count-icon" /></button>
+                      </div>
+                    </>
+                  ) : (
+                    // Render remove button for out-of-stock products
+                    <button className="delete-btn" onClick={() => handleDeleteProduct(product.productId)}>
+                      <CiTrash className="delete-icon" /> <p>Remove</p>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
 
+
+                {getTotalPriceNumeric > 0 && (
+
+                <div className="cart-summary" >
+                <h3>Order summary</h3>
+                <p>Subtotal: <span>{getTotalPrice()}</span></p>
+                <p>Items (+QTY): <span>{totalItems}</span></p>
+
+                <div className="address">
+                  <h6>DELIVERY ADDRESS  
+                    {addressData.addressLine1 ? (
+                      <NavLink to='/editAddress'>EDIT</NavLink>
+                    ) : (
+                      <NavLink to='/editAddress'>ADD</NavLink>
+                    )}
+                  </h6>
+                  <p>{addressData.addressLine1}</p>
                 </div>
 
-                <div className="cart-summary">
-                  <h3>Order summary</h3>
-                  <p>Subtotal: <span>{getTotalPrice()}</span></p>
-                  <p>Items(+QTY): <span>{totalItems}</span></p>
-
-                  <div className="address">
-                  <h6>DELIVERY ADDRESS  {addressData.addressLine1 ? (
-                    <NavLink to='/editAddress'>EDIT</NavLink>
-                  ) : (
-                    <NavLink to='/editAddress'>ADD</NavLink>
-                  )}</h6>
-
-                  <p>{addressData.addressLine1}</p>
-
-                  </div>
-
-                  <div className="delivery">
+                <div className="delivery">
                   <h6>DELIVERY DETAILS</h6>
-
                   <div className="estimate">
                     <p>Delivery between <span>{formattedDate15DaysFromNow}</span> and <span>{formattedDate20DaysFromNow}</span></p>
                   </div>
 
-                <div className="shipping-state">
+                  <div className="shipping-state">
+                    <div className="state">
+                      <input
+                        type="radio"
+                        id="lagos"
+                        name="shipping"
+                        value="LAGOS"
+                        checked={selectedShipping === 'LAGOS'}
+                        onChange={handleShippingChange}
+                      />
+                      <label htmlFor="lagos">LAGOS</label>
+                    </div>
 
-                <div className="state">
-                <input
-                  type="radio"
-                  id="lagos"
-                  name="shipping"
-                  value="LAGOS"
-                checked={selectedShipping === 'LAGOS'}
-                onChange={handleShippingChange}
-                />
-                <label htmlFor="lagos">Shipping(LAGOS)</label>
-                </div>
-                
+                    <div className="state">
+                      <input
+                        type="radio"
+                        id="others"
+                        name="shipping"
+                        value="OTHERS"
+                        checked={selectedShipping === 'OTHERS'}
+                        onChange={handleShippingChange}
+                      />
+                      <label htmlFor="others">Other states({addressData.state})</label>
+                    </div>
 
-                <div className="state">
-                <input
-                  type="radio"
-                  id="others"
-                  name="shipping"
-                  value="OTHERS"
-                    checked={selectedShipping === 'OTHERS'}
-                onChange={handleShippingChange}
-                />
-                <label htmlFor="others">Shipping(OTHERS)</label>
-                </div>
-
-                {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-
-              </div>
-
-
-
+                    {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
                   </div>
+                </div>
 
-                  <div className="total">
-                    <p>Total <span>{formattedTotalPriceWithShipping}</span></p>
+                <div className="total">
+                  <p>Total <span>{formattedTotalPriceWithShipping}</span></p>
                   <li>Shipping not included</li>
-                  </div>
-
-                  <button className='checkout' onClick={handleCheckout}>Checkout</button>
-
-
                 </div>
+
+                <button className='checkout' onClick={check}>Checkout</button>
+                 </div>
+
+                  )}
 
 
 
                 </div>
                 )}
+                
 
                 
         </div>
@@ -701,6 +804,24 @@ setCompleted(true);
           </div>
           </div>
       )}
+
+      
+      {notCompleted && (
+        <div className='addNumber'>
+
+
+          <div className='checkout-container'>
+
+        <p>Please Add a number as a way to reach you when your order is ready for Delivery</p>
+
+       <div className='buttons'>
+            <button onClick={() => setNotCompleted(false)} className="a">Cancel</button>
+            <NavLink onClick={() => setNotCompleted(false)} to='/addNumber' className="a again">Add Number</NavLink>
+        </div>
+
+          </div>
+          </div>
+      )}  
 
 
       </div>

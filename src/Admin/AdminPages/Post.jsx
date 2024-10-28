@@ -18,6 +18,8 @@ function Post() {
   const [color, setColor] = useState("");
   const [sizes, setSize] = useState("");
   const [price, setPrice] = useState("");
+  const [isInStock, setIsInStock] = useState(true); // Default to true
+
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -84,7 +86,7 @@ function Post() {
 
     try {
       const valRef = collection(txtdb, "txtData");
-      await addDoc(valRef, { txtVal: txt, desc, category, color, sizes, price, imgUrl: imgs });
+      await addDoc(valRef, { txtVal: txt, desc, category, color, sizes, price, imgUrl: imgs,  isInStock: isInStock });
       setUploadSuccess(true);
       setIsLoggedIn(false);
       

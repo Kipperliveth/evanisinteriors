@@ -346,6 +346,33 @@
                     background: #28a745;
                 }
             }
+
+                          
+          .stock-toggle {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            // justify-content: space-around; /* Space out the buttons */   
+            margin: 10px 0;
+            font-weight: 500;
+          }
+          
+          .stock-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+          }
+          
+          .stock-btn.active {
+            background-color: #4caf50; /* Green for active */
+            color: white;
+          }
+          
+          .stock-btn:not(.active):hover {
+            background-color: #f0f0f0; /* Light gray on hover for inactive */
+          }
         }
     }
 }
@@ -470,9 +497,12 @@
                 width: 70%;
                 font-size: 90%;
                 padding: 1.5rem;
-
-              
+                
             }
+                
+                
+  
+
         }
     }
     }

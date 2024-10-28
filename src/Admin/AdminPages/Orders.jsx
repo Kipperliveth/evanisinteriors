@@ -11,7 +11,6 @@ import { FaCheck } from "react-icons/fa";
 import { ImSpinner8 } from "react-icons/im";
 import emailjs from 'emailjs-com';
 
-// emailjs.init("I9WFMLdV0i4NoNHmd");
 
 
 function Orders() {
@@ -197,6 +196,7 @@ function Orders() {
       };
 
       try {
+
         await setDoc(doc(txtdb, "completed", selectedOrder.id), completedOrderData);
               // Delete the order from the "orders" collection
       // await deleteDoc(doc(txtdb, "orders", selectedOrder.id));
@@ -238,7 +238,7 @@ function Orders() {
       const documentId = foundDoc.docRef;
       console.log('documnet ref', documentId)
             //
-            await deleteDoc(doc(txtdb, "orders", selectedOrder.id)).then(() =>{
+            await deleteDoc(doc(txtdb, "pendingDelivery", selectedOrder.id)).then(() =>{
         updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`),{
           status: "Delivered",
           date: completedOrderData.completionDate,
@@ -251,6 +251,8 @@ function Orders() {
           userEmail: selectedOrder.userEmail,
           username: selectedOrder.username
         }).then(() => {
+          
+          emailjs.init("55KFb3ovp5zp-SlMq");
 
           let emailContent = `
           `;
@@ -264,20 +266,25 @@ function Orders() {
           const date = new Date();
           const formattedDate = date.toISOString().split('T')[0];
           const timestamp = formattedDate;
-          // emailjs.send("service_1i849ri", "template_mwys2kw", {
-          //   to_email: selectedOrder.userEmail,
-          //   userEmail: selectedOrder.userEmail,
-          //   message: emailContent,
-          //   orderRefId: selectedOrderId,
-          //   city: selectedOrder.city,
-          //   state: selectedOrder.state,
-          //   totalPrice: selectedOrder.totalPrice,
-          //   deliveryFee: selectedOrder.deliveryFee,
-          //   username: selectedOrder.username,
-          //   timestamp: timestamp,
-          //   from_name: "Evanis Interiors"
-          //   // other variables you want to include in your email template
-          // })
+          emailjs.send("service_r60nfme", "template_todl238", {
+            to_email: selectedOrder.userEmail,
+            userEmail: selectedOrder.userEmail,
+            message: emailContent,
+            orderRefId: selectedOrderId,
+            city: selectedOrder.city,
+            state: selectedOrder.state,
+            totalPrice: selectedOrder.totalPrice,
+            deliveryFee: selectedOrder.deliveryFee,
+            username: selectedOrder.username,
+            timestamp: timestamp,
+            from_name: "Evanis Interiors"
+            // other variables you want to include in your email template
+          })
+
+          //
+          addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
+            timestamp: timestamp
+          });
 
         })
       })    
@@ -308,6 +315,7 @@ function Orders() {
             };
       
             try {
+
               await setDoc(doc(txtdb, "pendingDelivery", selectedOrder.id), completedOrderData);
                     // Delete the order from the "orders" collection
             // await deleteDoc(doc(txtdb, "orders", selectedOrder.id));
@@ -349,7 +357,7 @@ function Orders() {
             const documentId = foundDoc.docRef;
             console.log('documnet ref', documentId)
                   //
-                  await deleteDoc(doc(txtdb, "orders", selectedOrder.id)).then(() =>{
+                  await deleteDoc(doc(txtdb, "pendingPickup", selectedOrder.id)).then(() =>{
               updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`),{
                 status: "Ready for Delivery",
                 date: completedOrderData.completionDate,
@@ -363,6 +371,9 @@ function Orders() {
                 username: selectedOrder.username
               })
               .then(() => {
+
+                emailjs.init("A7nlh5ZfZyzFdJHXR")
+
       
                 let emailContent = `
                 `;
@@ -376,7 +387,7 @@ function Orders() {
                 const date = new Date();
                 const formattedDate = date.toISOString().split('T')[0];
                 const timestamp = formattedDate;
-                emailjs.send("service_", "template_", {
+                emailjs.send("service_u30tu6h", "template_ztlhtio", {
                   to_email: selectedOrder.userEmail,
                   userEmail: selectedOrder.userEmail,
                   message: emailContent,
@@ -387,9 +398,14 @@ function Orders() {
                   deliveryFee: selectedOrder.deliveryFee,
                   username: selectedOrder.username,
                   timestamp: timestamp,
-                  from_name: "Evanis Interiors"
+                  from_name: "Evanis Interiors",
+                  date: completedOrderData.completionDate,
                   // other variables you want to include in your email template
                 })
+
+                addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
+                  timestamp: timestamp
+                });
       
               })
             })    
@@ -407,8 +423,8 @@ function Orders() {
                 }
               };
 
-                //mark as ready for delivery
-        const markAsReadyForPickup = async () => {
+                //mark as shipped
+        const markAsShipped = async () => {
           setIsLoggedIn(true);
           const userID = selectedOrder.userId;
       
@@ -419,6 +435,7 @@ function Orders() {
             };
       
             try {
+
               await setDoc(doc(txtdb, "pendingPickup", selectedOrder.id), completedOrderData);
                     // Delete the order from the "orders" collection
             // await deleteDoc(doc(txtdb, "orders", selectedOrder.id));
@@ -462,9 +479,9 @@ function Orders() {
                   //
                   await deleteDoc(doc(txtdb, "orders", selectedOrder.id)).then(() =>{
               updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`),{
-                status: "Ready for Pick up",
+                status: "Shipped",
                 date: completedOrderData.completionDate,
-                delivery: 'Ready on'
+                delivery: 'Shipped on'
               })
             }).finally(() => {
               addDoc(collection(txtdb, `userNotifications/${userID}/pendingPickupNotification`), {
@@ -474,6 +491,7 @@ function Orders() {
                 username: selectedOrder.username
               })
               .then(() => {
+                emailjs.init("A7nlh5ZfZyzFdJHXR")
       
                 let emailContent = `
                 `;
@@ -487,7 +505,7 @@ function Orders() {
                 const date = new Date();
                 const formattedDate = date.toISOString().split('T')[0];
                 const timestamp = formattedDate;
-                emailjs.send("service_", "template_", {
+                emailjs.send("service_u30tu6h", "template_5i66qbc", {
                   to_email: selectedOrder.userEmail,
                   userEmail: selectedOrder.userEmail,
                   message: emailContent,
@@ -498,10 +516,15 @@ function Orders() {
                   deliveryFee: selectedOrder.deliveryFee,
                   username: selectedOrder.username,
                   timestamp: timestamp,
-                  from_name: "Evanis Interiors"
+                  from_name: "Evanis Interiors",
+                  date: completedOrderData.completionDate,
                   // other variables you want to include in your email template
                 })
-      
+                
+                //
+                addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
+                  timestamp: timestamp
+                });
               })
             })    
             
@@ -518,16 +541,18 @@ function Orders() {
                 }
               };
 
-  //delivery or pickup
-  const markAsPending = () => {
-    if (selectedOrder.shippingOption === 'DOOR DELIVERY') {
-      markAsReadyToDeliver();
-      console.log("DELIVERY");
-    } else {
-      markAsReadyForPickup();
-      console.log("pickup");
-    }
-  };
+
+
+          //delivery or pickup
+          // const markAsPending = () => {
+          //   if (selectedOrder.shippingOption === 'DOOR DELIVERY') {
+          //     markAsReadyToDeliver();
+          //     console.log("DELIVERY");
+          //   } else {
+          //     // markAsReadyForPickup();
+          //     console.log("pickup");
+          //   }
+          // };
   
 
   return (
@@ -544,8 +569,8 @@ function Orders() {
 
          <div className='completed'>
       <button className={currentPage === 'first' ? 'active' : ''} onClick={() => setCurrentPage('first')}>New Orders <span>{orders.length}</span></button>
+      <button className={currentPage === 'fourth' ? 'active' : ''} onClick={() => setCurrentPage('fourth')}>Shipped</button>
       <button className={currentPage === 'third' ? 'active' : ''} onClick={() => setCurrentPage('third')}>Pending Delivery</button>
-      <button className={currentPage === 'fourth' ? 'active' : ''} onClick={() => setCurrentPage('fourth')}>Pending Pick-up</button>
       <button className={currentPage === 'second' ? 'active' : ''} onClick={() => setCurrentPage('second')}>Completed Orders</button>
     </div>
 
@@ -636,10 +661,10 @@ function Orders() {
            <div className="header">
              <span>
              <h1>Order ID: {selectedOrder.id}</h1>
-               <button onClick={markAsPending} > {isLoggedIn ? (
+               <button onClick={markAsShipped} > {isLoggedIn ? (
                <ImSpinner8 className="login-spinner" />
              ) : (
-               "Mark as Ready"
+               "Mark as Shipped"
              )} <FaCheck className="icon"/></button>
              </span>
 
@@ -1127,7 +1152,7 @@ function Orders() {
           ))}
  
           {readyForPickup.length === 0 ? (
-          <p className="no-notifications">No pending Pickups</p> 
+          <p className="no-notifications">No Shipped Orders</p> 
             ) : null}
         </div>
       )}
@@ -1147,10 +1172,10 @@ function Orders() {
             <div className="header">
               <span>
               <h1>Order ID: {selectedOrder.id}</h1>
-                <button onClick={markAsCompleted} > {isLoggedIn ? (
+                <button onClick={markAsReadyToDeliver} > {isLoggedIn ? (
                 <ImSpinner8 className="login-spinner" />
               ) : (
-                "Mark as Picked Up"
+                "Ready to Deliver"
               )} <FaCheck className="icon"/></button>
               </span>
  

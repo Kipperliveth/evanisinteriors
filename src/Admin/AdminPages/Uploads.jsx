@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import AdminDashboard from "../AdminComponents/AdminDashboard";
 import { txtdb } from "../../firebase-config";
-import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
 import { CiSearch } from "react-icons/ci";
 import all from "../../stock/allmain.png";
 import sitting from "../../stock/couchicon.png";
@@ -81,16 +81,108 @@ function Uploads() {
     setShowModal(true);
   };
 
+  //updating carts
+
+  
+
+  
+
   const handleUpdate = async () => {
     try {
-      const postDoc = doc(txtdb, "txtData", selectedPost.id);
-      await updateDoc(postDoc, selectedPost);
-      getData(); // Refresh data after update
-      setShowModal(false); // Close modal
+        console.log("Starting update process for product:", selectedPost.txtVal);
+
+        // Update the main product document in txtData
+        const postDoc = doc(txtdb, "txtData", selectedPost.id);
+        await updateDoc(postDoc, {
+            ...selectedPost,
+            isInStock: selectedPost.isInStock
+        });
+        console.log("Main product document updated successfully");
+
+        // Step 1: Fetch all users from 'userCart'
+        const usersSnapshot = await getDocs(collection(txtdb, "users"));
+
+        // Debugging: Log the number of users fetched
+        console.log(`Number of users found: ${usersSnapshot.size}`);
+
+        if (usersSnapshot.empty) {
+            console.log("No users found.");
+            return;
+        }
+
+        // Step 2: Iterate through each user's cart
+        const updatePromises = usersSnapshot.docs.map(async (userDoc) => {
+            const userId = userDoc.id;
+            console.log(`Processing cart for user: ${userId}`);
+
+            // Step 3: Get the user's cart products
+            const productsRef = collection(txtdb, `users/${userId}/products`);
+            const productSnapshot = await getDocs(productsRef);
+
+            if (productSnapshot.empty) {
+                console.log(`No products found in cart for user: ${userId}`);
+                return;
+            }
+
+            // Step 4: Iterate through products in the user's cart and check for matches
+            const productUpdatePromises = productSnapshot.docs.map(async (productDoc) => {
+                const productData = productDoc.data();
+                console.log(`Checking product in cart: ${productData.txtVal} (User: ${userId})`);
+
+                // Step 5: Compare productnumber with selectedPost.id
+                if (productData.productnumber === selectedPost.id) {
+                    console.log(`Match found! Updating product in cart for user: ${userId}`);
+
+                    // Step 6: Construct path for the product and update it
+                    const productDocRef = doc(txtdb, `users/${userId}/products/${productDoc.id}`);
+                    await updateDoc(productDocRef, {
+                        txtVal: selectedPost.txtVal,
+                        desc: selectedPost.desc,
+                        price: selectedPost.price,
+                        isInStock: selectedPost.isInStock
+                    });
+                    console.log(`Product updated in cart for user: ${userId}`);
+                } else {
+                    console.log(`No match for product: ${productData.txtVal} in user: ${userId} cart`);
+                }
+            });
+
+            // Await all product updates for this user
+            await Promise.all(productUpdatePromises);
+        });
+
+        // Await all user cart updates
+        await Promise.all(updatePromises);
+
+        // Step 7: Refresh data and close the modal
+        getData();
+        setShowModal(false);
+        console.log("Update process completed for all users' carts");
     } catch (error) {
-      console.error("Error updating document: ", error);
+        console.error("Error in update process:", error);
     }
-  };
+};
+
+// const checkUserCart = async () => {
+//   try {
+//     const usersSnapshot = await getDocs(collection(txtdb, "/users/3vjKJe9Oo9Wfl1dmAZvUPVhBam53/products"));
+//     if (usersSnapshot.empty) {
+//       console.log("No users found in userCart collection.");
+//       return;
+//     }
+//     usersSnapshot.forEach((userDoc) => {
+//       console.log(`User ID: ${userDoc.id}`);
+//     });
+//   } catch (error) {
+//     console.error("Error fetching userCart:", error);
+//   }
+// };
+
+
+  
+  
+  
+  
 
 
 
@@ -250,38 +342,56 @@ function Uploads() {
 
         {/* Modal Popup */}
         {showModal && selectedPost && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Edit Product Details</h2>
+  <div className="modal">
+    <div className="modal-content">
+      <h2>Edit Product Details</h2>
 
-            <input
-              type="text"
-              value={selectedPost.txtVal}
-              onChange={(e) =>
-                setSelectedPost({ ...selectedPost, txtVal: e.target.value })
-              }
-            />
-            <textarea
-              value={selectedPost.desc}
-              onChange={(e) =>
-                setSelectedPost({ ...selectedPost, desc: e.target.value })
-              }
-            />
-            <input
-              type="number"
-              value={selectedPost.price}
-              onChange={(e) =>
-                setSelectedPost({ ...selectedPost, price: e.target.value })
-              }
-            />
+      <input
+        type="text"
+        value={selectedPost.txtVal}
+        onChange={(e) =>
+          setSelectedPost({ ...selectedPost, txtVal: e.target.value })
+        }
+      />
+      <textarea
+        value={selectedPost.desc}
+        onChange={(e) =>
+          setSelectedPost({ ...selectedPost, desc: e.target.value })
+        }
+      />
+      <input
+        type="number"
+        value={selectedPost.price}
+        onChange={(e) =>
+          setSelectedPost({ ...selectedPost, price: e.target.value })
+        }
+      />
 
-            <div className="edit-buttons">
-            <button className="close" onClick={() => setShowModal(false)}>Close</button>
-            <button className="upload" onClick={handleUpdate}>Update <IoCloudUploadOutline className="icon" /> </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Stock Status Buttons */}
+      <div className="stock-toggle">
+        <button
+          className={`stock-btn ${selectedPost.isInStock ? 'active' : ''}`}
+          onClick={() => setSelectedPost((prev) => ({ ...prev, isInStock: true }))}
+        >
+          In Stock
+        </button>
+        <button
+          className={`stock-btn ${!selectedPost.isInStock ? 'active' : ''}`}
+          onClick={() => setSelectedPost((prev) => ({ ...prev, isInStock: false }))}
+        >
+          Out of Stock
+        </button>
+      </div>
+
+      <div className="edit-buttons">
+        <button className="close" onClick={() => setShowModal(false)}>Close</button>
+        <button className="upload" onClick={handleUpdate}>Update <IoCloudUploadOutline className="icon" /> </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
 
     </div>

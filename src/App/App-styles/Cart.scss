@@ -629,10 +629,14 @@
             border: none;
             cursor: pointer;
             transition: .2s ease;
-            // background: 
+             background: #bba58f;
+             color: white;
+             font-weight: 600;
+
 
             &:hover{
             transform: scale(.95);
+            background: #888;
             }
 
         }
