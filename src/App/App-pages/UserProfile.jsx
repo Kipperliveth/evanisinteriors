@@ -34,20 +34,23 @@ function UserProfile() {
   //     console.error("Error enabling session persistence:", error);
   //   });
 
-  const logout = async () => {
+ const logout = async () => {
     setIsLoggedIn(true);
-  
-    if (auth.currentUser) {
-      await signOut(auth);
-      localStorage.clear();
-      navigate("/login");
-      setIsLoggedIn(false);
-    } else {
-      localStorage.clear();
-      navigate("/login");
-      setIsLoggedIn(false);
+
+    try {
+        if (auth.currentUser) {
+            await signOut(auth);
+        }
+        localStorage.clear();
+        setIsLoggedIn(false);
+        navigate("/login");
+    } catch (error) {
+        console.error("Error logging out:", error);
+        setIsLoggedIn(false);
     }
-  };
+};
+
+
   
 
   useEffect(() => {
@@ -94,11 +97,15 @@ function UserProfile() {
     }
   }, [addressData, loading]);
 
-  useEffect(() => {
-    onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-  }, [auth]);
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    setUser(currentUser || null); // Ensures `user` is set to null if `currentUser` is null
+  });
+
+  // Cleanup function to unsubscribe from the listener when component unmounts
+  return () => unsubscribe();
+}, [auth]);
+
  
   return (
     <div className="">

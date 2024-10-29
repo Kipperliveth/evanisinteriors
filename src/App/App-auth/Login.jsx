@@ -81,6 +81,7 @@ function Login() {
 
 useEffect(() => {
   const fetchAddressData = async (user) => {
+    if (!user) return;
     const userId = user.uid;
     const userRef = doc(collection(txtdb, "users"), userId);
     const userSnap = await getDoc(userRef);
@@ -104,6 +105,7 @@ useEffect(() => {
       await fetchAddressData(user);
     } else {
       console.log("No authenticated user found.");
+      navigate('/login'); 
     }
   });
 

@@ -66,16 +66,14 @@ function AnimatedRoutes() {
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute> } />
         <Route path="/userProfile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><UserNotifications /></ProtectedRoute> }/>
-        {/* <Route path='/onboarding' element={<ProtectedRoute><Onboarding /></ProtectedRoute> }/> */}
-        {/* <Route path="/onboarding/address" element={<ProtectedRoute><Address /></ProtectedRoute>}/> */}
+        <Route path='/onboarding' element={<ProtectedRoute><Onboarding /></ProtectedRoute> }/>
+        <Route path="/onboarding/address" element={<ProtectedRoute><Address /></ProtectedRoute>}/>
         <Route path='/editAddress' element={<ProtectedRoute><Editaddress /></ProtectedRoute>} />
         <Route path='/profilePic'  element={<ProtectedRoute><ProfilePicture /></ProtectedRoute>}/>
         <Route path='/editprofile' element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>}/>
 
-        <Route path="/userDashboard" element={<UserDashboard />} />
-        <Route path="/store" element={<Store />} />
-        <Route path='/onboarding' element={<Onboarding />}/>
-        <Route path="/onboarding/address" element={<Address />}/>
+        <Route path="/userDashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+        <Route path="/store" element={<ProtectedRoute><Store /></ProtectedRoute> } />
 
 
         <Route path="/shop/:productId" element={<Shop />} /> {/* Dynamic product route */}
