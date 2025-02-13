@@ -33,14 +33,16 @@ function Enroll() {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [interestReason, setInterestReason] = useState("");
+  const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
 
-  const Amount = 35000;
+  const Amount = price;
 
-  const handlePaystackPayment = async () => {
+  const handlePaystackPayment = async (event) => {
+    event.preventDefault();
     if (!email || !Amount || !phoneNumber || !interestReason || !fullName) {
       setError("Please fill in all fields before making payment.");
       return;
@@ -60,6 +62,7 @@ function Enroll() {
       },
       onClose: function() {
         console.warn("Payment was not completed!");
+        setError("Payment was not completed. Please try again.");
       }
     });
   
@@ -73,14 +76,13 @@ function Enroll() {
 
   
     try {
-        // emailjs.init("A7nlh5ZfZyzFdJHXR")
       const docRef = await addDoc(collection(txtdb, "courseEnrollments"), {
         fullName,
         email,
         phoneNumber,
         interestReason,
         paymentReference: reference, // Store Paystack reference
-        timestamp: new Date(),
+        timestamp: new Date().toLocaleString(),
       });
   
       await updateDoc(docRef, { enrollmentId: docRef.id });
@@ -95,7 +97,7 @@ function Enroll() {
           reply_to: "noreply",
           phoneNumber: phoneNumber,
         fullName: fullName,
-        timestamp: new Date(),
+        timestamp:new Date().toLocaleString(),
         interestReason: interestReason,
 
 
@@ -170,8 +172,16 @@ function Enroll() {
         onChange={(e) => setInterestReason(e.target.value)}
         required
       />
+
+        <input
+        type="number"
+        placeholder="Enter Price"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        required
+      />
       <button type="button" onClick={handlePaystackPayment} disabled={loading}>
-        {loading ? "Processing..." : "Pay ₦35,000"}
+        {loading ? "Processing..." : "Proceed with payment"}
       </button>
 
       {error && <p style={{ color: 'red', fontSize: "12px" }}>{error}</p>}
