@@ -33,6 +33,7 @@ import GetHelp from "../App/App-pages/GetHelp";
 import ProfileEdit from "../App/App-auth/ProfileEdit";
 import Adminlog from "../Admin/AdminPages/Adminlog";
 import NotFound from "./NotFound";
+import Enroll from "./Enroll";
 
 
 function AnimatedRoutes() {
@@ -49,6 +50,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/masterclass" element={<Masterclass />} />
+        <Route path="/masterclass/enroll" element={<Enroll />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />

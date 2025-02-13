@@ -75,7 +75,7 @@ function Masterclass() {
               data-aos-delay="600"
               data-aos-once="true"
             >
-              <NavLink>Enroll Now</NavLink>
+              <NavLink to='/masterclass/enroll'>Enroll Now</NavLink>
 
               <NavLink>
                 <p>Login to Dashboard</p> <BsBoxArrowUpRight />
@@ -386,7 +386,7 @@ function Masterclass() {
             data-aos-delay="600"
             data-aos-once="true"
           >
-            <NavLink>Enroll Here</NavLink>
+            <NavLink to='/masterclass/enroll'>Enroll Here</NavLink>
             <NavLink>Contact Us</NavLink>
           </div>
         </div>

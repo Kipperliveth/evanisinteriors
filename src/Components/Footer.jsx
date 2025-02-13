@@ -18,14 +18,16 @@ function Footer() {
     "/", "/marketplace", "/store", "/address", "/userMasterclass", "/userDashboard",
     "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",
     "/notifications", "/uploads", "/profilePic", "/editAddress",
-    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact', '/reset', '/shop', 
+    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact', '/reset', '/shop', "/masterclass/enroll", 
   ];
 
   const shouldHideComponent = hiddenPaths.includes(location.pathname) || !allPaths.includes(location.pathname);
 
+  const isEnrollPage = location.pathname === "/masterclass/enroll";
+
   return (
     <div style={{ display: shouldHideComponent ? "none" : "block" }}>
-      <div className="footer-container">
+      <div className={`footer-container ${isEnrollPage ? "no-margin" : ""}`}>
         <div className="footer">
           <div className="footer-top">
             <NavLink onClick={handleScrollToTop} className="logo-container">
@@ -68,7 +70,7 @@ function Footer() {
           </div>
 
           <div className="footer-bottom">
-            &copy; 2024 evanis interiors
+            &copy; 2025 evanis interiors
             <div>
               <NavLink id="terms">terms of use</NavLink> |{" "}
               <NavLink id="policies">privacy policy</NavLink>
