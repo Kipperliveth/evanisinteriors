@@ -48,8 +48,8 @@ function Enroll() {
       return;
     }
   
-    const paystackPublicKey = "pk_test_7f79f31587f095af7aeb39e998fc9daee664c1ed";
-    // const paystackPublicKey = "pk_live_ebd855719072a4c2ac87beac3780b30f955d54c6";
+    // const paystackPublicKey = "pk_test_7f79f31587f095af7aeb39e998fc9daee664c1ed";
+    const paystackPublicKey = "pk_live_ebd855719072a4c2ac87beac3780b30f955d54c6";
   
     const handler = window.PaystackPop.setup({
       key: paystackPublicKey,
