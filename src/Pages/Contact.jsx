@@ -10,7 +10,7 @@ import { MdMailOutline } from "react-icons/md";
 import "aos/dist/aos.css";
 import AOS from "aos";
 import "aos/dist/aos.js";
-import { useForm, ValidationError } from '@formspree/react';
+import { useForm } from '@formspree/react';
 
 
 function Contact() {
@@ -131,13 +131,16 @@ function Contact() {
               <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
               <FaInstagram className="footer-icon" />
               </a>
-              <a href="">
+                           <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
+
               <IoLogoTiktok className="footer-icon" />
               </a>
-              <a href="">
+                           <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
+
               <FaWhatsapp className="footer-icon" />
               </a>
-              <a href="">
+                        <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
+
               <MdMailOutline className="footer-icon" />
               </a>
               </div>

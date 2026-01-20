@@ -51,7 +51,7 @@ function Shop() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  // const [selectedCategory, setSelectedCategory] = useState("All");
 
   const [data, setData] = useState([]);
   const [notCompleted, setNotCompleted] = useState(false)
@@ -132,7 +132,7 @@ function Shop() {
   //
 
   const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
+    // setSelectedCategory(category);
     if (category === "All") {
       setFilteredData(data);
     } else {
@@ -157,7 +157,7 @@ function Shop() {
   }, []);
 
   //modal add to cart
-  const [popupMessage, setPopupMessage] = useState("");
+  // const [popupMessage, setPopupMessage] = useState("");
 
   const popupcart = (selectedProductData) => {
     setNotCompleted(true);
@@ -503,7 +503,7 @@ useEffect(() => {
         <div className="popup">
 
           <div className="spinner variation" onClick={() => setVariationPopup(false)}>
-           <MdCancel className='icon' /> {popupMessage}
+           <MdCancel className='icon' />
           </div>
 
         </div>
