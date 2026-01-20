@@ -7,6 +7,7 @@
 @import './pages_style/Masterclass.scss';
 @import './pages_style/Shop.scss';
 @import url('./pages_style/NotFound.scss');
+@import url('../Admin/InvoiceTracker/styles/invoiceStyles.scss');
 
 *{
     font-family: 'Montserrat', sans-serif;
@@ -15,6 +16,16 @@
     -webkit-touch-callout: none;
     margin: 0;
     padding: 0;
+}
+
+html, body{
+      -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;   
+
+  &::-webkit-scrollbar {
+  display: none;
+}
+
 }
 
 .pagewidth{
