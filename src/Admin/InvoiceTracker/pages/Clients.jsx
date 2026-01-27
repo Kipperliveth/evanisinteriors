@@ -55,19 +55,21 @@ function Clients() {
 
 
   // --- 2. Filter Logic (Updated) ---
-const filteredClients = useMemo(() => {
+// --- 2. Filter & Sort Logic ---
+  const filteredClients = useMemo(() => {
     const now = new Date();
     const days28Ago = new Date();
     days28Ago.setDate(now.getDate() - 28);
 
-    return clients.filter((client) => {
+    // 1. First Filter and Search
+    const filtered = clients.filter((client) => {
       // Search Logic
-      const matchesSearch = 
+      const matchesSearch =
         client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.contact.toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
-      
+
       // Filter Tabs Logic
       if (filter === "all") return true;
 
@@ -77,11 +79,7 @@ const filteredClients = useMemo(() => {
         return clientDate >= days28Ago && clientDate <= now;
       }
 
-      if (filter === "owing") {
-        return client.status === "Owing";
-      }
-
-      if (filter === "due") {
+      if (filter === "owing" || filter === "due") {
         return client.status === "Owing";
       }
 
@@ -91,7 +89,14 @@ const filteredClients = useMemo(() => {
 
       return true;
     });
-    // ⬇️ searchTerm added here so the list updates as you type
+
+    // 2. Then Sort (Newest to Oldest)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date || '1970-01-01'); // Fallback for clients with no date
+      const dateB = new Date(b.date || '1970-01-01');
+      return dateB - dateA; // Descending order (Newest first)
+    });
+
   }, [filter, clients, searchTerm]);
 
   // --- 3. View Details/Order History Logic ---
@@ -199,6 +204,27 @@ const openClientModal = (client) => {
   });
 };
 
+// ... existing filteredClients useMemo code ...
+
+// --- PAGINATION LOGIC START ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset to page 1 whenever Filter or Search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchTerm]);
+
+  // Calculate the specific clients to show for the current page
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentClients = filteredClients.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Logic to change pages
+  const paginateNext = () => setCurrentPage((prev) => prev + 1);
+  const paginatePrev = () => setCurrentPage((prev) => prev - 1);
+  // --- PAGINATION LOGIC END ---
+
   return (
     <div className="layout">
       <Navigation />
@@ -218,6 +244,20 @@ const openClientModal = (client) => {
                 />
                       </div>
 
+        </div>
+
+        
+
+        <div className="mobile-search">
+                  <div className="search">
+                          <CiSearch className='icon'/>
+                       <input 
+                  type="search" 
+                  placeholder='Search Name or Contact' 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                      </div>
         </div>
 
         <div className="client-table-container">
@@ -256,42 +296,78 @@ const openClientModal = (client) => {
 
         <table className="client-table">
           {/* ... <thead> ... */}
-          <tbody>
+          <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th className="not-mobile">Contact</th>
+            <th className="not-mobile">Date Added</th>
+            <th className="not-mobile">Total Orders</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+     <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="7" className="empty">
-                  Loading client data...
-                </td>
+                <td colSpan="7" className="empty">Loading client data...</td>
               </tr>
             ) : filteredClients.length > 0 ? (
-              filteredClients.map((client, index) => (
-                // 👇 Add onClick to the row to view details 👇
+              // 🟢 CHANGE THIS: Use currentClients.map to show only 5 items per page
+              currentClients.map((client, index) => (
                 <tr key={client.id} onClick={() => viewClientDetails(client)} className="client-row-clickable">
-                  <td>{index + 1}</td>
+                  {/* Calculation to ensure Index number continues correctly on Page 2, 3 etc */}
+                  <td>{indexOfFirstItem + index + 1}</td>
                   <td>{client.name}</td>
                   <td className="not-mobile">{client.contact}</td>
-                  <td className="not-mobile">{client.address}</td>
-                  {/* Use the new 'date' field from the fetched data */}
-                  <td className="not-mobile">{client.date ? new Date(client.date).toLocaleDateString() : 'N/A'}</td> 
-                  {/* Use the real data: totalInvoices */}
-                  <td className="not-mobile">{client.totalInvoices || 0}</td> 
-                  <td>
-                  {/* 🟢 This now uses the pre-calculated and correct status */}
-                <span className={`status ${getClientStatusClass(client.status)}`}>
-                    {client.status}
-                  </span>
+                  {/* <td className="not-mobile">{client.address}</td> */}
+                <td className="not-mobile">
+                  {client.date
+                    ? new Date(client.date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "N/A"}
                 </td>
+
+                  <td className="not-mobile">{client.totalInvoices || 0}</td>
+                  <td>
+                    <span className={`status ${getClientStatusClass(client.status)}`}>
+                      {client.status}
+                    </span>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="empty">
-                  No clients found for this filter.
-                </td>
+                <td colSpan="7" className="empty">No clients found.</td>
               </tr>
             )}
           </tbody>
         </table>
+      {/* Dynamic Pagination Controls */}
+        {filteredClients.length > 0 && (
+          <div className="pagination">
+            {currentPage > 1 ? (
+              <button onClick={paginatePrev}>Previous</button>
+            ) : (
+              <div></div> /* Empty div to keep spacing */
+            )}
+
+            <div className="pages">
+              <p>
+                Page {currentPage} of {Math.ceil(filteredClients.length / itemsPerPage)}
+              </p>
+            </div>
+
+            {filteredClients.length > indexOfLastItem ? (
+              <button onClick={paginateNext}>Next</button>
+            ) : (
+               <div></div>
+            )}
+          </div>
+        )}
+
         </div>
       </div>
 
@@ -325,7 +401,16 @@ const openClientModal = (client) => {
             </div>
             <div className="info-item">
               <label>Last Order</label>
-              <p>{selectedClient.date ? new Date(selectedClient.date).toLocaleDateString() : "N/A"}</p>
+             <p>
+              {selectedClient.date
+                ? new Date(selectedClient.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "N/A"}
+            </p>
+
             </div>
             <div className="info-item full-width">
               <label>Address</label>

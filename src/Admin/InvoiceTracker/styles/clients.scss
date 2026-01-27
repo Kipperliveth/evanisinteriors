@@ -50,12 +50,20 @@
 
         }
 
+        .mobile-search{
+          display: none;
+        }
+
         .client-table-container {
         width: 95%;
-        background: #fff;
+        // background: #fff;
         border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        // box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         padding: 20px;
+
+          @media screen and (max-width: 720px) {
+          padding: 0;
+        }
 
         .filters {
             display: flex;
@@ -74,7 +82,7 @@
             }
 
             button {
-            background: #f5f5f5;
+            background: white;
             border: none;
             border-radius: 6px;
             padding: 10px 15px;
@@ -100,19 +108,36 @@
             border-collapse: collapse;
             text-align: left;
 
+            thead {
+    tr {
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+
+    th {
+      padding: 1rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af; // Muted text color for headers
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  }
+
             th {
             font-size: 14px;
             color: #777;
             font-weight: 600;
             padding: 15px 15px;
-            border-bottom: 1px solid #eee;
+            // border-bottom: 1px solid #888;
             }
 
             td {
             padding: 15px 15px;
             font-size: 14px;
             color: #333;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid hsl(0, 0%, 90%);
 
             &:nth-last-child{
                 border-bottom: 1px solid transparent;
@@ -150,6 +175,35 @@
             padding: 20px;
             }
         }
+
+             /* Pagination */
+        .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 15px;
+        font-size: 85%;
+        }
+
+        .pagination .pages button {
+        border: none;
+        background: transparent;
+        padding: 5px 10px;
+        color: #555;
+        cursor: pointer;
+        }
+
+        .pagination button{
+              border: none;
+        padding: 5px 10px;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        background: #d1495b;
+        padding: 10px 15px;
+        font-weight: 500;
+        }
+
         }
 
             } 
@@ -162,11 +216,19 @@ $border-color: #f4f4f5;
 $accent-green: #10b981;
 $accent-blue: #3b82f6;
 
+// Variables for status colors (Adjust to match your theme)
+$status-paid-bg: #dcfce7;
+$status-paid-text: #166534;
+$status-pending-bg: #fef9c3;
+$status-pending-text: #854d0e;
+$status-overdue-bg: #fee2e2;
+$status-overdue-text: #991b1b;
+
 .client-drawer-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(4px); // Softens the background
+  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   justify-content: flex-end;
@@ -186,6 +248,19 @@ $accent-blue: #3b82f6;
     &.open {
       transform: translateX(0);
     }
+
+    // --- Mobile Responsive Tweaks ---
+    @media (max-width: 600px) {
+      max-width: 100%; // Full width on mobile
+      
+      .drawer-header {
+        padding: 1.25rem; // Reduced padding
+      }
+      
+      .drawer-body {
+        padding: 1.25rem; // Reduced padding
+      }
+    }
   }
 
   .drawer-header {
@@ -196,11 +271,46 @@ $accent-blue: #3b82f6;
     align-items: center;
 
     .header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
       h2 {
         font-size: 1.5rem;
         font-weight: 700;
-        margin-bottom: 0.25rem;
+        margin: 0;
         color: $text-main;
+      }
+
+      // --- Fixed Status Pill Logic ---
+      .status-pill {
+        display: inline-block;
+        width: fit-content;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: capitalize;
+        letter-spacing: 0.02em;
+
+        // Default/Fallback
+        background: #f3f4f6;
+        color: #4b5563;
+
+        &.paid {
+          background: $status-paid-bg;
+          color: $status-paid-text;
+        }
+
+        &.pending {
+          background: $status-pending-bg;
+          color: $status-pending-text;
+        }
+
+        &.overdue, &.unpaid {
+          background: $status-overdue-bg;
+          color: $status-overdue-text;
+        }
       }
     }
 
@@ -211,8 +321,15 @@ $accent-blue: #3b82f6;
       cursor: pointer;
       padding: 0.5rem;
       border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: background 0.2s;
-      &:hover { background: $border-color; }
+      
+      &:hover {
+        background: $border-color;
+        color: $text-main;
+      }
     }
   }
 
@@ -221,15 +338,27 @@ $accent-blue: #3b82f6;
     overflow-y: auto;
     padding: 2rem;
     scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+    // Handle iPhone notch/bottom bar
+    padding-bottom: env(safe-area-inset-bottom, 2rem); 
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     .info-section {
       margin-bottom: 2.5rem;
+      
       .info-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
-        
+
+        // Stack info on mobile
+        @media (max-width: 600px) {
+           grid-template-columns: 1fr;
+           gap: 1rem;
+        }
+
         .info-item {
           label {
             display: block;
@@ -239,8 +368,18 @@ $accent-blue: #3b82f6;
             color: $text-muted;
             margin-bottom: 0.4rem;
           }
-          p { font-weight: 500; color: $text-main; }
-          &.full-width { grid-column: span 2; }
+          p {
+            font-weight: 500;
+            color: $text-main;
+            margin: 0;
+          }
+          &.full-width {
+            grid-column: span 2;
+            // Reset span on mobile
+            @media (max-width: 600px) {
+              grid-column: span 1;
+            }
+          }
         }
       }
     }
@@ -251,7 +390,13 @@ $accent-blue: #3b82f6;
         align-items: center;
         gap: 0.75rem;
         margin-bottom: 1.5rem;
-        h3 { font-size: 1.1rem; font-weight: 600; }
+        
+        h3 {
+          font-size: 1.1rem;
+          font-weight: 600;
+          margin: 0;
+        }
+        
         .count-badge {
           background: $border-color;
           padding: 0.2rem 0.6rem;
@@ -278,39 +423,60 @@ $accent-blue: #3b82f6;
 
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
-        .inv-id { display: block; font-weight: 600; font-size: 0.9rem; }
-        .inv-date { font-size: 0.8rem; color: $text-muted; }
+        .card-left {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .inv-id {
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: $text-main;
+        }
         
+        .inv-date {
+          font-size: 0.8rem;
+          color: $text-muted;
+        }
+
         .card-right {
           text-align: right;
-          .inv-amount { display: block; font-weight: 700; color: $text-main; }
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          align-items: flex-end;
+
+          .inv-amount {
+            font-weight: 700;
+            color: $text-main;
+          }
+
+          .inv-status {
+             font-size: 0.75rem;
+             font-weight: 600;
+             text-transform: capitalize;
+
+             // Reuse the pill logic logic or define simplified text colors here
+             &.paid { color: #166534; }
+             &.pending { color: #854d0e; }
+             &.overdue { color: #991b1b; }
+          }
         }
       }
     }
   }
 }
 
-// Status Pills
-.status-pill, .inv-status {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.25rem 0.75rem;
-  border-radius: 99px;
-  text-transform: capitalize;
-  
-  &.paid, &.active { background: #ecfdf5; color: #059669; }
-  &.pending { background: #fffbeb; color: #d97706; }
-  &.overdue { background: #fef2f2; color: #dc2626; }
-}
-
+// Keyframes for the overlay fade
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-        }
+     }
 
   @media (max-width: 1200px) {
   .layout{
@@ -321,6 +487,59 @@ $accent-blue: #3b82f6;
         .clients-header{
             display: none;
         }
+
+    .mobile-search {
+  display: block;
+  width: 100%;
+  margin-top: 2rem; // Slightly reduced for better mobile flow
+  padding: 0 1rem; // Adds safe space on left/right edges
+  box-sizing: border-box;
+
+  // 1. Hide this section on Desktop (Screens larger than 768px)
+  @media (min-width: 768px) {
+    display: none;
+  }
+
+  .search {
+    width: 100%; // 2. Ensure white box fills the container
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); // Lighter shadow for mobile
+    background: white;
+    border-radius: 12px; // Slightly rounder looks better on mobile
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    box-sizing: border-box;
+
+    .icon {
+      font-size: 1.25rem; // Use rem for scaling
+      color: #6b7280; // Standard gray-500
+      flex-shrink: 0; // Prevents icon from getting squashed
+    }
+
+    input {
+      border: none;
+      outline: none;
+      background: transparent;
+      flex: 1; // 3. Forces input to take all available width
+      width: 100%; 
+      min-width: 0; // Fixes flexbox overflow issues
+      color: #1f2937;
+      
+      // 4. PREVENTS IOS ZOOM ON FOCUS (Must be 16px)
+      font-size: 16px; 
+
+      &:focus {
+        border: none;
+      }
+
+      &::placeholder {
+        color: #9ca3af;
+        font-size: 14px; // Placeholder can be smaller visually
+      }
+    }
+  }
+}
 
         .client-table-container{
             width: 90%;

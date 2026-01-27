@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Navigation from "../components/Navigation";
-import { FaUserCircle } from "react-icons/fa";
 import { CiSearch } from "react-icons/ci";
 import { MdOutlineNoteAdd } from "react-icons/md";
 import { txtdb } from "../../../firebase-config";
@@ -8,15 +7,18 @@ import { IoIosArrowBack } from "react-icons/io";
 import { IoAdd } from "react-icons/io5";
 import { IoCloseOutline } from "react-icons/io5";
 import { Timestamp } from "firebase/firestore";
-import { collection, addDoc, doc, setDoc, updateDoc, getDocs, deleteDoc, query, where } from "firebase/firestore";
-import html2pdf from "html2pdf.js";
+import { collection, addDoc, doc, updateDoc, getDocs, deleteDoc, query, where } from "firebase/firestore";
+import { CiMenuKebab } from "react-icons/ci";
+import html2canvas from 'html2canvas';
+import logo from "../../../stock/logonew-removebg-preview.png"
+
 
 function Invoice() {
 
-   const [filter, setFilter] = useState("all");
-   const [isEditing, setIsEditing] = useState(false); // New state to track mode
-const [editingInvoiceId, setEditingInvoiceId] = useState(null);
-const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [isEditing, setIsEditing] = useState(false); // New state to track mode
+  const [editingInvoiceId, setEditingInvoiceId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   
   const statusColor = (status) => {
@@ -35,10 +37,6 @@ const [searchTerm, setSearchTerm] = useState("");
         return "status";
     }
   };
-
-  //demo ends
-
-
 
   //real form ends
 
@@ -280,48 +278,40 @@ useEffect(() => {
   fetchInvoices();
 }, []); // Runs once on component mount
 
-  // useEffect(() => {
-  //   if (filter === "all") {
-  //     setFilteredInvoices(invoices);
-  //   } else if (filter === "paid") {
-  //     setFilteredInvoices(invoices.filter(inv => inv.status === "Paid"));
-  //   } else if (filter === "unpaid") {
-  //     setFilteredInvoices(invoices.filter(inv => inv.status === "Unpaid"));
-  //   } else if (filter === "partial-payment") { // <--- The filter state is now 'partial-payment'
-  //     // **CORRECT LOGIC**: Filter based on the saved status string
-  //     setFilteredInvoices(invoices.filter(inv => inv.status === "Partial-Payment"));
-  //   } else if (filter === "draft") {
-  //     setFilteredInvoices(invoices.filter(inv => inv.status === "Draft"));
-  //   }
-  // }, [filter, invoices]);
-
   // --- Updated Filtering Logic (Handles Tabs + Search) ---
-const filteredInvoices = useMemo(() => {
-  return invoices.filter((inv) => {
-    // 1. Prepare search string (combining fields for wide range search)
-    const searchLower = searchTerm.toLowerCase();
-    const invoiceNo = inv.invoiceNo || inv.id.slice(0, 6).toUpperCase();
-    const dateStr = new Date(inv.created).toLocaleDateString();
-    
-    const matchesSearch = 
-      inv.client.toLowerCase().includes(searchLower) ||
-      invoiceNo.toLowerCase().includes(searchLower) ||
-      inv.status.toLowerCase().includes(searchLower) ||
-      dateStr.includes(searchLower);
+// --- Updated Filtering & Sorting Logic ---
+  const filteredInvoices = useMemo(() => {
+    const filtered = invoices.filter((inv) => {
+      // 1. Search Logic
+      const searchLower = searchTerm.toLowerCase();
+      const invoiceNo = inv.invoiceNo || inv.id.slice(0, 6).toUpperCase();
+      const dateStr = new Date(inv.created).toLocaleDateString();
+      
+      const matchesSearch = 
+        inv.client.toLowerCase().includes(searchLower) ||
+        invoiceNo.toLowerCase().includes(searchLower) ||
+        inv.status.toLowerCase().includes(searchLower) ||
+        dateStr.includes(searchLower);
 
-    if (!matchesSearch) return false;
+      if (!matchesSearch) return false;
 
-    // 2. Tab Filter Logic
-    if (filter === "all") return true;
-    if (filter === "paid") return inv.status === "Paid";
-    if (filter === "unpaid") return inv.status === "Unpaid";
-    if (filter === "partial-payment") return inv.status === "Partial-Payment";
-    if (filter === "draft") return inv.status === "Draft";
+      // 2. Tab Filter Logic
+      if (filter === "all") return true;
+      if (filter === "paid") return inv.status === "Paid";
+      if (filter === "unpaid") return inv.status === "Unpaid";
+      if (filter === "partial-payment") return inv.status === "Partial-Payment";
+      if (filter === "draft") return inv.status === "Draft";
 
-    return true;
-  });
-}, [invoices, filter, searchTerm]);
-//
+      return true;
+    });
+
+    // 3. Sorting Logic (Newest to Oldest)
+    return filtered.sort((a, b) => {
+      // Sort by 'created' date timestamp
+      return b.created.getTime() - a.created.getTime();
+    });
+
+  }, [invoices, filter, searchTerm]);
 
 // edit invoice function
 const editInvoice = (inv) => {
@@ -368,19 +358,57 @@ const deleteInvoice = async (id) => {
   }
 };
 
-//export invoice
-const exportPDF = (inv) => {
+const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+// Function to generate and download image for sharing
+const shareInvoice = async (inv) => {
+  console.log("Share Invoice clicked for:", inv);
+  
   setSelectedInvoice(inv);
-
-  setTimeout(() => {
-    const element = document.getElementById("pdf-content");
-
-    html2pdf()
-      .from(element)
-    .save(`invoice-${inv.invoiceNo}.pdf`);
-
-  }, 300);
+  setIsGeneratingImage(true);
+  
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  try {
+    const element = document.getElementById("image-content");
+    if (!element) {
+      console.error("Image content element not found");
+      return;
+    }
+    
+    void element.offsetHeight;
+    
+    console.log("Image innerHTML:", element.innerHTML);
+    console.log("Image dimensions:", element.clientWidth, "x", element.clientHeight);
+    
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      windowWidth: 794,
+      windowHeight: 1123,
+      scrollX: 0,
+      scrollY: 0,
+    });
+    
+    const image = canvas.toDataURL("image/png");
+    const link = document.createElement('a');
+    link.download = `Invoice-${inv.invoiceNo || inv.id.slice(0, 6).toUpperCase()}.png`;
+    link.href = image;
+    link.click();
+    
+    console.log("Image generation complete");
+    
+  } catch (error) {
+    console.error("Image export error:", error);
+    alert("Failed to generate image: " + error.message);
+  } finally {
+    setIsGeneratingImage(false);
+    setSelectedInvoice(null);
+  }
 };
+
 
 //invoices count
 const invoiceCounts = useMemo(() => {
@@ -412,7 +440,6 @@ const invoiceCounts = useMemo(() => {
 
   return counts;
 }, [invoices]); // Recalculate only when the main invoices list changes
-// ... existing useEffects (fetchInvoices, filter useEffect) ..
 
 
 useEffect(() => {
@@ -459,10 +486,42 @@ const closeModal = () => {
   setTimeout(() => setShowDetails(false), 300);
 };
 
+//share popup
+const menuRef = useRef(null);
 
+useEffect(() => {
+  const handleClickOutside = (e) => {
+    // Check if the clicked element is inside a .menu-wrapper
+    if (!e.target.closest(".menu-wrapper")) {
+      setOpenMenu(null);
+    }
+  };
 
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
-    
+// --- PAGINATION LOGIC ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset to page 1 whenever Filter or Search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, searchTerm]);
+
+  // This will now take the first 5 of the SORTED list
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentInvoices = filteredInvoices.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Logic to change pages
+  const paginateNext = () => setCurrentPage((prev) => prev + 1);
+  const paginatePrev = () => setCurrentPage((prev) => prev - 1);
+  // --- PAGINATION LOGIC END ---
+
 
   return (
     <div className='layout'>
@@ -487,6 +546,18 @@ const closeModal = () => {
                       </div>
             
               </div>
+
+                     <div className="mobile-search">
+                                <div className="search">
+                                        <CiSearch className='icon'/>
+                                     <input 
+                                type="search" 
+                                placeholder='Search Name or Contact' 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                              />
+                                    </div>
+                      </div>
 
             <div className="invoices">
 
@@ -553,7 +624,7 @@ const closeModal = () => {
           {/* 🛑 Start of Conditional Rendering 🛑 */}
           {filteredInvoices.length > 0 ? (
             <tbody>
-              {filteredInvoices.map((inv) => (
+              {currentInvoices.map((inv) => (
                 <tr key={inv.id}>
                   {/* ... existing table row content ... */}
                   <td>
@@ -567,25 +638,27 @@ const closeModal = () => {
                   </td>
                   <td className="not-mobile">{new Date(inv.created).toLocaleDateString()}</td>
                   <td className="not-mobile">{new Date(inv.due).toLocaleDateString()}</td>
-                  <td className="not-mobile">&#8358;{inv.amount}</td>
-                  <td>
-                    <span className={statusColor(inv.status)}>
-                      {inv.status}
-                    </span>
-                  </td>
+               <td className="not-mobile">
+                  &#8358;{Number(inv.amount).toLocaleString()}
+                </td>
+
+               <td>
+                <span className={statusColor(inv.status)}>
+                  {inv.status === "Partial-Payment" ? "Partial" : inv.status}
+                </span>
+              </td>
                   {/* actions (menu wrapper) */}
                 <td className="actions">
-                  <div className="menu-wrapper">
+                 <div className="menu-wrapper" >
                     <button 
                       className="menu-btn"
                       onClick={() => toggleMenu(inv.id)}
                     >
-                      ⋮
+                   <CiMenuKebab className="menu-icon"/>
                     </button>
 
                     {openMenu === inv.id && (
                       <div className="menu-dropdown">
-                        {/* <p onClick={() => viewInvoice(inv);  openModal(); }>View</p> */}
                         <p
                         onClick={() => {
                           viewInvoice(inv);
@@ -595,7 +668,7 @@ const closeModal = () => {
                         View
                       </p>
                         <p onClick={() => editInvoice(inv)}>Edit</p>
-                        <p onClick={() => exportPDF(inv)}>Export PDF</p>
+                        <p onClick={() => shareInvoice(inv)}>Share Invoice</p>
                         <p className="delete" onClick={() => deleteInvoice(inv.id)}>Delete</p>
                       </div>
                     )}
@@ -631,20 +704,39 @@ const closeModal = () => {
         </table>
 
           {/* Pagination (static mockup) */}
-          <div className="pagination">
-            <button>Previous</button>
-            <div className="pages">
-              {Array.from({ length: 5 }, (_, i) => (
-                <button key={i + 1}>{i + 1}</button>
-              ))}
+      {/* Dynamic Pagination */}
+          {filteredInvoices.length > 0 && (
+            <div className="pagination">
+              {/* Previous Button: Only shows if we have clicked Next (page > 1) */}
+              {currentPage > 1 ? (
+                <button onClick={paginatePrev}>Previous</button>
+              ) : (
+                /* Empty div to keep spacing if using flexbox, or remove if not needed */
+                <div></div>
+              )}
+
+              {/* Page Indicator (Optional, but helpful) */}
+              <div className="pages">
+                <p>
+                  Page {currentPage} of {Math.ceil(filteredInvoices.length / itemsPerPage)}
+                </p>
+              </div>
+
+              {/* Next Button: Only shows if there are more items beyond the current page */}
+              {filteredInvoices.length > indexOfLastItem ? (
+                <button onClick={paginateNext}>Next</button>
+              ) : (
+                 <div></div>
+              )}
             </div>
-            <button>Next</button>
-          </div>
+          )}
         </div>
             </div>
 
 
            </div>
+
+           
      
 
         </div>
@@ -659,92 +751,97 @@ const closeModal = () => {
             onClick={(e) => e.stopPropagation()}
           >
 
-   <div className="modal-container-details">
-  {/* Header */}
-  <div className="invoice-header">
-    <div className="brand">
-      <h2>Evanis Interiors & Furnitures</h2>
-      <p>www.evanisinteriors.com</p>
-    </div>
+          <div className="modal-container-details">
 
-    <div className="company-address">
-      <p>20, Furniture Avenue</p>
-      <p>Jakande gate Bus stop,</p>
-      <p>Oke-Afa, Isolo Lagos</p>
-    </div>
-  </div>
+            <button className="close-modal-btn" onClick={closeModal}>
+          <IoCloseOutline />
+        </button>
 
-  {/* Invoice Info */}
-  <div className="invoice-info">
-    <div>
-      <h4>Invoice Details</h4>
-      <p><b>Invoice No:</b> {selectedInvoice.invoiceNo || "—"}</p>
-      <p>
-        <b>Issued:</b>{" "}
-        {selectedInvoice.created.toLocaleDateString()}
-      </p>
-      <p>
-        <b>Due:</b>{" "}
-        {selectedInvoice.due.toLocaleDateString()}
-      </p>
-    </div>
+          {/* Header */}
+          <div className="invoice-header">
+            <div className="brand">
+              <h2>Evanis Interiors & Furnitures</h2>
+              <p>www.evanisinteriors.com</p>
+            </div>
 
-    <div>
-      <h4>Billed To</h4>
-      <p>{selectedInvoice.client}</p>
-      <p>{selectedInvoice.contact}</p>
-      <p>{selectedInvoice.address}</p>
-    </div>
-  </div>
+            <div className="company-address">
+              <p>20, Furniture Avenue</p>
+              <p>Jakande gate Bus stop,</p>
+              <p>Oke-Afa, Isolo Lagos</p>
+            </div>
+          </div>
 
-  {/* Items */}
-  <div className="invoice-items">
-    <div className="items-header">
-      <span>Item</span>
-      <span>Qty</span>
-      <span>Rate</span>
-      <span>Amount</span>
-    </div>
+          {/* Invoice Info */}
+          <div className="invoice-info">
+            <div>
+              <h4>Invoice Details</h4>
+              <p><b>Invoice No:</b> {selectedInvoice.invoiceNo || "—"}</p>
+              <p>
+                <b>Issued:</b>{" "}
+                {selectedInvoice.created.toLocaleDateString()}
+              </p>
+              <p>
+                <b>Due:</b>{" "}
+                {selectedInvoice.due.toLocaleDateString()}
+              </p>
+            </div>
 
-    {selectedInvoice.items.map((item, i) => (
-      <div className="item-row" key={i}>
-        <span>{item.name}</span>
-        <span>{item.quantity}</span>
-        <span>₦{item.rate?.toLocaleString() || "—"}</span>
-        <span>
-          ₦
-          {(
-            (item.rate || 0) * item.quantity
-          ).toLocaleString()}
-        </span>
-      </div>
-    ))}
-  </div>
+            <div>
+              <h4>Billed To</h4>
+              <p>{selectedInvoice.client}</p>
+              <p>{selectedInvoice.contact}</p>
+              <p>{selectedInvoice.address}</p>
+            </div>
+          </div>
 
-  {/* Totals */}
-  <div className="invoice-summary">
-    <div className="summary-row">
-      <span>Subtotal</span>
-      <span>
-        ₦{selectedInvoice.amount.toLocaleString()}
-      </span>
-    </div>
+          {/* Items */}
+          <div className="invoice-items">
+            <div className="items-header">
+              <span>Item</span>
+              <span>Qty</span>
+              <span>Rate</span>
+              <span>Amount</span>
+            </div>
 
-    <div className="summary-row">
-      <span>Paid</span>
-      <span>
-        ₦{selectedInvoice.paid.toLocaleString()}
-      </span>
-    </div>
+            {selectedInvoice.items.map((item, i) => (
+              <div className="item-row" key={i}>
+                <span>{item.name}</span>
+                <span>{item.quantity}</span>
+                <span>₦{item.rate?.toLocaleString() || "—"}</span>
+                <span>
+                  ₦
+                  {(
+                    (item.rate || 0) * item.quantity
+                  ).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
 
-    <div className="summary-row">
-      <span>Outstanding</span>
-      <span className="total">
-        ₦{selectedInvoice.outstanding.toLocaleString()}
-      </span>
-    </div>
-  </div>
-</div>
+          {/* Totals */}
+          <div className="invoice-summary">
+            <div className="summary-row">
+              <span>Subtotal</span>
+              <span>
+                ₦{selectedInvoice.amount.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="summary-row">
+              <span>Paid</span>
+              <span>
+                ₦{selectedInvoice.paid.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="summary-row">
+              <span>Outstanding</span>
+              <span className="total">
+                ₦{selectedInvoice.outstanding.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
 
 
 
@@ -777,13 +874,141 @@ const closeModal = () => {
           )}
 
 
-          {/* downloadable invoice */}
-          <div id="pdf-content" style={{ display: "none" }}>
-          <h1>Invoice</h1>
-          <p>Client: {selectedInvoice?.client}</p>
-          {/* Add more */}
+          {/* Image content for generation */}
+{isGeneratingImage && selectedInvoice && (
+  <div
+    id="image-content"
+    style={{
+      position: isGeneratingImage ? 'fixed' : 'absolute',
+      top: isGeneratingImage ? '0' : '-9999px',
+      left: isGeneratingImage ? '0' : '-9999px',
+      width: '210mm',
+      minHeight: '297mm',
+      backgroundColor: '#ffffff',
+      color: '#000000',
+      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+      fontSize: '13px',
+      boxSizing: 'border-box',
+      padding: '15mm 20mm',
+      visibility: 'visible',
+      zIndex: isGeneratingImage ? 9999 : -1,
+    }}
+  >
+    <div style={{ width: '100%', lineHeight: '1.4' }}>
+      
+      {/* 1. TOP HEADER SECTION */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>
+        <div style={{ width: '200px' }}>
+          {/* Logo Placeholder - Replace src with your actual logo path */}
+          <img src={logo} alt="evanis-interiors-logo" style={{ maxWidth: '100%', height: 'auto' }} />
         </div>
+        <div style={{ textAlign: 'right' }}>
+          <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: '400', color: '#333' }}>Invoice</h2>
+          <h3 style={{ margin: '0', fontSize: '18px', fontWeight: 'bold' }}>EVANIS INTERIORS & FURNITURES</h3>
+          <p style={{ margin: '5px 0 0 0', color: '#555' }}>20 Furniture Avenue Jakande St</p>
+          <p style={{ margin: '2px 0 0 0', color: '#555' }}>+2347038065509</p>
+          <p style={{ margin: '2px 0 0 0', color: '#555' }}>evanisinteriors@gmail.com</p>
+        </div>
+      </div>
 
+      {/* 2. GREY BILLING BAR */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        backgroundColor: '#f1f4f8', 
+        padding: '20px', 
+        marginBottom: '40px' 
+      }}>
+        <div>
+          <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Bill To</p>
+          <p style={{ margin: '0', fontSize: '14px' }}>{selectedInvoice.client || 'Mrs Diamond Ikebudu'}</p>
+          <p style={{ margin: '2px 0 0 0', fontSize: '14px' }}>{selectedInvoice.contact || '07026615513'}</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '5px' }}>
+            <span style={{ fontWeight: 'bold', width: '100px' }}>Invoice #</span>
+            <span>{selectedInvoice.invoiceNo || '221'}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{ fontWeight: 'bold', width: '100px' }}>Date</span>
+            <span>{selectedInvoice.created ? new Date(selectedInvoice.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '23 Sep 2025'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. ITEMS TABLE */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid #eee' }}>
+            <th style={{ padding: '12px 0', textAlign: 'left', fontSize: '14px' }}>Item</th>
+            <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '100px' }}>Quantity</th>
+            <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '120px' }}>Price</th>
+            <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '120px' }}>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(selectedInvoice.items || []).map((item, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid #f1f1f1' }}>
+              <td style={{ padding: '15px 0', fontWeight: 'bold' }}>{item.name}</td>
+              <td style={{ padding: '15px 0', textAlign: 'right' }}>{item.quantity}</td>
+              <td style={{ padding: '15px 0', textAlign: 'right' }}>₦{(item.rate || 0).toLocaleString()}</td>
+              <td style={{ padding: '15px 0', textAlign: 'right', fontWeight: 'bold' }}>₦{(item.rate * item.quantity).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* 4. PAYMENT & TOTALS SECTION */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>
+        <div>
+          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Payment Instructions</p>
+          <p style={{ margin: '0', color: '#666' }}>Naira</p>
+          <p style={{ margin: '2px 0', color: '#666' }}>1305981744</p>
+          <p style={{ margin: '2px 0', color: '#666' }}>EVANIS INTERIORS</p>
+          <p style={{ margin: '2px 0', color: '#666' }}>PROVIDUS BANK</p>
+        </div>
+        <div style={{ width: '250px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span style={{ color: '#666' }}>Subtotal</span>
+            <span>₦{(selectedInvoice.amount || 0).toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+            <span>Paid</span>
+            <span>₦{(selectedInvoice.paid || 0).toLocaleString()}</span>
+          </div>
+           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+            <span>Outstanding</span>
+            <span>₦{(selectedInvoice.outstanding || 0).toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. AMOUNT DUE HIGHLIGHT */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '60px' }}>
+        <div style={{ backgroundColor: '#f1f4f8', padding: '15px 30px', textAlign: 'right' }}>
+          <p style={{ margin: '0', color: '#666', fontSize: '12px' }}>Amount Due</p>
+          <h2 style={{ margin: '5px 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>
+            ₦{(selectedInvoice.amount || 0).toLocaleString()}
+          </h2>
+        </div>
+      </div>
+
+      {/* 6. SIGNATURE SECTION */}
+      <div style={{ borderTop: '1px solid #eee', paddingTop: '20px' }}>
+        <p style={{ fontSize: '11px', color: '#444', marginBottom: '20px' }}>
+          By signing this document, the customer agrees to the services and conditions described in this document.
+        </p>
+        <p style={{ fontWeight: 'bold', margin: '0 0 10px 0' }}>EVANIS INTERIORS & FURNITURES</p>
+        <div style={{ height: '40px' }}>
+          {/* If you have a signature image, put it here */}
+          <div style={{ borderBottom: '1px solid #ccc', width: '200px' }}></div>
+        </div>
+        <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>23 Sep 2025</p>
+      </div>
+
+    </div>
+  </div>
+)}
 
 
              {showForm && (
@@ -859,34 +1084,31 @@ const closeModal = () => {
           required
         />
 
-        <input
-          type="number"
-          min="1"
-          placeholder="Qty"
-          value={item.quantity}
-          onChange={(e) =>
-            handleChangee(index, "quantity", Number(e.target.value))
-          }
-          required
-        />
+          <input
+        type="number"
+        min="1"
+        placeholder="0" // Placeholder for Qty
+        value={item.quantity || ""} 
+        onChange={(e) => handleChangee(index, "quantity", e.target.value)}
+        required
+      />
 
-        <input
-          type="number"
-          min="0"
-          placeholder="Rate"
-          value={item.rate}
-          onChange={(e) =>
-            handleChangee(index, "rate", Number(e.target.value))
-          }
-          required
-        />
+      <input
+      type="number"
+      min="0"
+      placeholder="0.00" // Placeholder for Rate
+      value={item.rate || ""}
+      onChange={(e) => handleChangee(index, "rate", e.target.value)}
+      required
+    />
 
-        <input
-          type="number"
-          value={item.quantity * item.rate}
-          readOnly
-          placeholder="Total"
-        />
+     <input
+      type="number"
+      // Calculate on the fly, but default to empty string if result is 0
+      value={(item.quantity * item.rate) || ""} 
+      readOnly
+      placeholder="Total"
+    />
 
         {items.length > 1 && (
           <button
@@ -920,45 +1142,42 @@ const closeModal = () => {
 
 
           {/* MONEY DETAILS */}
-          <div className="money-dets">
-            <input
-              type="number"
-              name="amount"
-              placeholder="Items Amount"
-              value={formData.amount}
-              onChange={handleChange}
-              required
-            />
+        <div className="money-dets">
+          <input
+            type="number"
+            name="amount"
+            placeholder="Total Item Amount"
+            value={formData.amount || ""}
+            onChange={handleChange}
+            required
+          />
 
-            <input
-              type="number"
-              name="discount"
-              placeholder="Discount"
-              value={formData.discount}
-              onChange={handleChange}
-            />
+          <input
+            type="number"
+            name="discount"
+            placeholder="Discount (₦)"
+            value={formData.discount || ""}
+            onChange={handleChange}
+          />
 
-            <input
+          <input
             type="number"
             name="paid"
-            placeholder="Amount Paid"
-            value={formData.paid}
+            placeholder="Amount Paid (₦)"
+            value={formData.paid || ""}
             onChange={handleChange}
             disabled={formData.status === "Unpaid"}
           />
 
-
-
-         <input
-          type="number"
-          name="outstanding"
-          placeholder="Outstanding"
-          value={formData.outstanding}
-          disabled={formData.status === "Paid"}
-        />
-
-
-          </div>
+          <input
+            type="number"
+            name="outstanding"
+            placeholder="Remaining Balance"
+            value={formData.outstanding || ""}
+            disabled={formData.status === "Paid"}
+            readOnly // Usually outstanding should be calculated automatically
+          />
+        </div>
 
           {/* STATUS */}
           
