@@ -442,14 +442,21 @@ const invoiceCounts = useMemo(() => {
 }, [invoices]); // Recalculate only when the main invoices list changes
 
 
+// Located around line 652 in your code
 useEffect(() => {
   const amount = itemsTotal;
   const paid = Number(formData.paid || 0);
+  // 1. Get the discount value
+  const discount = Number(formData.discount || 0); 
+  
+  // 2. Calculate the actual Total Paybale (Subtotal - Discount)
+  const totalPayable = amount - discount;
 
   if (formData.status === "Paid") {
     setFormData(prev => ({
       ...prev,
-      paid: amount,
+      // 3. Set paid to the calculated payable amount, not just the subtotal
+      paid: totalPayable > 0 ? totalPayable : 0, 
       outstanding: 0,
     }));
   }
@@ -458,17 +465,21 @@ useEffect(() => {
     setFormData(prev => ({
       ...prev,
       paid: 0,
-      outstanding: amount,
+      // Optional: This ensures Unpaid also respects the discount
+      outstanding: totalPayable > 0 ? totalPayable : 0, 
     }));
   }
 
   if (formData.status === "Partial-Payment") {
     setFormData(prev => ({
       ...prev,
-      outstanding: amount - paid,
+      // Optional: This ensures Partial logic respects the discount
+      outstanding: (totalPayable - paid) > 0 ? (totalPayable - paid) : 0, 
     }));
   }
-}, [formData.status, formData.paid, itemsTotal]);
+
+// 4. IMPORTANT: Add formData.discount to the dependency array below
+}, [formData.status, formData.paid, itemsTotal, formData.discount]);
 
 
 
@@ -523,6 +534,69 @@ useEffect(() => {
   // --- PAGINATION LOGIC END ---
 
 
+  //
+  // commas where neccessary
+// Adds commas for display (e.g., 1000 -> "1,000")
+  const formatNumber = (num) => {
+    if (num === "" || num === null || num === undefined) return "";
+    // Convert to string, remove existing commas, then format
+    const clean = num.toString().replace(/,/g, "");
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  // Removes commas for calculation (e.g., "1,000" -> 1000)
+  const cleanNumber = (str) => {
+    return String(str).replace(/,/g, "");
+  };
+
+  // --- 2. Handlers with formatting logic ---
+
+  // Handle Changes for main Form Data (Money fields)
+  const handleMoneyChange = (e) => {
+    const { name, value } = e.target;
+    // Strip commas to save the raw number in state
+    const rawValue = cleanNumber(value);
+
+    // Prevent non-numeric input (allow empty string)
+    if (rawValue && isNaN(rawValue)) return;
+
+    setFormData((prev) => ({ ...prev, [name]: rawValue }));
+  };
+
+  // Handle Changes for Items (Rate/Qty)
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...items];
+    
+    if (field === "rate" || field === "quantity") {
+       const rawValue = cleanNumber(value);
+       if (rawValue && isNaN(rawValue)) return;
+       newItems[index][field] = rawValue;
+    } else {
+       newItems[index][field] = value;
+    }
+    setItems(newItems);
+  };
+
+  // Auto-calculate Totals whenever Items, Discount, or Paid changes
+  useEffect(() => {
+    const totalAmount = items.reduce((acc, item) => {
+      return acc + (item.quantity || 0) * (item.rate || 0);
+    }, 0);
+
+    const discount = parseFloat(formData.discount || 0);
+    const paid = parseFloat(formData.paid || 0);
+    const outstanding = (totalAmount - discount) - paid;
+
+    setFormData(prev => ({
+        ...prev,
+        amount: totalAmount, // Auto-update Subtotal
+        outstanding: outstanding > 0 ? outstanding : 0 // Auto-update Balance
+    }));
+  }, [items, formData.discount, formData.paid, setFormData]);
+
+
+  
+  
   return (
     <div className='layout'>
 
@@ -731,6 +805,7 @@ useEffect(() => {
             </div>
           )}
         </div>
+
             </div>
 
 
@@ -1011,185 +1086,241 @@ useEffect(() => {
 )}
 
 
-             {showForm && (
-          <div className="invoice-form">
-
+        {showForm && (
+        <div className="invoice-form">
           <div className="add-invoice-form">
-            <div className="cancel" onClick={ ()=> {setShowForm(false)}}> <IoIosArrowBack className="icon" /> <p>cancel invoice creation</p></div>
-            <h2>{isEditing ? "Edit Invoice" : "Add New Invoice"}</h2>
+            
+            {/* Header / Cancel */}
+            <div className="cancel" onClick={() => setShowForm(false)}>
+              <IoIosArrowBack className="icon" />
+              <p>Back to Invoices</p>
+            </div>
+            
+            <h2>{isEditing ? "Edit Invoice" : "Create New Invoice"}</h2>
 
-           <form onSubmit={handleSubmit}>
-          {/* CLIENT DETAILS */}
-          <div className="client-dets">
-            <input
-              type="text"
-              name="client"
-              placeholder="Client Name"
-              value={formData.client}
-              onChange={handleChange}
-              required
-            />
-
-            <input
-              type="text"
-              name="contact"
-              placeholder="Email or Phone Number"
-              value={formData.contact}
-              onChange={handleChange}
-              required
-            />
-
-            <input
-              type="text"
-              name="address"
-              placeholder="Address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* DATE DETAILS */}
-          <div className="date-dets">
-            <label htmlFor="">Ordered on</label>
-            <input
-              type="date"
-              name="created"
-              placeholder="Created date"
-              value={formData.created}
-              onChange={handleChange}
-              required
-            />
-            <label htmlFor="">Due on</label>
-
-            <input
-              type="date"
-              name="due"
-              placeholder="Due date"
-              value={formData.due}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* ITEM DETAILS */}
-          <div className="items-dets">
-            {items.map((item, index) => (
-      <div key={index} className="item-input">
-        <input
-          type="text"
-          placeholder={`Item ${index + 1}`}
-          value={item.name}
-          onChange={(e) => handleChangee(index, "name", e.target.value)}
-          required
-        />
-
-          <input
-        type="number"
-        min="1"
-        placeholder="0" // Placeholder for Qty
-        value={item.quantity || ""} 
-        onChange={(e) => handleChangee(index, "quantity", e.target.value)}
-        required
-      />
-
-      <input
-      type="number"
-      min="0"
-      placeholder="0.00" // Placeholder for Rate
-      value={item.rate || ""}
-      onChange={(e) => handleChangee(index, "rate", e.target.value)}
-      required
-    />
-
-     <input
-      type="number"
-      // Calculate on the fly, but default to empty string if result is 0
-      value={(item.quantity * item.rate) || ""} 
-      readOnly
-      placeholder="Total"
-    />
-
-        {items.length > 1 && (
-          <button
-            className="close"
-            type="button"
-            onClick={() => removeItemField(index)}
-          >
-            <IoCloseOutline />
-          </button>
-        )}
-      </div>
-
-            ))}
-
-            <button className="add" type="button" onClick={addItemField}>
-              <IoAdd /> <p>Add Another Item</p>
-            </button>
-          </div>
-
-          <div className="status">
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-          >
-            <option value="Paid">Paid</option>
-            <option value="Partial-Payment">Partial Payment</option>
-            <option value="Unpaid">Unpaid</option>
-          </select>
-        </div>
-
-
-          {/* MONEY DETAILS */}
-        <div className="money-dets">
-          <input
-            type="number"
-            name="amount"
-            placeholder="Total Item Amount"
-            value={formData.amount || ""}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            type="number"
-            name="discount"
-            placeholder="Discount (₦)"
-            value={formData.discount || ""}
-            onChange={handleChange}
-          />
-
-          <input
-            type="number"
-            name="paid"
-            placeholder="Amount Paid (₦)"
-            value={formData.paid || ""}
-            onChange={handleChange}
-            disabled={formData.status === "Unpaid"}
-          />
-
-          <input
-            type="number"
-            name="outstanding"
-            placeholder="Remaining Balance"
-            value={formData.outstanding || ""}
-            disabled={formData.status === "Paid"}
-            readOnly // Usually outstanding should be calculated automatically
-          />
-        </div>
-
-          {/* STATUS */}
-          
-       
-
-          <button className="submit-btn" type="submit">Submit</button>
-        </form>
-
-              </div>
+            <form onSubmit={handleSubmit}>
               
+              {/* --- SECTION 1: CLIENT DETAILS --- */}
+              <div className="form-section">
+                <h3>Client Information</h3>
+                <div className="client-dets">
+                  <div className="input-group">
+                    <label>Client Name</label>
+                    <input
+                      type="text"
+                      name="client"
+                      placeholder="e.g. John Doe"
+                      value={formData.client}
+                      onChange={(e) => setFormData({...formData, client: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>Contact (Phone/Email)</label>
+                    <input
+                      type="text"
+                      name="contact"
+                      placeholder="e.g. 08012345678"
+                      value={formData.contact}
+                      onChange={(e) => setFormData({...formData, contact: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group full-width">
+                    <label>Billing Address</label>
+                    <input
+                      type="text"
+                      name="address"
+                      placeholder="e.g. 123 Main Street, Lagos"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* --- SECTION 2: DATES --- */}
+              <div className="form-section">
+                <h3>Dates</h3>
+                <div className="date-dets">
+                  <div className="input-group">
+                    <label>Invoice Date</label>
+                    <input
+                      type="date"
+                      name="created"
+                      value={formData.created}
+                      onChange={(e) => setFormData({...formData, created: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Due Date</label>
+                    <input
+                      type="date"
+                      name="due"
+                      value={formData.due}
+                      onChange={(e) => setFormData({...formData, due: e.target.value})}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* --- SECTION 3: ITEMS --- */}
+              <div className="form-section">
+                <h3>Item Details</h3>
+                
+                {/* Labels Header - clearer than repeating labels */}
+                <div className="items-header">
+                   <span className="lbl-item">Item Name</span>
+                   <span className="lbl-qty">Qty</span>
+                   <span className="lbl-rate">Price (₦)</span>
+                   <span className="lbl-total">Total (₦)</span>
+                   <span className="lbl-action"></span>
+                </div>
+
+                <div className="items-dets">
+                  {items.map((item, index) => (
+                    <div key={index} className="item-input">
+                      {/* Name */}
+                      <input
+                        className="inp-item"
+                        type="text"
+                        placeholder="Description"
+                        value={item.name}
+                        onChange={(e) => handleItemChange(index, "name", e.target.value)}
+                        required
+                      />
+
+                      {/* Quantity */}
+                      <input
+                        className="inp-qty"
+                        type="text" // Changed to text for formatting control
+                        placeholder="0"
+                        value={formatNumber(item.quantity)}
+                        onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
+                        required
+                      />
+
+                      {/* Rate */}
+                      <input
+                        className="inp-rate"
+                        type="text"
+                        placeholder="0.00"
+                        value={formatNumber(item.rate)}
+                        onChange={(e) => handleItemChange(index, "rate", e.target.value)}
+                        required
+                      />
+
+                      {/* Auto-Calculated Total Row */}
+                      <input
+                        className="inp-total"
+                        type="text"
+                        value={formatNumber((item.quantity * item.rate) || 0)}
+                        readOnly
+                        disabled
+                      />
+
+                      {/* Remove Button */}
+                      <div className="inp-action">
+                        {items.length > 1 && (
+                          <button
+                            className="close-btn"
+                            type="button"
+                            onClick={() => {
+                                const newItems = items.filter((_, i) => i !== index);
+                                setItems(newItems);
+                            }}
+                          >
+                             {/* Use 'X' or your Icon here */}
+                             &times; 
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  <button className="add-btn" type="button" onClick={() => setItems([...items, { name: "", quantity: "", rate: "" }])}>
+                     + Add Another Item
+                  </button>
+                </div>
+              </div>
+
+              {/* --- SECTION 4: PAYMENT STATUS & TOTALS --- */}
+              <div className="form-section">
+                <h3>Payment Details</h3>
+                
+                <div className="status-group">
+                   <label>Payment Status</label>
+                   <select
+                    name="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  >
+                    <option value="Partial-Payment">Partial Payment</option>
+                    <option value="Paid">Paid</option>
+                  </select>
+                </div>
+
+                <div className="money-dets">
+                  
+                  <div className="input-group">
+                    <label>Subtotal (₦)</label>
+                    <input
+                      type="text"
+                      name="amount"
+                      value={formatNumber(formData.amount)}
+                      readOnly // This is now auto-calculated
+                      className="readonly-input"
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>Discount (₦)</label>
+                    <input
+                      type="text"
+                      name="discount"
+                      placeholder="0"
+                      value={formatNumber(formData.discount)}
+                      onChange={handleMoneyChange}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>Amount Paid (₦)</label>
+                    <input
+                      type="text"
+                      name="paid"
+                      placeholder="0"
+                      value={formatNumber(formData.paid)}
+                      onChange={handleMoneyChange}
+                      disabled={formData.status === "Unpaid"}
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>Balance Due (₦)</label>
+                    <input
+                      type="text"
+                      name="outstanding"
+                      value={formatNumber(formData.outstanding)}
+                      readOnly
+                      className="readonly-input bold-balance"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button className="submit-btn" type="submit">
+                 {isEditing ? "Update Invoice" : "Generate Invoice"}
+              </button>
+            </form>
           </div>
-            )}
+        </div>
+      )}
 
     </div>
   )

@@ -449,168 +449,363 @@
             transform: translateX(0);
             }
 
-          .invoice-form{
-            position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;        /* allow children to take full width */
-        padding-block: 2rem;
-        overflow: hidden;  
-        background: white;
-         scrollbar-width: none;    /* hide scrollbar for Firefox */
-        -ms-overflow-style: none;
-                
-        &::-webkit-scrollbar {
-         display: none;
-        }
+        /* Variables for easy updates */
+$primary-color: #d1495b;
+$text-dark: #1f2937;
+$text-light: #6b7280;
+$border-color: #e5e7eb;
+$bg-color: #f9fafb;
+$white: #ffffff;
+
+.invoice-form {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4); // Dimmed background overlay
+  backdrop-filter: blur(4px); // Modern glass effect
+  z-index: 1000;
+  display: flex;
+  justify-content: center; // Center the modal
+  align-items: flex-start;
+  padding: 2rem 1rem;
+  overflow-y: auto; // Allow scrolling of the overlay
+
+  .add-invoice-form {
+    background: $white;
+    width: 100%;
+    max-width: 800px; // Restrict width for readability on large screens
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    padding: 2.5rem;
+    position: relative;
+    animation: slideUp 0.3s ease-out;
+
+    /* --- Header & Navigation --- */
+    .cancel {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: $text-light;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      transition: color 0.2s;
+
+      &:hover {
+        color: $primary-color;
+      }
+
+      .icon {
+        font-size: 1.2rem;
+      }
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      color: $text-dark;
+      margin-bottom: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    /* --- Form Sections --- */
+    .form-section {
+      margin-bottom: 2.5rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid $border-color;
+
+      &:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+
+      h3 {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: $text-light;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+      }
+    }
+
+    /* --- Inputs Layout (Grid System) --- */
+    .client-dets, .date-dets, .money-dets {
+      display: grid;
+      grid-template-columns: 1fr 1fr; // 2 columns by default
+      gap: 1.5rem;
+    }
+
+    /* Specific overrides for specific sections */
+    .client-dets {
+       // Make address take full width
+       .input-group:last-child {
+         grid-column: span 2;
+       }
+    }
+
+.status-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: fit-content;
+
+  label {
+    font-size: 80%;
+    font-weight: 500;
+    color: #444;
+  }
+
+  select {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    cursor: pointer;
+    outline: none;
+    min-width: 180px;
+    color: $text-dark;
     
+    // remove default browser arrow
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 
-        .add-invoice-form{
-            width: 80%;
-            margin: 0 auto;
-        overflow-y: auto;
+    // custom arrow
+    background-image: url("data:image/svg+xml,%3Csvg fill='none' stroke='%23666' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+
+    &:focus {
+   border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1); // Glow effect
+    }
+  }
+}
+
+    
+    .money-dets {
+        // Money section usually looks better in 2 columns or aligned right
+        align-items: flex-start;
+        margin-top: 1.5rem;
+    }
 
 
-            .cancel{
-                display: flex;
-                align-items: center;
-                cursor: pointer;
-                transition: .2s ease;
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
 
-                &:hover{
-                    color: #d1495b;
-                }
-                
+      label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: $text-dark;
+      }
 
-                .icon{
-                    font-size: 20px;
-                }
+      input, select {
+        padding: 0.75rem 1rem;
+        border: 1px solid $border-color;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        background-color: #fff;
+        transition: all 0.2s;
+        color: $text-dark;
 
-                p{
-                    font-size: 12px;
-                }
-            }
-
-            h2{
-                margin-block: 2rem;
-                text-align: center;
-                color: #555;
-            }
-
-            form{
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                width: 100%;
-
-                input{
-                    padding: .5rem 1rem;
-                    border-radius: 5px;
-                    border: 1px solid hsl(0, 0%, 83%);
-
-                       &:focus {
-                        border: 1px solid #d1495b;
-                        outline: #d1495b;
-                    }
-                }
-
-                .date-dets, .client-dets, .money-dets{
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .date-dets{
-                    label{
-                        font-size: 85%;
-                    }
-                }
-
-                .items-dets{
-                    display: flex;
-                    flex-direction: column;
-                    gap: 1rem;
-
-                    .item-input{
-                        display: flex;
-                        align-items: center;
-                        gap: 1rem;
-
-                        .close{
-                            background: #d1495b;
-                            color: white;
-                            padding: .25rem;
-                            border: none;
-                            padding-inline: .5rem;
-                            cursor: pointer;
-                            border-radius: 4px;
-
-                            .close-icon{
-                                font-size: 20px;
-                            }
-                        }
-                    }
-
-                    .add{
-                        width: 200px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding-block: .5rem;
-                            cursor: pointer;
-                    background: #d1495b;
-                    color: white;
-                    font-weight: 500;
-                    border: none;
-                    padding: .5rem;
-                    border-radius: 5px;
-
-                    p{
-                        font-size: 12px;
-                    }
-                    }
-                }
-
-                .status{
-                    display: flex;
-                    cursor: pointer;    
-                    
-                    select{
-                        padding: 5px;
-                        border: 1px solid hsl(0, 0%, 83%);
-                        border-radius: 5px;
-
-                        &:outline{
-                            border: 1px solid #d1495b;
-                            
-                        }
-
-                        &:focus{
-                            border: 1px solid #d1495b;
-                        }
-                    }
-                }
-
-                .submit-btn{
-                    cursor: pointer;
-                    background: #d1495b;
-                    color: white;
-                    font-weight: 500;
-                    border: none;
-                    padding: .75rem;
-                    border-radius: 5px;
-
-                }
-            }
-            
-
+        &::placeholder {
+          color: #9ca3af;
         }
 
-            }
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.1); // Glow effect
+        }
+
+        &:disabled, &.readonly-input {
+          background-color: #f3f4f6;
+          color: $text-light;
+          cursor: not-allowed;
+          border-color: #eee;
+        }
+      }
+
+      &.bold-balance input {
+        color: $primary-color;
+        font-weight: 700;
+        background-color: #fff1f2; // Light red background for balance
+        border-color: #fecdd3;
+      }
+    }
+
+    /* --- Items Table Section --- */
+    .items-header {
+      display: grid;
+      // Name (3fr) | Qty (0.8fr) | Rate (1.2fr) | Total (1.2fr) | Action (0.5fr)
+      grid-template-columns: 3fr 0.8fr 1.2fr 1.2fr 0.5fr; 
+      gap: 1rem;
+      padding: 0 0.5rem;
+      margin-bottom: 0.75rem;
+
+      span {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: $text-light;
+        text-transform: uppercase;
+      }
+    }
+
+    .items-dets {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+
+      .item-input {
+        display: grid;
+        grid-template-columns: 3fr 0.8fr 1.2fr 1.2fr 0.5fr;
+        gap: 1rem;
+        align-items: center;
+        
+        input {
+          width: 100%;
+          padding: 0.6rem; // Slightly tighter padding for table rows
+        }
+
+        .close-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          border: 1px solid #fee2e2;
+          background: #fef2f2;
+          color: $primary-color;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.2rem;
+          cursor: pointer;
+          transition: 0.2s;
+
+          &:hover {
+            background: $primary-color;
+            color: white;
+            border-color: $primary-color;
+          }
+        }
+      }
+
+      .add-btn {
+        margin-top: 1rem;
+        align-self: flex-start;
+        background: transparent;
+        border: 1px dashed $primary-color;
+        color: $primary-color;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.2s;
+
+        &:hover {
+          background: #fff1f2;
+        }
+      }
+    }
+
+    /* --- Submit Button --- */
+    .submit-btn {
+      width: 100%;
+      background: $primary-color;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px -1px rgba($primary-color, 0.3);
+      transition: transform 0.1s, box-shadow 0.2s;
+
+      &:hover {
+        background: darken($primary-color, 5%);
+        box-shadow: 0 6px 8px -1px rgba($primary-color, 0.4);
+      }
+
+      &:active {
+        transform: translateY(1px);
+      }
+    }
+  }
+
+  /* --- Mobile Responsiveness --- */
+  @media (max-width: 768px) {
+    padding: 0; // Full screen on mobile
+    background: white;
+
+    .add-invoice-form {
+      box-shadow: none;
+      border-radius: 0;
+      padding: 1.5rem;
+      min-height: 100vh; // Ensure it fills screen
+    }
+
+    // Stack all grids into 1 column
+    .client-dets, .date-dets, .money-dets {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+
+    //   .input-group:last-child {
+    //     grid-column: auto; // Reset address span
+    //   }
+    }
+
+    // Hide Table Header
+    .items-header {
+      display: none;
+    }
+
+    // Stack Items
+    .items-dets .item-input {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      border: 1px solid #eee;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #fafafa;
+      position: relative;
+
+      input {
+        background: white;
+      }
+      
+      // Make the delete button float top-right on mobile cards
+      .close-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 24px;
+        height: 24px;
+        font-size: 1rem;
+      }
+    }
+  }
+}
+
+// Simple slide-up animation
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
         }
 
   @media (max-width: 1200px) {
@@ -705,10 +900,6 @@
          display: none;
         }
 
-                .date-dets, .client-dets, .money-dets{
-                    flex-direction: column;
-                }
-
                 form{
 
                     input{
@@ -723,6 +914,17 @@
                             display: flex;
                         }
                     }
+
+                        .client-dets, .date-dets, .money-dets {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+
+      .input-group:last-child {
+        grid-column: auto; // Reset address span
+      }
+    }
+
+                    
                 }
 
         }
