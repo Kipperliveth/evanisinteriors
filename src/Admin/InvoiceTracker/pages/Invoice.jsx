@@ -949,141 +949,151 @@ useEffect(() => {
           )}
 
 
+          {/* 🟢 1. The Loading Screen (Shows to the user) */}
+      {isGeneratingImage && (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Generating Invoice... Please wait.</p>
+        </div>
+      )}
+
           {/* Image content for generation */}
-{isGeneratingImage && selectedInvoice && (
-  <div
-    id="image-content"
-    style={{
-      position: isGeneratingImage ? 'fixed' : 'absolute',
-      top: isGeneratingImage ? '0' : '-9999px',
-      left: isGeneratingImage ? '0' : '-9999px',
-      width: '210mm',
-      minHeight: '297mm',
-      backgroundColor: '#ffffff',
-      color: '#000000',
-      fontFamily: '"Helvetica Neue", Arial, sans-serif',
-      fontSize: '13px',
-      boxSizing: 'border-box',
-      padding: '15mm 20mm',
-      visibility: 'visible',
-      zIndex: isGeneratingImage ? 9999 : -1,
-    }}
-  >
-    <div style={{ width: '100%', lineHeight: '1.4' }}>
-      
-      {/* 1. TOP HEADER SECTION */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>
-        <div style={{ width: '200px' }}>
-          {/* Logo Placeholder - Replace src with your actual logo path */}
-          <img src={logo} alt="evanis-interiors-logo" style={{ maxWidth: '100%', height: 'auto' }} />
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: '400', color: '#333' }}>Invoice</h2>
-          <h3 style={{ margin: '0', fontSize: '18px', fontWeight: 'bold' }}>EVANIS INTERIORS & FURNITURES</h3>
-          <p style={{ margin: '5px 0 0 0', color: '#555' }}>20 Furniture Avenue Jakande St</p>
-          <p style={{ margin: '2px 0 0 0', color: '#555' }}>+2347038065509</p>
-          <p style={{ margin: '2px 0 0 0', color: '#555' }}>evanisinteriors@gmail.com</p>
-        </div>
-      </div>
+      {isGeneratingImage && selectedInvoice && (
+        <div
+          id="image-content"
+        style={{
+            position: "fixed",
+            // 🛑 CHANGED: We keep it off-screen even when generating
+            top: 0,
+            left: "-10000px", 
+            width: "210mm",
+            minHeight: "297mm",
+            backgroundColor: "#ffffff",
+            color: "#000000",
+            fontFamily: '"Helvetica Neue", Arial, sans-serif',
+            fontSize: "13px",
+            boxSizing: "border-box",
+            padding: "15mm 20mm",
+            // 🛑 CHANGED: Ensure it is visible to DOM, just not to User
+            visibility: "visible", 
+            zIndex: -1, 
+          }}
+        >
+          <div style={{ width: '100%', lineHeight: '1.4' }}>
+            
+            {/* 1. TOP HEADER SECTION */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>
+              <div style={{ width: '200px' }}>
+                {/* Logo Placeholder - Replace src with your actual logo path */}
+                <img src={logo} alt="evanis-interiors-logo" style={{ maxWidth: '100%', height: 'auto' }} />
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', fontWeight: '400', color: '#333' }}>Invoice</h2>
+                <h3 style={{ margin: '0', fontSize: '18px', fontWeight: 'bold' }}>EVANIS INTERIORS & FURNITURES</h3>
+                <p style={{ margin: '5px 0 0 0', color: '#555' }}>20 Furniture Avenue Jakande St</p>
+                <p style={{ margin: '2px 0 0 0', color: '#555' }}>+2347038065509</p>
+                <p style={{ margin: '2px 0 0 0', color: '#555' }}>evanisinteriors@gmail.com</p>
+              </div>
+            </div>
 
-      {/* 2. GREY BILLING BAR */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        backgroundColor: '#f1f4f8', 
-        padding: '20px', 
-        marginBottom: '40px' 
-      }}>
-        <div>
-          <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Bill To</p>
-          <p style={{ margin: '0', fontSize: '14px' }}>{selectedInvoice.client || 'Mrs Diamond Ikebudu'}</p>
-          <p style={{ margin: '2px 0 0 0', fontSize: '14px' }}>{selectedInvoice.contact || '07026615513'}</p>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '5px' }}>
-            <span style={{ fontWeight: 'bold', width: '100px' }}>Invoice #</span>
-            <span>{selectedInvoice.invoiceNo || '221'}</span>
+            {/* 2. GREY BILLING BAR */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              backgroundColor: '#f1f4f8', 
+              padding: '20px', 
+              marginBottom: '40px' 
+            }}>
+              <div>
+                <p style={{ margin: '0 0 5px 0', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase' }}>Bill To</p>
+                <p style={{ margin: '0', fontSize: '14px' }}>{selectedInvoice.client || 'Mrs Diamond Ikebudu'}</p>
+                <p style={{ margin: '2px 0 0 0', fontSize: '14px' }}>{selectedInvoice.contact || '07026615513'}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '5px' }}>
+                  <span style={{ fontWeight: 'bold', width: '100px' }}>Invoice #</span>
+                  <span>{selectedInvoice.invoiceNo || '221'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <span style={{ fontWeight: 'bold', width: '100px' }}>Date</span>
+                  <span>{selectedInvoice.created ? new Date(selectedInvoice.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '23 Sep 2025'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. ITEMS TABLE */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #eee' }}>
+                  <th style={{ padding: '12px 0', textAlign: 'left', fontSize: '14px' }}>Item</th>
+                  <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '100px' }}>Quantity</th>
+                  <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '120px' }}>Price</th>
+                  <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '120px' }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(selectedInvoice.items || []).map((item, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                    <td style={{ padding: '15px 0', fontWeight: 'bold' }}>{item.name}</td>
+                    <td style={{ padding: '15px 0', textAlign: 'right' }}>{item.quantity}</td>
+                    <td style={{ padding: '15px 0', textAlign: 'right' }}>₦{(item.rate || 0).toLocaleString()}</td>
+                    <td style={{ padding: '15px 0', textAlign: 'right', fontWeight: 'bold' }}>₦{(item.rate * item.quantity).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* 4. PAYMENT & TOTALS SECTION */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>
+              <div>
+                <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Payment Instructions</p>
+                <p style={{ margin: '0', color: '#666' }}>Naira</p>
+                <p style={{ margin: '2px 0', color: '#666' }}>1305981744</p>
+                <p style={{ margin: '2px 0', color: '#666' }}>EVANIS INTERIORS</p>
+                <p style={{ margin: '2px 0', color: '#666' }}>PROVIDUS BANK</p>
+              </div>
+              <div style={{ width: '250px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ color: '#666' }}>Subtotal</span>
+                  <span>₦{(selectedInvoice.amount || 0).toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+                  <span>Paid</span>
+                  <span>₦{(selectedInvoice.paid || 0).toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+                  <span>Outstanding</span>
+                  <span>₦{(selectedInvoice.outstanding || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. AMOUNT DUE HIGHLIGHT */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '60px' }}>
+              <div style={{ backgroundColor: '#f1f4f8', padding: '15px 30px', textAlign: 'right' }}>
+                <p style={{ margin: '0', color: '#666', fontSize: '12px' }}>Amount Due</p>
+                <h2 style={{ margin: '5px 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>
+                  ₦{(selectedInvoice.amount || 0).toLocaleString()}
+                </h2>
+              </div>
+            </div>
+
+            {/* 6. SIGNATURE SECTION */}
+            <div style={{ borderTop: '1px solid #eee', paddingTop: '20px' }}>
+              <p style={{ fontSize: '11px', color: '#444', marginBottom: '20px' }}>
+                By signing this document, the customer agrees to the services and conditions described in this document.
+              </p>
+              <p style={{ fontWeight: 'bold', margin: '0 0 10px 0' }}>EVANIS INTERIORS & FURNITURES</p>
+              <div style={{ height: '40px' }}>
+                {/* If you have a signature image, put it here */}
+                <div style={{ borderBottom: '1px solid #ccc', width: '200px' }}></div>
+              </div>
+              <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>23 Sep 2025</p>
+            </div>
+
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <span style={{ fontWeight: 'bold', width: '100px' }}>Date</span>
-            <span>{selectedInvoice.created ? new Date(selectedInvoice.created).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '23 Sep 2025'}</span>
-          </div>
         </div>
-      </div>
-
-      {/* 3. ITEMS TABLE */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #eee' }}>
-            <th style={{ padding: '12px 0', textAlign: 'left', fontSize: '14px' }}>Item</th>
-            <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '100px' }}>Quantity</th>
-            <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '120px' }}>Price</th>
-            <th style={{ padding: '12px 0', textAlign: 'right', fontSize: '14px', width: '120px' }}>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(selectedInvoice.items || []).map((item, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #f1f1f1' }}>
-              <td style={{ padding: '15px 0', fontWeight: 'bold' }}>{item.name}</td>
-              <td style={{ padding: '15px 0', textAlign: 'right' }}>{item.quantity}</td>
-              <td style={{ padding: '15px 0', textAlign: 'right' }}>₦{(item.rate || 0).toLocaleString()}</td>
-              <td style={{ padding: '15px 0', textAlign: 'right', fontWeight: 'bold' }}>₦{(item.rate * item.quantity).toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* 4. PAYMENT & TOTALS SECTION */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>
-        <div>
-          <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Payment Instructions</p>
-          <p style={{ margin: '0', color: '#666' }}>Naira</p>
-          <p style={{ margin: '2px 0', color: '#666' }}>1305981744</p>
-          <p style={{ margin: '2px 0', color: '#666' }}>EVANIS INTERIORS</p>
-          <p style={{ margin: '2px 0', color: '#666' }}>PROVIDUS BANK</p>
-        </div>
-        <div style={{ width: '250px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ color: '#666' }}>Subtotal</span>
-            <span>₦{(selectedInvoice.amount || 0).toLocaleString()}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-            <span>Paid</span>
-            <span>₦{(selectedInvoice.paid || 0).toLocaleString()}</span>
-          </div>
-           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-            <span>Outstanding</span>
-            <span>₦{(selectedInvoice.outstanding || 0).toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. AMOUNT DUE HIGHLIGHT */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '60px' }}>
-        <div style={{ backgroundColor: '#f1f4f8', padding: '15px 30px', textAlign: 'right' }}>
-          <p style={{ margin: '0', color: '#666', fontSize: '12px' }}>Amount Due</p>
-          <h2 style={{ margin: '5px 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>
-            ₦{(selectedInvoice.amount || 0).toLocaleString()}
-          </h2>
-        </div>
-      </div>
-
-      {/* 6. SIGNATURE SECTION */}
-      <div style={{ borderTop: '1px solid #eee', paddingTop: '20px' }}>
-        <p style={{ fontSize: '11px', color: '#444', marginBottom: '20px' }}>
-          By signing this document, the customer agrees to the services and conditions described in this document.
-        </p>
-        <p style={{ fontWeight: 'bold', margin: '0 0 10px 0' }}>EVANIS INTERIORS & FURNITURES</p>
-        <div style={{ height: '40px' }}>
-          {/* If you have a signature image, put it here */}
-          <div style={{ borderBottom: '1px solid #ccc', width: '200px' }}></div>
-        </div>
-        <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>23 Sep 2025</p>
-      </div>
-
-    </div>
-  </div>
-)}
+      )}
 
 
         {showForm && (
