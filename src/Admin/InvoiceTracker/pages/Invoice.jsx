@@ -1088,7 +1088,7 @@ useEffect(() => {
                 {/* If you have a signature image, put it here */}
                 <div style={{ borderBottom: '1px solid #ccc', width: '200px' }}></div>
               </div>
-              <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>23 Sep 2025</p>
+              {/* <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>23 Sep 2025</p> */}
             </div>
 
           </div>
