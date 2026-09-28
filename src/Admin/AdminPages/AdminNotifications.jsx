@@ -5,343 +5,178 @@ import { txtdb } from "../../firebase-config";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase-config";
 import { PiNotePencilLight } from "react-icons/pi";
-
+import { BsCircleFill } from "react-icons/bs";
 
 function AdminNotifications() {
   const [notifications, setNotifications] = useState([]);
-  const [user, setUser] = useState({})
+  const [user, setUser] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [readNotifications, setReadNotifications] = useState([]);
-const [showPopup, setShowPopup] = useState(false);
-
-
 
   useEffect(() => {
-    document.title = "Notifications Evanis-Interiors";
-
+    document.title = "Notifications - Admin";
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
     });
-  
     return () => unsubscribe();
-  }, []); // Run only once when the component mounts
+  }, []);
 
+  // Fetch Unread Notifications
   useEffect(() => {
-    if (!user) return; // Return early if user is null
-
+    if (!user) return;
     const q = query(
       collection(txtdb, "notifications"),
       orderBy("timestamp", "desc")
-    ); // Query to order by timestamp in descending order
-
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newNotifications = snapshot.docs.map((doc) => {
-        let timestamp;
-        if (doc.data().timestamp instanceof Date) {
-          timestamp = doc.data().timestamp; // If timestamp is already a Date object, use it directly
-        } else {
-          timestamp = new Date(doc.data().timestamp); // Convert Unix timestamp to Date object
-        }
+        let timestamp = doc.data().timestamp instanceof Date ? doc.data().timestamp : new Date(doc.data().timestamp);
         return {
           id: doc.id,
           ...doc.data(),
           timestamp: timestamp.toLocaleString([], {
-            day: "numeric",
-            month: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
+            day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
           }),
         };
       });
       setNotifications(newNotifications);
     });
-
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
-    //read notifs
-
-    useEffect(() => {
-      if (!user) return; // Return early if user is null
-    
-      const q = query(
-        collection(txtdb, `ReadAdminNotifications`),
-        orderBy("timestamp", "desc")
-      );
-    
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const newwNotifications = snapshot.docs.map((doc) => {
-          let timestamp;
-          if (doc.data().timestamp instanceof Date) {
-            timestamp = doc.data().timestamp;
-          } else {
-            timestamp = new Date(doc.data().timestamp);
-          }
-          return {
-            id: doc.id,
-            ...doc.data(),
-            timestamp: timestamp.toLocaleString([], {
-              day: "numeric",
-              month: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          };
-        });
-        // Count the number of unread notifications
-        setReadNotifications(newwNotifications);
-        setIsLoading(false);
-  
-  
+  // Fetch Read Notifications
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(txtdb, `ReadAdminNotifications`),
+      orderBy("timestamp", "desc")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newwNotifications = snapshot.docs.map((doc) => {
+        let timestamp = doc.data().timestamp instanceof Date ? doc.data().timestamp : new Date(doc.data().timestamp);
+        return {
+          id: doc.id,
+          ...doc.data(),
+          timestamp: timestamp.toLocaleString([], {
+            day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+          }),
+        };
       });
-    
-      return () => unsubscribe();
-    }, [user]);
+      setReadNotifications(newwNotifications);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [user]);
 
-      //delete function
-  const handleDeleteNotification = async (notificationId) => {
-    try {
-      await deleteDoc(doc(collection(txtdb, `notifications`), notificationId));
-      console.log("Notification deleted");
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-    }
-  };
-  
+  // ==========================================
+  // BACKGROUND AUTO-MARKER
+  // ==========================================
+  useEffect(() => {
+    // If there are no unread notifications, do nothing
+    if (notifications.length === 0) return;
 
-  const handleMarkNotificationAsRead = async (notification) => {
-setShowPopup(true);
+    // Set a 3.5 second delay so the admin can actually see what is "New" before it moves
+    const timer = setTimeout(() => {
+      notifications.forEach(async (notification) => {
+        try {
+          const readNotificationData = {
+            orderRefId: notification.orderRefId,
+            username: notification.username,
+            userEmail: notification.userEmail,
+            timestamp: notification.timestamp
+          };
 
-    try {
-      const readNotificationData = {
-          orderRefId: notification.orderRefId,
-        username:notification.username,
-        userEmail:notification.userEmail,
-      timestamp: notification.timestamp
-      };
-  
-      // Only add state and formattedDate fields if they are defined in the notification
-      if (notification.state) {
-        readNotificationData.state = notification.state;
-      }
-      if (notification.formattedDate15DaysFromNow) {
-        readNotificationData.formattedDate15DaysFromNow = notification.formattedDate15DaysFromNow;
-      }
-      if (notification.formattedDate20DaysFromNow) {
-        readNotificationData.formattedDate20DaysFromNow = notification.formattedDate20DaysFromNow;
-      }
-  
-      await addDoc(collection(txtdb, `ReadAdminNotifications`), readNotificationData);
-      console.log("Notification marked as read and moved to read notifications");
-      await handleDeleteNotification(notification.id);
-      setShowPopup(false);
-      
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-      setShowPopup(false);
+          if (notification.state) readNotificationData.state = notification.state;
+          if (notification.formattedDate15DaysFromNow) readNotificationData.formattedDate15DaysFromNow = notification.formattedDate15DaysFromNow;
+          if (notification.formattedDate20DaysFromNow) readNotificationData.formattedDate20DaysFromNow = notification.formattedDate20DaysFromNow;
 
-    }
-  };
+          // Copy to Read database
+          await addDoc(collection(txtdb, `ReadAdminNotifications`), readNotificationData);
+          // Delete from Unread database
+          await deleteDoc(doc(collection(txtdb, `notifications`), notification.id));
+        } catch (error) {
+          console.error("Error auto-marking notification:", error);
+        }
+      });
+    }, 3500);
 
+    // Cleanup timer if the component unmounts or data shifts mid-timer
+    return () => clearTimeout(timer);
+  }, [notifications]);
 
   return (
-    <div className="adminHome">
+    <div className="admin-layout-wrapper">
       <AdminDashboard />
 
-      <h2 className="admin-current-page mobile-content">Admin Notifications</h2>
+      <div className="admin-page-content">
+        
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Notifications</h1>
+            <p className="page-subtitle">You have {notifications.length} unread alerts.</p>
+          </div>
+        </div>
 
-      <div className="adminNotifications-content">
-
-      <h2 className="admin-current-page desktop-content">Admin Notifications</h2>
-
-
-              <div className="notification-container page">
-
-              {notifications.length > 0 ? (
-          <p className="recent"><span></span>New<span></span></p>
-        ) : null}
-
-        <div>
         {isLoading ? (
-          <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
+          <div className="notifications-skeleton">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="notif-skeleton-card"></div>
+            ))}
           </div>
         ) : (
+          <div className="notifications-list">
 
-            <div className="notifications">
-            {notifications.map((notification) => (
+            {/* UNREAD NOTIFICATIONS */}
+            {notifications.length > 0 && (
+              <>
+                <h3 className="section-divider">New</h3>
+                {notifications.map((notification) => (
+                  <div key={notification.id} className="notification-card unread">
+                    <div className="notif-left">
+                      <BsCircleFill className="unread-dot" />
+                      <div className="notif-details">
+                        <h4>New Order Request <span>#{notification.orderRefId?.slice(0, 8)}</span></h4>
+                        <p>
+                          <span className="customer-name">{notification.username || notification.userEmail}</span> has requested a delivery quote. Please review and contact the customer.
+                        </p>
+                        <span className="timestamp">{notification.timestamp}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
 
-              <div className="notification" key={notification.id}>
+            {/* READ NOTIFICATIONS */}
+            {readNotifications.length > 0 && (
+              <>
+                <h3 className="section-divider">Older</h3>
+                {readNotifications.map((readNotification) => (
+                  <div key={readNotification.id} className="notification-card read">
+                    <div className="notif-left">
+                      <PiNotePencilLight className="read-icon" />
+                      <div className="notif-details">
+                        <h4>Order Request Processed <span>#{readNotification.orderRefId?.slice(0, 8)}</span></h4>
+                        <p>
+                          Quote request from <span className="customer-name">{readNotification.username || readNotification.userEmail}</span>.
+                        </p>
+                        <span className="timestamp">{readNotification.timestamp}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
 
-                <div className="left"> <PiNotePencilLight className="icon"/></div>
-
-                <div className="right">
-                    <h4>You have recieved an order with ID: {notification.orderRefId}</h4>
-                    <p>from {notification.username} / {notification.userEmail}</p>
-                    <p>Contact customer for delivery fees</p>
-                    <h5>To complete this order and view delivery details, go to the Orders section</h5>
-                    <span>
-
-                    <p className="date">{notification.timestamp}</p> <button onClick={() => handleMarkNotificationAsRead(notification)}>Mark as Read</button>
-                    
-                    </span>
-                </div>
-
+            {notifications.length === 0 && readNotifications.length === 0 && (
+              <div className="empty-state">
+                <p>You're all caught up! No new notifications.</p>
               </div>
-              
-            ))}
-            </div>
-        )}
+            )}
 
-        </div>
-
-        {readNotifications.length > 0 ? (
-          <p className="recent"><span></span>Older<span></span></p>
-        ) : null}
-
-        <div className="read">
-        {isLoading ? (
-          <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
           </div>
-        ) : (
-
-            <div className="notifications">
-            {readNotifications.map((readNotification) => (
-
-              <div className="notification" key={readNotification.id}>
-
-                <div className="left"> <PiNotePencilLight className="icon"/></div>
-
-                <div className="right">
-                    <h4>You have recieved an order with ID: {readNotification.orderRefId}</h4>
-                    <p>from {readNotification.username} / {readNotification.userEmail}</p>
-                    <p>Contact customer for delivery fees</p>
-                    <h5>To complete this order and view delivery details, go to the Orders section</h5>
-                    <span>
-
-                    <p className="date">{readNotification.timestamp}</p> <button>Read</button>
-                    
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
         )}
-
-        </div>
-
-        {notifications.length === 0 && readNotifications.length === 0 && (
-          <p className="no-notifications">Your notifications will show here</p>
-        )}
-
-        </div>
-
-
       </div>
-{showPopup && (
-        <div className="popup">
-
-          <div className="spinner">
-            <div></div>   
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-          </div>
-
-
-        </div>
-      )}
     </div>
   );
 }

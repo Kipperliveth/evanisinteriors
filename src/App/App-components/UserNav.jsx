@@ -1,36 +1,81 @@
-import React, { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
-import logo from "../../stock/logomain.png";
+import React, { useState, useEffect, useRef } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import logo from "../../stock/new-logo.svg"; 
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { AiOutlineShoppingCart } from "react-icons/ai";
 import { CiUser } from "react-icons/ci";
-import { auth } from "../../firebase-config";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 import { BsBox2 } from "react-icons/bs";
 import { LiaUserEditSolid } from "react-icons/lia";
-import { RiMenu4Fill } from "react-icons/ri";
-import { MdCancel } from "react-icons/md";
-import {
-  getFirestore,
-  collection, query, orderBy,
-  getDocs,
-  onSnapshot
-} from "firebase/firestore";
-import { txtdb } from "../../firebase-config";
-import { useLocation } from "react-router-dom";
+import { RiMenu4Fill, RiCloseFill } from "react-icons/ri";
+import { auth, txtdb } from "../../firebase-config";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { collection, query, orderBy, onSnapshot, getDocs } from "firebase/firestore";
 
 function UserNav() {
   const [user, setUser] = useState({});
-
   const navigate = useNavigate();
   const location = useLocation();
+  const profileDropdownRef = useRef(null); 
 
-  const [isVisible, SetIsVisible] = useState(false);
+  // UI States
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showUserInfo, setShowUserInfo] = useState(false);
 
-  const toggleVisibilty = () => {
-    SetIsVisible(!isVisible);
-  };
+  // Data States
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const currentUser = auth.currentUser;
+
+  // ==========================================
+  // CLICK OUTSIDE LOGIC
+  // ==========================================
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setShowUserInfo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ==========================================
+  // SCROLL & MENU LOGIC 
+  // ==========================================
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => { document.body.style.overflow = "auto"; };
+  }, [isMobileMenuOpen]);
+
+  const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const closeMenu = () => setIsMobileMenuOpen(false);
+  const toggleUserInfo = () => setShowUserInfo(!showUserInfo);
+
+  // ==========================================
+  // AUTH & ROUTING LOGIC
+  // ==========================================
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const logout = async () => {
     if (auth.currentUser) {
@@ -38,55 +83,33 @@ function UserNav() {
       localStorage.clear();
       navigate("/login");
     } else {
-      // Handle the scenario where the user is not logged in
-      // For example, you might display an error message or redirect the user to the login page
       localStorage.clear();
-      console.log("User is not logged in");
       navigate("/login");
     }
   };
 
-  //bar display
-  const [showUserInfo, setShowUserInfo] = useState(false);
-
-  const toggleUserInfo = () => {
-    setShowUserInfo(!showUserInfo);
+  const handleActionClick = (path) => {
+    closeMenu();
+    setShowUserInfo(false);
+    navigate(path);
   };
-//
-  const cartLink = () => {
-    navigate("/cart");
-  };
-  const notifLink = () => {
-    navigate('/notifications')
-  }
-  //
-  //cart lenghth
-  const [cartItemCount, setCartItemCount] = useState(0); // State variable for cart item count
-  const [fetchedProducts, setFetchedProducts] = useState([]);
 
-
-  const currentUser = auth.currentUser;
-
+  // ==========================================
+  // FIREBASE CART LOGIC (WITH QUANTITIES)
+  // ==========================================
   const fetchProducts = async () => {
-    console.log("Fetching products...");
-
     if (currentUser) {
       const userId = currentUser.uid;
-      const productRef = collection(txtdb, `users/${userId}/products`); // User-specific cart collection
-
+      const productRef = collection(txtdb, `users/${userId}/products`);
       try {
         const querySnapshot = await getDocs(productRef);
-        const products = querySnapshot.docs.map((doc) => doc.data());
-        setFetchedProducts(products);
-        console.log("Products fetched:", products);
-        // Calculate total cart item count
-        const totalCount = products.length; 
-        setCartItemCount(totalCount);
+        const totalItems = querySnapshot.docs.reduce((sum, doc) => {
+          const data = doc.data();
+          return data.isInStock ? sum + (data.quantity || 1) : sum;
+        }, 0);
+        setCartItemCount(totalItems);
       } catch (error) {
         console.error("Error fetching products:", error);
-      } finally {
-        // setLoading(false); // Set loading state to false after fetching
-        // setIsLoading(false);
       }
     }
   };
@@ -94,42 +117,22 @@ function UserNav() {
   useEffect(() => {
     if (currentUser) {
       fetchProducts();
-  
-      // Listen for changes to the cart collection in real-time
       const unsubscribe = onSnapshot(collection(txtdb, `users/${currentUser.uid}/products`), (snapshot) => {
-        const updatedProducts = snapshot.docs.map((doc) => doc.data());
-        const totalCount = updatedProducts.length;
-        setCartItemCount(totalCount);
+        const totalItems = snapshot.docs.reduce((sum, doc) => {
+          const data = doc.data();
+          return data.isInStock ? sum + (data.quantity || 1) : sum;
+        }, 0);
+        setCartItemCount(totalItems);
       });
-  
-      return () => unsubscribe(); // Cleanup function to unsubscribe from the snapshot listener
+      return () => unsubscribe();
     }
-  }, [currentUser]); // Fetch products whenever currentUser changes
+  }, [currentUser]);
 
-
-
-  //
+  // ==========================================
+  // FIREBASE NOTIFICATION LOGIC
+  // ==========================================
   useEffect(() => {
-    onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-  }, [auth]);
-
-  // user notification count
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0); 
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-    });
-
-    return () => unsubscribe();
-  }, []); // Run only once when the component mounts
-
-  useEffect(() => {
-    if (!user) return; // Return early if user is null
-
+    if (!user) return;
     const userId = user.uid;
     const q = query(
       collection(txtdb, `userNotifications/${userId}/notificationCount`),
@@ -138,207 +141,158 @@ function UserNav() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newNotifications = snapshot.docs.map((doc) => {
-        let timestamp;
-        if (doc.data().timestamp instanceof Date) {
-          timestamp = doc.data().timestamp;
-        } else {
-          timestamp = new Date(doc.data().timestamp);
-        }
+        let timestamp = doc.data().timestamp instanceof Date ? doc.data().timestamp : new Date(doc.data().timestamp);
         return {
           id: doc.id,
           ...doc.data(),
-          timestamp: timestamp.toLocaleString([], {
-            day: "numeric",
-            month: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          timestamp: timestamp.toLocaleString([], { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }),
         };
       });
 
-   // Check if a new document has been added
-   if (newNotifications.length > notifications.length) {
-    // Calculate the count of unread notifications
-    const unreadNotifications = newNotifications.filter((notification) => !notification.read);
-    setUnreadCount(unreadNotifications.length);
-  }
-
-      // Update notifications
+      if (newNotifications.length > notifications.length) {
+        const unreadNotifications = newNotifications.filter((notification) => !notification.read);
+        setUnreadCount(unreadNotifications.length);
+      }
       setNotifications(newNotifications);
     });
-
     return () => unsubscribe();
-  }, [user, location, notifications]); // Run whenever the user object or notifications change
+  }, [user, location, notifications]);
 
-  
+  const hiddenPaths = ["/login", "/signup"];
+  if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith("/admin")) {
+    return null;
+  }
+
+  const navbarClass = `minimalist-header default-mode ${isScrolled ? "scrolled" : ""}`;
 
   return (
-    <div className="userNavbar">
-      <div className="userNav-container">
-        <NavLink to="/userDashboard" className="logo-container">
-          <img src={logo} alt="evanis-interior-logo" />
-          <p className="logo">
-            <span>EVANIS</span> INTERIORS
-          </p>
-        </NavLink>
-
-        <div className="userNavLinks desktop-content">
-          <li>
-            <NavLink
-              className={({ isActive }) => (isActive ? "active-link" : "link")}
-              to="/store"
-            >
-              Shop
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              className={({ isActive }) => (isActive ? "active-link" : "link")}
-              to="/userMasterclass"
-            >
-              Masterclass
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              className={({ isActive }) => (isActive ? "active-link" : "link")}
-              to="/gethelp"
-            >
-              Get Help
-            </NavLink>
-          </li>
+    <header className={navbarClass}>
+      <div className="nav-container">
+        
+        {/* Left: Brand Identity */}
+        <div className="nav-left">
+          <NavLink to="/store" className="brand-logo" onClick={closeMenu}>
+            <img src={logo} alt="Evanis Interiors" />
+          </NavLink>
         </div>
 
-        <div className="userControls desktop-content">
-       
-          <div className="cart-cont" onClick={notifLink}>
-            <div className="cart-container">
+        {/* Center: Desktop Links */}
+        <nav className="nav-center desktop-only">
+          <NavLink to="/store" className={({ isActive }) => (isActive ? "active nav-link" : "nav-link")}>
+            <span className="link-text">Collection</span>
+          </NavLink>
+          
+          <NavLink to="/gethelp" className={({ isActive }) => (isActive ? "active nav-link" : "nav-link")}>
+             <span className="link-text">Support</span>
+          </NavLink>
+        </nav>
 
-            {unreadCount > 0 && (
-           <div className="cart-total">{unreadCount}</div>
-           )}
-          <IoIosNotificationsOutline
-            className="app-icon desktop-view cart"
-            onClick={cartLink}
-          />
+        {/* Right: Actions & Profile */}
+        <div className="nav-right">
+          
+          {/* Desktop Actions */}
+          <div className="desktop-actions desktop-only">
+            
+            <div className="icon-wrapper" onClick={() => handleActionClick("/notifications")}>
+              <IoIosNotificationsOutline className="action-icon" title="Notifications" />
+              {unreadCount > 0 && <span className="action-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </div>
 
-          </div>
-
-          <div className="cart-cont" onClick={cartLink}>
-            <div className="cart-container">
-
-            {cartItemCount > 0 && (
-              <div className="cart-total">{cartItemCount}</div>
-            )}
-          <AiOutlineShoppingCart
-            className="app-icon desktop-view cart"
-            onClick={cartLink}
-          />
+            <div className="icon-wrapper" onClick={() => handleActionClick("/cart")}>
+              <AiOutlineShoppingCart className="action-icon" title="Cart" />
+              {cartItemCount > 0 && <span className="action-badge">{cartItemCount > 99 ? '99+' : cartItemCount}</span>}
             </div>
 
-          </div>
-          <CiUser className="app-icon user"
-            onClick={toggleUserInfo} />
+            {/* Profile Dropdown Toggle & Menu Wrapper */}
+            <div className="profile-wrapper" ref={profileDropdownRef}>
+              <div className="icon-wrapper user-icon-toggle" onClick={toggleUserInfo}>
+                <CiUser className="action-icon" title="Profile" />
+              </div>
 
-          {showUserInfo && (
-            <div className="currentUserInfo">
-              <div className="currentUserInfo-content">
-                <NavLink to='/userProfile'>
-                  <LiaUserEditSolid className="icon" />
-                  <p>View Profile</p>
-                </NavLink>
-                <NavLink className="icon" to='/myorders'>
-                  <BsBox2 /> <p>My Orders</p>
-                </NavLink>
-                <button onClick={logout}>Log out</button>
+              {/* Profile Dropdown Menu */}
+              <div className={`profile-dropdown-menu ${showUserInfo ? "active" : ""}`}>
+                <div className="dropdown-header">
+                  <p>My Account</p>
+                </div>
+                <div className="popover-group">
+                  <NavLink to="/userProfile" onClick={() => setShowUserInfo(false)} className="popover-link">
+                    <LiaUserEditSolid className="popover-icon" />
+                    <span>View Profile</span>
+                  </NavLink>
+                  <NavLink to="/myorders" onClick={() => setShowUserInfo(false)} className="popover-link">
+                    <BsBox2 className="popover-icon" />
+                    <span>My Orders</span>
+                  </NavLink>
+                </div>
+                <div className="popover-divider"></div>
+                <div className="popover-group">
+                  <div onClick={logout} className="popover-link logout-link">
+                    <span>Log Out</span>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
-        </div>
+            
+          </div>
 
-        <div className="cart-cont mobile-view mobile-menu-btn">
+          {/* Mobile Actions */}
+          <div className="mobile-header-actions mobile-only">
+            
+            <div className="mobile-icon-btn" onClick={() => handleActionClick("/notifications")}>
+              <IoIosNotificationsOutline />
+              {unreadCount > 0 && <span className="action-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            </div>
 
-          {(unreadCount > 0 || cartItemCount > 0) && (
-            <div  onClick={toggleVisibilty} className="mobile-view cartNote cart-total">{unreadCount+cartItemCount} </div>
-          )}
+            <div className="mobile-icon-btn" onClick={() => handleActionClick("/cart")}>
+              <AiOutlineShoppingCart />
+              {cartItemCount > 0 && <span className="action-badge">{cartItemCount > 99 ? '99+' : cartItemCount}</span>}
+            </div>
 
-          <RiMenu4Fill
-            className="app-icon mobile-view menu menu-icon"
-            onClick={toggleVisibilty}
-            />
+            <div className="mobile-toggle" onClick={toggleMenu}>
+              {isMobileMenuOpen ? <RiCloseFill /> : <RiMenu4Fill />}
+            </div>
 
           </div>
 
-
+        </div>
       </div>
 
-      <div
-        className={` mobile-menu-container ${isVisible ? "is-visible" : ""} `}
-      >
-        <div className="mobile-menu">
-          <div className="menu-content">
-            <MdCancel onClick={toggleVisibilty} className="cancel-btn" />
+      {/* Mobile Popover Overlay */}
+      {isMobileMenuOpen && <div className="mobile-popover-overlay" onClick={closeMenu}></div>}
 
-            <span>
-              <div className="cart-cont" onClick={notifLink}>
-            <div className="cart-container">
+      {/* Mobile Popover Menu */}
+      <div className={`mobile-popover-menu ${isMobileMenuOpen ? "active" : ""}`}>
+        <div className="popover-group">
+          <NavLink to="/store" onClick={closeMenu} className="popover-link">
+            <span>Collection</span>
+          </NavLink>
+          <NavLink to="/gethelp" onClick={closeMenu} className="popover-link">
+            <span>Support</span>
+          </NavLink>
+        </div>
 
-            {unreadCount > 0 && (
-                <div className="cart-total">{unreadCount}</div>
-              )}
-          <IoIosNotificationsOutline
-            className="app-icon desktop-view cart"
-            onClick={cartLink}
-          />
-            </div>
+        <div className="popover-divider"></div>
 
-          </div>
+        <div className="popover-group">
+          <NavLink to="/userProfile" onClick={closeMenu} className="popover-link">
+            <LiaUserEditSolid className="popover-icon" />
+            <span>Profile Details</span>
+          </NavLink>
+          <NavLink to="/myorders" onClick={closeMenu} className="popover-link">
+            <BsBox2 className="popover-icon" />
+            <span>Order History</span>
+          </NavLink>
+        </div>
+        
+        <div className="popover-divider"></div>
 
-          <div className="cart-cont" onClick={cartLink}>
-            <div className="cart-container">
-
-            {cartItemCount > 0 && (
-            <div className="cart-total">{cartItemCount}</div>
-          )}
-          <AiOutlineShoppingCart
-            className="app-icon desktop-view cart"
-            onClick={cartLink}
-          />
-            </div>
-
-          </div>
-            </span>
-
-            <div className="mobilepage-links">
-              <li>
-                <NavLink to="/store" onClick={toggleVisibilty}>
-                  Shop
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/masterclass" onClick={toggleVisibilty}>
-                  Masterclass
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/userProfile" onClick={toggleVisibilty}>
-                  View profile
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/myorders" onClick={toggleVisibilty}>
-                  My Orders
-                </NavLink>
-              </li>
-            </div>
+        <div className="popover-group">
+          <div onClick={logout} className="popover-link logout-link">
+            <span>Log Out</span>
           </div>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 

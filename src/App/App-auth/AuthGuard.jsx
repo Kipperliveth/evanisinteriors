@@ -11,7 +11,7 @@ const ProtectedRoute = ({ children }) => {
   if (loading) {
     return (
       <div className="spinner-container">
-        <PuffLoader color="#888" size={25} />
+        {/* <PuffLoader color="#888" size={25} /> */}
       </div>
     );
   }

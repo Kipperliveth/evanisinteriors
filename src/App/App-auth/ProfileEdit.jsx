@@ -1,190 +1,203 @@
-import React, { useState } from "react";
-import { doc, collection, setDoc } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { doc, collection, setDoc, getDoc } from "firebase/firestore";
 import { auth, txtdb } from "../../firebase-config";
 import { ImSpinner8 } from "react-icons/im";
 import { useNavigate } from "react-router-dom";
-import { FaCheck } from "react-icons/fa";
+import { FaCheckCircle } from "react-icons/fa";
+import { IoIosArrowBack } from "react-icons/io";
+import logo from "../../stock/new-logo.svg";
 
+import "aos/dist/aos.css";
+import AOS from "aos";
 
 function ProfileEdit() {
+  const [showPopup, setShowPopup] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
-    const [showPopup, setShowPopup] = useState(false);
-    const [addressData, setAddressData] = useState({
-      addressLine1: "",
-      addressPhone: "",
-      city: "",
-      state: "",
-    });
-  
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-    const navigate = useNavigate();
-  
-    const handleSubmit = async (event) => {
-      event.preventDefault();
-      setIsLoggedIn(true);
+  const [addressData, setAddressData] = useState({
+    addressLine1: "",
+    addressPhone: "",
+    city: "",
+    state: "",
+  });
 
-  
-      if (
-        !addressData.addressLine1 ||
-        !addressData.addressPhone ||
-        !addressData.state ||
-        !addressData.city
-      ) {
-        setErrorMessage("Please fill in all fields."); // Set error message
-        setIsLoggedIn(false);
-        return; // Stop further execution
-      }
-  
-      try {
-        await saveAddressToFirestore(addressData); // Call function to save data
-        // Navigate to another page upon successful submission
-        setShowPopup(true);
-        setIsLoggedIn(false);
+  useEffect(() => {
+    AOS.init({ duration: 600, once: true });
+  }, []);
 
-      } catch (error) {
-        console.error("Error saving address to Firestore:", error);
-        // Handle error, if any
-        setIsLoggedIn(false);
-      }
-    };
-  
-    const handleChange = (event) => {
-      setAddressData({ ...addressData, [event.target.name]: event.target.value });
-    };
-  
-    // ... rest of your component (form submission logic)
-  
-    const saveAddressToFirestore = async (addressData) => {
-      const user = auth.currentUser; // Get current user
-  
+  // Fetch existing data
+  useEffect(() => {
+    const fetchExistingData = async () => {
+      const user = auth.currentUser;
       if (user) {
-        const userId = user.uid; // Get user ID if user exists
-        const userRef = doc(collection(txtdb, "users"), userId);
-        await setDoc(userRef, { address: addressData }, { merge: true }); // Update user doc with address
-        return addressData; // Return the saved address data (optional)
-      } else {
-        // Handle the scenario when there's no authenticated user
-        console.error("No authenticated user found.");
-        return null;
+        const userRef = doc(collection(txtdb, "users"), user.uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists() && snap.data().address) {
+          setAddressData(snap.data().address);
+        }
       }
     };
-  
-    const nextPage = () => {
-      setIsLoggedIn(true);
-      setTimeout(() => {
-        setIsLoggedIn(false);
-      }, 2000);
+    fetchExistingData();
+  }, []);
+
+  const handleChange = (event) => {
+    setAddressData({ ...addressData, [event.target.name]: event.target.value });
+    setErrorMessage("");
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsLoggedIn(true);
+    setErrorMessage("");
+
+    if (!addressData.addressLine1 || !addressData.addressPhone || !addressData.state || !addressData.city) {
+      setErrorMessage("Please fill in all delivery details."); 
+      setIsLoggedIn(false);
+      return; 
+    }
+
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(collection(txtdb, "users"), user.uid);
+        await setDoc(userRef, { address: addressData }, { merge: true });
+        setShowPopup(true);
+      } else {
+        setErrorMessage("Session expired. Please log in again.");
+      }
+      setIsLoggedIn(false);
+    } catch (error) {
+      console.error("Error saving address:", error);
+      setErrorMessage("Failed to update profile. Please try again.");
+      setIsLoggedIn(false);
+    }
+  };
+
+  const nextPage = () => {
+    setIsLoggedIn(true);
+    setTimeout(() => {
+      setIsLoggedIn(false);
       navigate("/userProfile");
-    };
+    }, 1000);
+  };
 
-    return (
-        <div className="onboarding">
-          <div className="uploadAddress">
+  return (
+    <div className="edit-profile-canvas">
+      
+      <div className="edit-inner-wrapper">
+        
+        {/* Top Navigation with Logo */}
+        <header className="edit-top-bar">
+          <div className="nav-left">
+            <button className="back-btn" onClick={() => navigate("/userProfile")}>
+              <IoIosArrowBack className="icon" /> Back
+            </button>
+          </div>
+          
+          <div className="logo-container">
+            <img src={logo} alt="Evanis" className="brand-logo" />
+          </div>
 
+          <div className="nav-right">
+            {/* Empty to balance the flex grid perfectly */}
+          </div>
+        </header>
 
-    
-            <div className="upload-address-container edit">
-              <h2>Edit your Shipping Address</h2>
-    
-              <form onSubmit={(e) => handleSubmit(e)}>
+        {/* Main Viewport */}
+        <main className="edit-viewport">
+          
+          <div className="wizard-step" data-aos="fade-up">
+            <div className="step-header">
+              <h1>Edit Address</h1>
+              <p>Update your delivery location for future bespoke orders.</p>
+            </div>
+
+            <form className="step-content form-grid" onSubmit={handleSubmit}>
+              
+              <div className="input-wrapper full-width">
+                <label>Street Address</label>
                 <input
                   type="text"
                   name="addressLine1"
-                  placeholder="Delivery Address"
+                  placeholder="e.g., 123 Main Street"
                   value={addressData.addressLine1}
                   onChange={handleChange}
                 />
-    
+              </div>
+
+              <div className="input-wrapper full-width">
+                <label>Phone Number</label>
                 <input
                   type="tel"
                   name="addressPhone"
-                  placeholder="Your phone number"
+                  placeholder="e.g., 0800 000 0000"
                   value={addressData.addressPhone}
                   onChange={handleChange}
                 />
-    
-                <select
-                  name="state"
-                  value={addressData.state}
-                  onChange={handleChange}
-                >
-                  <option value="">Select State</option>
+              </div>
+
+              <div className="input-wrapper">
+                <label>State</label>
+                <select name="state" value={addressData.state} onChange={handleChange}>
+                  <option value="" disabled>Select State</option>
                   <option value="Abia">Abia</option>
-                  <option value="Adamawa">Adamawa</option>
-                  <option value="Akwa Ibom">Akwa Ibom</option>
-                  <option value="Anambra">Anambra</option>
-                  <option value="Bauchi">Bauchi</option>
-                  <option value="Bayelsa">Bayelsa</option>
-                  <option value="Benue">Benue</option>
-                  <option value="Borno">Borno</option>
-                  <option value="Cross River">Cross River</option>
-                  <option value="Delta">Delta</option>
-                  <option value="Ebonyi">Ebonyi</option>
-                  <option value="Edo">Edo</option>
-                  <option value="Ekiti">Ekiti</option>
-                  <option value="Enugu">Enugu</option>
-                  <option value="Gombe">Gombe</option>
-                  <option value="Imo">Imo</option>
-                  <option value="Jigawa">Jigawa</option>
-                  <option value="Kaduna">Kaduna</option>
-                  <option value="Kano">Kano</option>
-                  <option value="Katsina">Katsina</option>
-                  <option value="Kebbi">Kebbi</option>
-                  <option value="Kogi">Kogi</option>
-                  <option value="Kwara">Kwara</option>
+                  <option value="Abuja">Abuja</option>
                   <option value="Lagos">Lagos</option>
-                  <option value="Nasarawa">Nasarawa</option>
-                  <option value="Niger">Niger</option>
-                  <option value="Ogun">Ogun</option>
-                  <option value="Ondo">Ondo</option>
-                  <option value="Osun">Osun</option>
-                  <option value="Oyo">Oyo</option>
-                  <option value="Plateau">Plateau</option>
                   <option value="Rivers">Rivers</option>
-                  <option value="Sokoto">Sokoto</option>
-                  <option value="Taraba">Taraba</option>
-                  <option value="Yobe">Yobe</option>
-                  <option value="Zamfara">Zamfara</option>
+                  <option value="Ogun">Ogun</option>
+                  <option value="Oyo">Oyo</option>
+                  <option value="Kano">Kano</option>
+                  <option value="Kaduna">Kaduna</option>
                 </select>
-    
+              </div>
+
+              <div className="input-wrapper">
+                <label>City</label>
                 <input
                   type="text"
                   name="city"
-                  placeholder="City"
+                  placeholder="e.g., Metropolis"
                   value={addressData.city}
                   onChange={handleChange}
                 />
-    
-                {/* Add similar input fields for other address components */}
-                <button type="submit">
-                  {isLoggedIn ? (
-                    <ImSpinner8 className="onboarding-spinner" />
-                  ) : (
-                    "Save Address"
-                  )}
+              </div>
+              
+              {errorMessage && <p className="error-text full-width">{errorMessage}</p>}
+
+              {/* Action Buttons */}
+              <div className="action-row full-width">
+                <button type="submit" className="primary-action-btn" disabled={isLoggedIn}>
+                  {isLoggedIn ? <ImSpinner8 className="onboarding-spinner" /> : "Save Changes"}
                 </button>
-              </form>
-    
-              {errorMessage && <p className="error-message">{errorMessage}</p>}
-            </div>
-    
-            {showPopup && (
-            <div className="popup">
-              <FaCheck className="completed-icon" />
-              <p>Your information has been Edited successfully!</p>
-              <button onClick={nextPage}>
-                {isLoggedIn ? (
-                  <ImSpinner8 className="onboarding-spinner" />
-                ) : (
-                  "Go Back"
-                )}
-              </button>
-            </div>
-            )}
+                <button type="button" className="secondary-action-btn" onClick={() => navigate("/userProfile")}>
+                  Cancel
+                </button>
+              </div>
+
+            </form>
+          </div>
+
+        </main>
+      </div>
+
+      {/* Success Overlay */}
+      {showPopup && (
+        <div className="success-overlay" data-aos="fade">
+          <div className="popup-content">
+            <FaCheckCircle className="success-icon" />
+            <h2>Profile Updated</h2>
+            <p>Your new delivery details have been securely saved.</p>
+            <button className="primary-action-btn" onClick={nextPage}>
+              {isLoggedIn ? <ImSpinner8 className="onboarding-spinner" /> : "Back to Profile"}
+            </button>
           </div>
         </div>
-      );
+      )}
+
+    </div>
+  );
 }
 
-export default ProfileEdit
+export default ProfileEdit;

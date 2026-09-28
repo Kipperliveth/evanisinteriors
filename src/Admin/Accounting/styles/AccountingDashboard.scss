@@ -1,0 +1,305 @@
+// --- Variables ---
+$dash-bg-app: #f8fafc;
+$dash-card-bg: #ffffff;
+$dash-border-color: #e2e8f0;
+$dash-text-main: #0f172a;
+$dash-text-muted: #64748b;
+$dash-text-light: #94a3b8;
+$dash-brand-primary: #0f172a;
+$dash-color-success: #10b981;
+$dash-color-warning: #f59e0b;
+$dash-color-danger: #ef4444;
+
+// Utilities
+.dash-text-success { color: $dash-color-success; }
+.dash-text-danger { color: $dash-color-danger; }
+.dash-text-warning { color: $dash-color-warning; }
+.dash-text-main { color: $dash-text-main; }
+.dash-text-muted { color: $dash-text-muted; }
+
+// --- Layout ---
+.dash-page-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: $dash-bg-app;
+  font-family: inherit;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.dash-main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.25;
+  
+  @media (max-width: 768px) {
+    padding: 5rem 1rem 8rem 1rem;
+  }
+}
+
+// --- Header ---
+.dash-page-header {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+
+  .dash-header-titles {
+    h1 { 
+      font-size: 1.75rem; font-weight: 800; color: $dash-text-main; margin: 0 0 0.25rem 0; letter-spacing: -0.02em;
+    }
+    p { font-size: 0.9375rem; color: $dash-text-muted; margin: 0; font-weight: 500; }
+  }
+}
+
+// --- Top Metrics Grid ---
+.dash-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr; 
+    gap: 1rem;
+  }
+
+  .dash-metric-card {
+    background-color: $dash-card-bg;
+    border: 1px solid $dash-border-color;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    
+    &.interactive {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+    }
+
+    .dash-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      h3 { margin: 0; font-size: 0.875rem; font-weight: 600; color: $dash-text-muted; text-transform: uppercase; letter-spacing: 0.05em; }
+      
+      .dash-icon-wrapper {
+        width: 40px; height: 40px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;
+      }
+    }
+
+    .dash-card-body {
+      display: flex;
+      flex-direction: column;
+
+      .dash-value { font-size: 2rem; font-weight: 800; color: $dash-text-main; letter-spacing: -0.02em; line-height: 1.2; }
+      .dash-subtitle { font-size: 0.8125rem; color: $dash-text-light; margin-top: 0.25rem; font-weight: 500; }
+    }
+
+    &.highlight {
+      background-color: $dash-brand-primary;
+      border-color: $dash-brand-primary;
+      h3 { color: #94a3b8; }
+      .dash-icon-wrapper { background-color: rgba(255,255,255,0.1); color: white; }
+      .dash-card-body {
+        .dash-value { color: white; }
+        .dash-subtitle { color: #94a3b8; }
+      }
+    }
+
+    &.success {
+      .dash-icon-wrapper { background-color: #dcfce7; color: $dash-color-success; }
+    }
+
+    &.danger {
+      .dash-icon-wrapper { background-color: #fef2f2; color: $dash-color-danger; }
+    }
+  }
+}
+
+// --- Bottom Grid (Projects & Activity) ---
+.dash-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr; 
+  }
+
+  .dash-section-card {
+    background-color: $dash-card-bg;
+    border: 1px solid $dash-border-color;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+
+    &.interactive-section {
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      &:hover {
+        border-color: $dash-text-light;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      }
+    }
+
+    .dash-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid $dash-bg-app;
+      padding-bottom: 1rem;
+
+      .dash-title-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        h2 { margin: 0; font-size: 1.125rem; font-weight: 700; color: $dash-text-main; }
+      }
+
+      .dash-badge {
+        font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.625rem; border-radius: 1rem; text-transform: uppercase;
+        &.neutral { background-color: #e2e8f0; color: $dash-text-muted; }
+      }
+    }
+  }
+}
+
+// --- Active Projects List ---
+.dash-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+
+  .dash-helper-text {
+    margin: 0 0 0.5rem 0; font-size: 0.875rem; color: $dash-text-muted;
+  }
+
+  .dash-alert-item {
+    background-color: #f8fafc;
+    border: 1px solid $dash-border-color;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    .dash-alert-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+
+      .dash-project-name { font-weight: 600; color: $dash-text-main; font-size: 0.9375rem; }
+      .dash-project-stats { font-size: 0.8125rem; color: $dash-text-muted; font-weight: 600; }
+    }
+
+    .dash-progress-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .dash-progress-bar {
+        flex: 1;
+        height: 8px;
+        background-color: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+
+        .dash-progress-fill {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 0.3s ease;
+
+          &.safe { background-color: $dash-color-success; }
+          &.warning { background-color: $dash-color-warning; }
+          &.critical { background-color: $dash-color-danger; }
+        }
+      }
+
+      .dash-progress-text {
+        font-size: 0.875rem; 
+        font-weight: 700; 
+        text-align: right; 
+        color: $dash-text-main;
+        white-space: nowrap; // Prevents the slash and budget from breaking to a new line
+        
+        .dash-budget-total {
+          color: $dash-text-light;
+          font-weight: 600;
+          font-size: 0.8125rem;
+          margin-left: 0.125rem;
+        }
+      }
+    }
+  }
+}
+
+// --- Recent Activity List ---
+.dash-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  .dash-activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px dashed $dash-border-color;
+
+    &:last-of-type { border-bottom: none; }
+
+    .dash-activity-icon {
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      &.income { background-color: #dcfce7; color: #166534; }
+      &.expense { background-color: #f1f5f9; color: $dash-text-main; }
+    }
+
+    .dash-activity-details {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+      .dash-desc { font-size: 0.9375rem; font-weight: 600; color: $dash-text-main; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.125rem;}
+      .dash-date { font-size: 0.8125rem; color: $dash-text-muted; }
+    }
+
+    .dash-activity-amount {
+      font-weight: 700; font-size: 0.9375rem; white-space: nowrap;
+    }
+  }
+
+  .dash-view-all-btn {
+    margin-top: 1rem;
+    background: transparent; border: none; padding: 0;
+    color: $dash-text-muted; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; justify-content: center;
+    transition: color 0.2s;
+    &:hover { color: $dash-text-main; }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

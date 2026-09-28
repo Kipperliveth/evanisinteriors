@@ -1,76 +1,101 @@
-import React, {useState} from 'react'
-import { getAuth, sendPasswordResetEmail, fetchSignInMethodsForEmail  } from 'firebase/auth';
+import React, { useState } from 'react';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 import { MdOutlineMail } from "react-icons/md";
 import { NavLink } from 'react-router-dom';
 import { ImSpinner8 } from "react-icons/im";
-
+import { BsArrowLeft } from "react-icons/bs";
+import { BiErrorCircle, BiCheckCircle } from "react-icons/bi";
+// import './PasswordReset.scss';
 
 function PasswordReset() {
-
-    const [email, setEmail] = useState('');
-    const [message, setMessage] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('')
-
-
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handlePasswordReset = async (e) => {
-    setIsLoggedIn(true);
-    setMessage(false)
-    setSuccessMessage(false);
     e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+    setSuccessMessage('');
 
     const auth = getAuth();
     try {
       await sendPasswordResetEmail(auth, email);
-      setSuccessMessage('Password reset email sent to provided email');
+      setSuccessMessage('Password reset link sent! Check your inbox.');
+      setEmail(''); // Clear input on success
     } catch (error) {
-      if (error.code === 'auth/user-not-found' || error.code ===  "auth/missing-email") {
-        setMessage('Email not registered. Please check your email address.');
+      if (error.code === 'auth/user-not-found' || error.code === "auth/missing-email") {
+        setMessage('No account found with that email address.');
       } else {
         console.error('Error sending password reset email:', error);
-        setMessage(`Error: ${error.message}`);
+        setMessage('An error occurred. Please try again later.');
       }
     } finally {
-      setIsLoggedIn(false);
+      setIsLoading(false);
     }
   };
 
-
   return (
-    <div className='reset-page'>
+    <div className="reset-page-flat">
+      <div className="reset-container">
         
-        <div className="reset-container">
+        <div className="header-text">
+          <h2>Forgot password?</h2>
+          <p>No worries, we'll send you reset instructions.</p>
+        </div>
 
-            <div className="reset">
+        {/* Alert Messages */}
+        {message && (
+          <div className="alert alert-error">
+            <BiErrorCircle className="alert-icon" />
+            <p>{message}</p>
+          </div>
+        )}
+        
+        {successMessage && (
+          <div className="alert alert-success">
+            <BiCheckCircle className="alert-icon" />
+            <p>{successMessage}</p>
+          </div>
+        )}
 
-                <h2>Reset Password</h2>
-                <p className='txt'>Enter the email address to your account and we'll send you a reset link to set a new password </p>
-
-            <form onSubmit={handlePasswordReset}>
-                <p className='head'>Email Address</p>
-                <div className="email"><MdOutlineMail className='icon'/><input
+        <form onSubmit={handlePasswordReset}>
+          <div className="input-group">
+            <label htmlFor="email">Email</label>
+            <div className="input-wrapper">
+              <MdOutlineMail className="input-icon" />
+              <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                /></div>
-                
-                <button type="submit"> {isLoggedIn ? (
-                  <ImSpinner8 className="login-spinner" />
-                ) : (
-                  "Send Email"
-                )} </button>
-            </form>
-            {message && <p className='error'>{message}</p>}
-            {successMessage && <p className='success'>{successMessage}</p>}
-            <p className='remember'>Remember Password? <NavLink to='/login'>Login</NavLink></p>
-
+                required
+                disabled={isLoading}
+              />
             </div>
+          </div>
+          
+          <button type="submit" disabled={isLoading} className={isLoading ? 'loading' : ''}>
+            {isLoading ? (
+              <ImSpinner8 className="spinner-icon" />
+            ) : (
+              "Reset password"
+            )}
+          </button>
+        </form>
+
+        <div className="footer-link">
+          <NavLink to="/login" className="back-link">
+            <BsArrowLeft className="arrow-icon" />
+            Back to log in
+          </NavLink>
         </div>
 
+      </div>
     </div>
-  )
+  );
 }
 
-export default PasswordReset
+export default PasswordReset;

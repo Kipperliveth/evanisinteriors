@@ -1,258 +1,365 @@
-.adminDash{
+/* Variables for consistent theming */
+$admin-bg: #fdfdfd;
+$admin-border: #eaeaea;
+$admin-text-dark: #1a1a1a;
+$admin-text-light: #777777;
+$admin-hover-bg: #f5f5f5;
+$admin-active-bg: #1a1a1a;
+$admin-accent: #25d366; 
+
+/* Visibility Helpers */
+.desktop-only { display: flex !important; }
+.mobile-only { display: none !important; }
+
+@media screen and (max-width: 1024px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+}
+
+/* =========================================
+   DESKTOP SIDEBAR
+   ========================================= */
+.admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background-color: $admin-bg;
+  border-right: 1px solid $admin-border;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.02);
+
+  .sidebar-header {
+    /* UPDATED: Centered the logo horizontally */
+    padding: 2rem 1.5rem;
+    border-bottom: 1px solid $admin-border;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-decoration: none;
+      width: 100%;
+
+      img {
+        width: auto;
+        height: 35px;
+        max-width: 100%;
+        object-fit: contain;
+      }
+    }
+  }
+
+  .sidebar-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    align-items: left;
-    border: 1px solid #888;
-    border-radius: 15px;
-    padding: .5rem;
-    height: fit-content;
-    top:0;
-    position: sticky;
-    background: white;
+    gap: 2rem;
 
-    .mobile-content, 
-    .menu-container{
-        display: none;
-    }
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
 
+    .sidebar-nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
 
-    .logo-container{
+      .group-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #a0a0a0;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        padding-left: 0.8rem;
+      }
+
+      .nav-item {
         display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 10px;
         text-decoration: none;
-        color: #523d35;
-        align-items: center;
-        
-        img{
-            width: 50px;
-            height: 50px;
-        }
-
-        .logo{
-            letter-spacing: 4px;
-            
-            span{
-                font-weight: 700;
-            }
-        }
-    }
-
-    .adminDash-links{
-        margin-top: 1rem;
-        padding-right: 2rem;
-
-        a{
-            text-decoration: none;
-            color: #000;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-left: 1.2rem;
-            padding: .7rem;
-            border-radius: 10px;
-            transition: .2s ease-in-out;
-            
-
-            &:hover{
-                background: hsl(17, 21%, 90%);
-                transform: scale(.95);
-            }
-
-            .dash-icon, 
-            .admin-shop-icon,
-            .admin-masterclass-icon{
-                font-size: 25px;
-                border-radius: 50%;
-            }
-
-            .admin-pic{
-                height: 40px;
-                width: 40px;
-                border-radius: 50%;
-                object-fit: cover;
-
-            }
-
-            p{
-                font-weight: 600;
-            }
-
-            h3{
-                font-weight: 500;
-            }
-
-           
-        }
-
-        .adminDash-shop,
-        .adminDash-masterclass{
-            h2{
-                margin-bottom: 1rem;
-                margin-left: 2rem;
-                margin-top: 1rem;
-                font-weight: 600;
-            }
-        }
-
-        .adminDash-shop{
-            margin: 1rem 0;
-        }
-
-
-        .adminDash-masterclass{
-            margin-bottom: 1rem;
-
-            .admin-masterclass-icon{
-                width: 30px;
-            }
-        }
-    }
-
-    
-}
-
-@media screen and (max-width: 1080px) {
-.adminDash{
-    width: fit-content;
-    padding: 0;
-    position: fixed;
-    background: white;
-    z-index: 10;
-    margin-top: 1rem;
-
-
-    .menu-container{
-        display: block;
+        color: $admin-text-light;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
         position: relative;
-        justify-content: center;
-        border-radius: 15px;
-        
-    }
 
-    .menu-icon {
-        width: fit-content; 
-        cursor: pointer;
-        display: inherit;
-        justify-content: center;
-        align-items: center;
-        padding: .5rem;
-        padding-bottom: .3rem;
-      }
+        .nav-icon {
+          font-size: 1.3rem;
+          transition: color 0.2s ease;
+        }
 
-      .mobile-admin-menu{
-        font-size: 25px;
-        padding: .5rem;
-        transition: .3s ease-in-out;
-        justify-content: center;
-        align-items: center;
+        .badge {
+          position: absolute;
+          right: 1rem;
+          background: #eee;
+          color: $admin-text-dark;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 20px;
 
-        &:hover{
-            transform: scale(.85);
+          &.highlight {
+            background: $admin-accent;
+            color: #fff;
+          }
+        }
+
+        &:hover {
+          background-color: $admin-hover-bg;
+          color: $admin-text-dark;
+          transform: translateX(4px);
+          .nav-icon { color: $admin-text-dark; }
+        }
+
+        &.active {
+          background-color: $admin-active-bg;
+          color: #fff;
+          .nav-icon { color: #fff; }
+          .badge { background: rgba(255,255,255,0.2); color: #fff; }
+          &.highlight { background: $admin-accent; }
+        }
+
+        &.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          &:hover { background: none; transform: none; color: $admin-text-light; }
         }
       }
-      
-      .menu-border {
-        height: 0;
-        transition: height 0.5s ease;
+    }
+  }
+
+  .sidebar-footer {
+    /* UPDATED: Aligned padding with .sidebar-scroll-area for perfect vertical alignment */
+    padding: 1.5rem;
+    border-top: 1px solid $admin-border;
+    display: flex;
+    justify-content: flex-start; /* Ensure left alignment */
+
+    .admin-profile {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      text-decoration: none;
+      /* Adjusted inner padding so the avatar aligns exactly with the nav icons */
+      padding: 0.8rem 1rem; 
+      border-radius: 12px;
+      transition: background 0.2s ease;
+      width: 100%;
+
+      img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
       }
-      
-      .menu-links {
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.5s ease;
+
+      .profile-info {
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        gap: 0.25rem; /* Reduced gap slightly for tighter text grouping */
+
+        .name {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: $admin-text-dark;
+          margin: 0;
+          line-height: 1;
+        }
+        .role {
+          font-size: 0.75rem;
+          color: $admin-text-light;
+          margin: 0;
+          line-height: 1;
+        }
+      }
+
+      &:hover, &.active {
+        background-color: $admin-hover-bg;
+      }
+    }
+  }
+}
+
+/* =========================================
+   MOBILE FLOATING MENU
+   ========================================= */
+.mobile-admin-wrapper {
+  position: relative;
+  z-index: 2000;
+
+  .mobile-toggle-btn {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    width: 45px;
+    height: 45px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    cursor: pointer;
+    z-index: 2100;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    .toggle-icon {
+      font-size: 1.5rem;
+      color: $admin-text-dark;
+      transition: transform 0.3s ease;
+    }
+
+    &.open {
+      transform: rotate(90deg);
+      box-shadow: none;
+      background: transparent;
+      left: 1.5rem; 
+      .toggle-icon { color: #fff; font-size: 1.8rem; }
+    }
+  }
+
+  .mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 2000;
+
+    &.active {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .mobile-menu-panel {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 280px;
+    height: 100vh;
+    background: $admin-text-dark; 
+    box-shadow: 10px 0 30px rgba(0,0,0,0.2);
+    transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 2050;
+    display: flex;
+    flex-direction: column;
+
+    &.active {
+      left: 0;
+    }
+
+    .mobile-header {
+      padding: 5.5rem 1.5rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      /* UPDATED: Centered the logo horizontally */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .mobile-logo {
+        width: auto;
+        height: 35px;
+        max-width: 100%;
+        object-fit: contain;
+        filter: brightness(0) invert(1);
+      }
+    }
+
+    .mobile-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem; /* Reduced gap to bring elements closer */
+
+      .nav-item {
+        display: flex;
         align-items: center;
-        
+        gap: 1rem;
+        padding: 0.75rem 1rem; /* Reduced padding slightly to shrink column size */
+        border-radius: 12px;
+        text-decoration: none;
+        color: rgba(255,255,255,0.7);
+        font-size: 1rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        position: relative;
 
-        a{
-            text-decoration: none;
-            color: #000;
-            margin-bottom: .5rem;
-            padding: .5rem;
-            border-radius: 10px;
-            transition: .3s ease-in-out;
-            position: relative;
+        .nav-icon { font-size: 1.4rem; }
 
+        .badge {
+          position: absolute;
+          right: 1rem;
+          background: rgba(255,255,255,0.1);
+          color: #fff;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 20px;
 
-            h3{
-                background: hsl(17, 21%, 90%);
-                position: absolute;
-                left: 0%;
-                top: 50%;
-                transform: translateY(-50%);
-               display: inline-block;
-               white-space: nowrap;
-               width: fit-content;
-              margin-left: 150%;
-              padding: 5px;
-              border-radius: 8px;
-              font-weight: 700;
-              font-size: 13px;
-                display: none;                
-            }
-
-            .admin-shop-icon,
-            .admin-masterclass-icon {
-                font-size: 25px;
-            }
-
-            .adminPic{
-                width: 25px;
-                height: 25px;
-                border-radius: 50%;
-            }
-
-            &:nth-child(1){
-                margin-top: 1rem;
-            }
-
-            &:hover{
-                background: hsl(17, 21%, 90%);
-                transform: scale(.85);
-            }
-
-            &:hover h3{
-                display: block;
-            }
+          &.highlight {
+            background: $admin-accent;
+          }
         }
 
-
+        &.active, &:hover {
+          background: rgba(255,255,255,0.1);
+          color: #fff;
+        }
       }
-      
-      .menu-container.open .menu-border {
-        height: 27.69rem; /* Adjust to desired expanded height */
+
+      .mobile-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.1);
+        margin: 1rem 0;
       }
 
-      .menu-container.open{
-        box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+      .mobile-profile-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.2);
+        text-decoration: none;
+        /* Removed margin-top: auto; so it stays visible right below uploads instead of getting pushed out of view */
+        margin-top: 0.5rem; 
 
-      }
-      
-      .menu-container.open .menu-links {
-        opacity: 1;
-        pointer-events:  auto;
-      }
-   
+        img {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
 
-    .desktop{
-        display: none;
+        .profile-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem; /* Tighter grouping */
+          .name { color: #fff; font-weight: 600; font-size: 0.95rem; margin: 0; line-height: 1; }
+          .role { color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0; line-height: 1; }
+        }
+      }
     }
-
-     .logo-container{
-        display: none;
-    }
-
-}
-}
-
-
-
-@media screen and (min-width: 1080px) and (max-width: 1115px) {
-.adminDash{
-
-    .adminDash-links{
-        font-size: .8em;
-    }
-}
+  }
 }

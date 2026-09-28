@@ -10,19 +10,19 @@ import { useLocation } from "react-router-dom";
 
 
 function Layout() {
-  const location = useLocation();
+  // const location = useLocation();
 
   // Add routes where TawkToChat should be hidden
-  const hideChatRoutes = ["/expensedash", "/clients", "/invoices", "/accounting", "/reminders"];
+  // const hideChatRoutes = ["/expensedash", "/clients", "/invoices", "/accounting", "/reminders"];
 
-  const shouldHideChat = hideChatRoutes.includes(location.pathname);
+  // const shouldHideChat = hideChatRoutes.includes(location.pathname);
 
   return (
     <>
       <Navbar />
       <AnimatedRoutes />
-      {!shouldHideChat && <TawkToChat />}
-      <Footer />
+      {/* {!shouldHideChat && <TawkToChat />} */}
+      {/* <Footer /> */}
     </>
   );
 }

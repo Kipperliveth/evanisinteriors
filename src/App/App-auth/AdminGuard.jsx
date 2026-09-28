@@ -6,7 +6,7 @@ import { PuffLoader } from "react-spinners";
 
 const AdminRoute = ({ children }) => {
   const [user, loading, error] = useAuthState(auth);
-  const allowedUid = "CqhQfMc1LZdNCUgixbXpYT0SGaG2";  // Define the allowed UID here
+  const allowedUid = "4Xmiw1Y1h3Ud2rMWLSt7iMzy0vt2";  // Define the allowed UID here
 
   if (loading) {
     // You can return a loading spinner or placeholder here

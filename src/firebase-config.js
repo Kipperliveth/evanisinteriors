@@ -20,4 +20,4 @@ export const txtdb = getFirestore(app);
 export const imgdb = getStorage(app);
 export const auth = getAuth(app);
 
-//profile pic
+

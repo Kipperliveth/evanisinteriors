@@ -1,205 +1,256 @@
-import {
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  onAuthStateChanged
-} from "firebase/auth";
-import React, { useState, useEffect} from "react";
-import { FcGoogle } from "react-icons/fc";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth";
+import { doc, collection, getDoc, addDoc, updateDoc } from "firebase/firestore";
 import { auth, txtdb } from "../../firebase-config";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import UserNav from "../App-components/UserNav"; 
+import { FcGoogle } from "react-icons/fc";
 import { PiHandWavingFill } from "react-icons/pi";
 import { ImSpinner8 } from "react-icons/im";
-import { PuffLoader } from "react-spinners";
-import { doc, collection, getDoc } from "firebase/firestore";
- 
+import { BsEye, BsEyeSlash } from "react-icons/bs";
 
 function Login() {
-  //error state
-  const [errorMessage, setErrorMessage] = useState("");
-  //
   const navigate = useNavigate();
+  const allowedUid = "CqhQfMc1LZdNCUgixbXpYT0SGaG2";
 
+  // Form & UI State
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [error, setError] = useState(null);
-
-  const allowedUid = "CqhQfMc1LZdNCUgixbXpYT0SGaG2";
+  const [showPassword, setShowPassword] = useState(false);
   
-  const login = async (event) => {
-    event.preventDefault();
-    setIsLoggedIn(true);
-   
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        loginEmail,
-        loginPassword
-      );
-      const user = userCredential.user;
-      setIsLoggedIn(false);
+  // Status State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
-        if (user.uid === allowedUid) {
-        console.log("Admin access!");
-        setError(false);
-        navigate('/adminHome')
-      } else {
-        console.log("customer access!");
-        navigate("/userDashboard");
-        }
+  // MIGRATION HELPER FUNCTION
+  const migrateGuestCart = async (userId) => {
+    const guestCart = JSON.parse(localStorage.getItem("evanis_guest_cart"));
+    
+    if (guestCart && guestCart.length > 0) {
+      try {
+        const productRef = collection(txtdb, `users/${userId}/products`);
         
+        for (const item of guestCart) {
+          const docRef = await addDoc(productRef, {
+            imgUrl: item.imgUrl,
+            txtVal: item.txtVal,
+            desc: item.desc,
+            category: item.category,
+            price: item.price,
+            quantity: item.quantity,
+            color: item.color || null,
+            size: item.size || null,
+            productnumber: item.productnumber,
+            isInStock: true
+          });
+          
+          await updateDoc(doc(txtdb, `users/${userId}/products/${docRef.id}`), {
+            productId: docRef.id,
+          });
+        }
 
-    } catch (error) {
-      console.log(error.message);
-      setIsLoggedIn(false);
-      setError(error.message);
+        // Clear local storage after successful migration
+        localStorage.removeItem("evanis_guest_cart");
+      } catch (error) {
+        console.error("Error migrating cart:", error);
+      }
     }
   };
 
- 
+  // Check Auth State & Route Accordingly
+  useEffect(() => {
+    document.title = "Login - Evanis Interiors";
+    let isMounted = true;
 
+    const checkUserRoute = async (user) => {
+      try {
+        const userId = user.uid;
+
+        // Perform cart migration immediately upon login
+        await migrateGuestCart(userId);
+
+        if (userId === allowedUid) {
+          navigate('/adminHome');
+          return;
+        }
+
+        const userRef = doc(collection(txtdb, "users"), userId);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists() && userSnap.data().address) {
+          navigate('/store'); // Existing customers go straight to store
+        } else {
+          navigate('/onboarding'); // First-time users go to onboarding
+        }
+      } catch (err) {
+        console.error("Routing error:", err);
+        if (isMounted) setIsLoading(false); // Drop loader if there's an error
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await checkUserRoute(user); 
+        // Note: We don't set isLoading(false) here because we are navigating away.
+        // This prevents the login form from flashing before the redirect happens.
+      } else {
+        console.log("No authenticated user found.");
+        if (isMounted) setIsLoading(false); // Not logged in? Show the login form immediately.
+      }
+    });
+
+    // Fallback: If network is very slow, force the loader to disappear after 2 seconds
+    const fallbackTimer = setTimeout(() => {
+      if (isMounted) setIsLoading(false);
+    }, 2000);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      clearTimeout(fallbackTimer);
+    };
+  }, [navigate, allowedUid]); 
+
+  // Standard Email Login
+  const login = async (event) => {
+    event.preventDefault();
+    setIsLoggedIn(true);
+    setError(null);
+    setErrorMessage("");
+   
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const user = userCredential.user;
+      
+      if (user.uid === allowedUid) {
+        navigate('/adminHome');
+      } else {
+        // onAuthStateChanged will handle cart migration and routing to /store or /onboarding
+      }
+    } catch (error) {
+      console.log(error.message);
+      setError("Invalid email or password.");
+      setIsLoggedIn(false);
+    }
+  };
+
+  // Google Login
   const signInWithGoogle = async () => {
+    setIsGoogleLoading(true);
+    setErrorMessage("");
     const provider = new GoogleAuthProvider();
+    
     try {
       await signInWithPopup(auth, provider);
-      // You can add any additional logic here if needed after successful sign-in
+      // onAuthStateChanged will handle cart migration and routing automatically
     } catch (error) {
       if (error.code === 'auth/cancelled-popup-request') {
         console.log("Popup request was cancelled");
       } else {
         console.error("Error signing in with Google: ", error.message);
+        setErrorMessage("An error occurred while signing in with Google. Please try again.");
       }
-      // Optionally, you can set an error message state to display an error message to the user
-      setErrorMessage("An error occurred while signing in with Google. Please try again.");
+      setIsGoogleLoading(false);
     }
   };
 
-
-
-useEffect(() => {
-  const fetchAddressData = async (user) => {
-    if (!user) return;
-    const userId = user.uid;
-    const userRef = doc(collection(txtdb, "users"), userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data();
-      if (userData.address && userId === allowedUid) {
-        navigate('/adminHome'); // Redirect to admin home if address exists and user is admin
-      } else if (userData.address) {
-        navigate('/userDashboard'); // Redirect to user dashboard if address exists
-      } else {
-        navigate('/onboarding/address'); // Redirect to onboarding if address doesn't exist
-      }
-    } else {
-      console.log("No address data found for the current user.");
-      navigate('/onboarding/address');
-    }
-  };
-
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      await fetchAddressData(user);
-    } else {
-      console.log("No authenticated user found.");
-      navigate('/login'); 
-    }
-  });
-
-  return () => unsubscribe(); // Clean up the subscription
-}, [navigate, allowedUid]); 
-
-  //loader
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    document.title = "Login-Evanis interiors";
-
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="auth-loader-screen">
+        <div className="aesthetic-loader"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="login-page">
-      {isLoading ? (
-        <div className="spinner-container">
-          <PuffLoader color=" #888" size={25} />
-        </div>
-      ) : (
-        <div className="login-page-container">
-          <div className="login-left">
-            <h1>
-              Welcome Back! <PiHandWavingFill className="wave-icon" />
-            </h1>
-            <p>Enter login details to proceed to dashboard</p>
-            <button className="google-login" onClick={signInWithGoogle}>
-              <FcGoogle className="google-icon" /> <h3>Log in with Google</h3>
-            </button>
+    <div className="auth-split-wrapper">
+      
+      <UserNav />
 
-            <div className="or">
-              <span></span>
-              <h4>or</h4>
-              <span></span>
-            </div>
+      {/* LEFT SIDE: Form */}
+      <div className="auth-form-side">
+        <div className="auth-form-container login-spacing">
 
-            <form className="login-form">
-              <div className="emailnpassword">
-                <h2>Email</h2>
-                <input
-                  className="email-input"
-                  type="email"
-                  placeholder="mail@placeholder.com"
-                  onChange={(event) => {
-                    setLoginEmail(event.target.value);
-                  }}
-                  required
-                />
-              </div>
-              <div className="emailnpassword">
-                <h2>Password</h2>
-                <input
-                  type="password"
-                  placeholder="your password"
-                  onChange={(event) => {
-                    setLoginPassword(event.target.value);
-                  }}
-                  required
-                />
-              </div>
-
-              <div className="forgot-pass">
-                <NavLink to='/reset'>Forgot password?</NavLink>
-              </div>
-
-              <button onClick={login} className="login-btn">
-                {isLoggedIn ? (
-                  <ImSpinner8 className="login-spinner" />
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-
-              {error && (
-                <p className="passcheck">{`invalid email or password`}</p>
-              )}
-
-              {errorMessage && <p style={{ color: "red", fontWeight: 500}}>{errorMessage}</p>}
-
-              <p className="sign-up-link">
-                Don't have an account? <NavLink to="/signup">Sign Up</NavLink>
-              </p>
-            </form>
+          <div className="auth-header">
+            <h1>Welcome Back! <PiHandWavingFill style={{ color: "#FED246", fontSize: "1.8rem", marginLeft: "5px" }} /></h1>
+            <p>Enter login details to proceed to your account.</p>
           </div>
 
-          <div className="login-right"></div>
+          <form className="auth-form" onSubmit={login}>
+            <div className="input-group">
+              <label>Email Address</label>
+              <input
+                type="email"
+                placeholder="mail@example.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-group">
+              <label>Password</label>
+              <div className="password-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                />
+                <button 
+                  type="button" 
+                  className="toggle-visibility" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
+                >
+                  {showPassword ? <BsEyeSlash /> : <BsEye />}
+                </button>
+              </div>
+            </div>
+
+            <NavLink to="/reset" className="forgot-pass-link">Forgot password?</NavLink>
+
+            {error && <p className="error-msg">{error}</p>}
+            {errorMessage && <p className="error-msg">{errorMessage}</p>}
+
+            <button type="submit" className="primary-auth-btn" disabled={isLoggedIn || isGoogleLoading}>
+              {isLoggedIn ? <ImSpinner8 className="spinner-icon" /> : "Sign In"}
+            </button>
+          </form>
+
+          {/* OR DIVIDER */}
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
+
+          {/* GOOGLE AUTH BUTTON */}
+          <button className="google-auth-btn" onClick={signInWithGoogle} disabled={isGoogleLoading || isLoggedIn}>
+            {isGoogleLoading ? <ImSpinner8 className="spinner-icon dark" /> : (
+              <>
+                <FcGoogle className="google-icon" /> Log in with Google
+              </>
+            )}
+          </button>
+
+          <p className="auth-footer-link">
+            Don't have an account? <NavLink to="/signup">Sign Up</NavLink>
+          </p>
+
         </div>
-      )}
+      </div>
+
+      {/* RIGHT SIDE: Lifestyle Image */}
+      <div className="auth-image-side login-bg">
+        <div className="image-overlay">
+          <h2>Welcome Back.</h2>
+          <p>Sign in to track your bespoke orders and manage your interior projects.</p>
+        </div>
+      </div>
+
     </div>
   );
 }

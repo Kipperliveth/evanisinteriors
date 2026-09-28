@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import UserNav from "../App-components/UserNav";
 import { MdOutlineShoppingCart } from "react-icons/md";
-import { NavLink } from "react-router-dom";
+import { BsArrowRight } from "react-icons/bs";
+import { NavLink, useNavigate } from "react-router-dom";
 import { txtdb } from "../../firebase-config";
 import { auth } from "../../firebase-config";
 import {
@@ -18,812 +19,684 @@ import { MdKeyboardArrowLeft } from "react-icons/md";
 
 emailjs.init("55KFb3ovp5zp-SlMq");
 
-
 function Cart() {
-  const [cartItems, setCartItems] = useState([]);
-  const [user, setUser] = useState({})
-  const [loading, setLoading] = useState(true); // New loading state
-  const [errorMessage, setErrorMessage] = useState(''); // State for error message
+  const [user, setUser] = useState({});
+  const [loading, setLoading] = useState(true); 
+  const [errorMessage, setErrorMessage] = useState(''); 
+  const navigate = useNavigate();
 
-  //skeleton loading
   const [isLoading, setIsLoading] = useState(true);
-
-  
   const [fetchedProducts, setFetchedProducts] = useState([]);
-  
-  
-  const currentUser = auth.currentUser;
+  const [allCatalogData, setAllCatalogData] = useState([]);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [recommendedItems, setRecommendedItems] = useState([]);
 
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const fetchProducts = async () => {
+  // Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (usr) => {
+      setCurrentUser(usr);
+      setUser(usr || {});
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch the entire catalog for Recommendations
+  const getCatalogData = async () => {
+    const valRef = collection(txtdb, "txtData");
+    const dataDb = await getDocs(valRef);
+    const allData = dataDb.docs.map((val) => ({ ...val.data(), id: val.id }));
+    setAllCatalogData(allData);
+  };
+
+  // HYBRID CART: Fetch from Firebase OR LocalStorage
+  useEffect(() => {
     setIsLoading(true);
-  
+    getCatalogData();
+
     if (currentUser) {
+      // User is logged in: Listen to Firebase Cart
+      const cartRef = collection(txtdb, `users/${currentUser.uid}/products`);
+      const unsubscribe = onSnapshot(cartRef, (snapshot) => {
+        const products = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id, cartDocId: doc.id }));
+        setFetchedProducts(products);
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      // Guest: Read from LocalStorage
+      const checkLocalCart = () => {
+        const guestCart = JSON.parse(localStorage.getItem("evanis_guest_cart")) || [];
+        setFetchedProducts(guestCart);
+        setIsLoading(false);
+      };
+      
+      checkLocalCart();
+      // Listen for cross-tab updates
+      window.addEventListener('storage', checkLocalCart);
+      
+      return () => {
+        window.removeEventListener('storage', checkLocalCart);
+      };
+    }
+  }, [currentUser]);
+
+  // Load Recently Viewed from Local Storage
+  useEffect(() => {
+    const storedRecent = localStorage.getItem('evanis_recently_viewed');
+    if (storedRecent) {
+      setRecentlyViewed(JSON.parse(storedRecent));
+    }
+  }, []);
+
+  // Generate Recommendations based on Cart Items
+  useEffect(() => {
+    if (allCatalogData.length > 0) {
+      let recommendations = [];
+      if (fetchedProducts.length > 0) {
+        const targetCategory = fetchedProducts[0].category;
+        recommendations = allCatalogData
+          .filter(item => item.category === targetCategory && !fetchedProducts.some(cartItem => cartItem.productnumber === item.id))
+          .slice(0, 8); 
+      } else {
+        recommendations = [...allCatalogData].sort(() => 0.5 - Math.random()).slice(0, 8);
+      }
+      setRecommendedItems(recommendations);
+    }
+  }, [allCatalogData, fetchedProducts]);
+
+
+  // HYBRID DELETE
+  const handleDeleteProduct = async (productId) => {
+    if (currentUser) {
+      // Firebase Delete
       const userId = currentUser.uid;
       const productRef = collection(txtdb, `users/${userId}/products`);
+      const querySnapshot = await getDocs(query(productRef, where("productId", "==", productId)));
       try {
-        const querySnapshot = await getDocs(productRef);
-        const products = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return { ...data, id: doc.id };
-        });
-        setFetchedProducts(products);
-        // Update product quantities in the local state
-        const quantities = {};
-        products.forEach((product) => {
-          quantities[product.id] = product.quantity || 1;
-        });
-        setProductQuantities(quantities);
-        console.log("Products fetched:", products);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false); // Set loading state to false after fetching
-        setIsLoading(false);
+        querySnapshot.forEach((doc) => { deleteDoc(doc.ref); });
+      } catch (error) { console.error("Error deleting product:", error); }
+    } else {
+      // LocalStorage Delete
+      let guestCart = JSON.parse(localStorage.getItem("evanis_guest_cart")) || [];
+      guestCart = guestCart.filter(item => item.productId !== productId && item.productnumber !== productId);
+      localStorage.setItem("evanis_guest_cart", JSON.stringify(guestCart));
+      setFetchedProducts([...guestCart]); // Force re-render
+      // Fire a storage event so Navbar updates instantly
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
+
+  // HYBRID QUANTITY INCREASE
+  const handleIncreaseQuantity = async (productId) => {
+    if (currentUser) {
+      try {
+        const productQuery = query(collection(txtdb, `users/${currentUser.uid}/products`), where("productId", "==", productId));
+        const querySnapshot = await getDocs(productQuery);
+        if (!querySnapshot.empty) {
+          const docSnapshot = querySnapshot.docs[0];
+          const productData = docSnapshot.data();
+          const newQuantity = (productData.quantity || 0) + 1;
+          await updateDoc(docSnapshot.ref, { quantity: newQuantity });
+        }
+      } catch (error) { console.error("Error increasing quantity:", error); }
+    } else {
+      let guestCart = JSON.parse(localStorage.getItem("evanis_guest_cart")) || [];
+      const index = guestCart.findIndex(item => item.productId === productId || item.productnumber === productId);
+      if (index >= 0) {
+        guestCart[index].quantity = (guestCart[index].quantity || 0) + 1;
+        localStorage.setItem("evanis_guest_cart", JSON.stringify(guestCart));
+        setFetchedProducts([...guestCart]);
+        window.dispatchEvent(new Event('storage'));
       }
     }
   };
-  
 
-  // Inside the fetchProducts function
-useEffect(() => {
-  if (currentUser) {
-    fetchProducts();
+  // HYBRID QUANTITY DECREASE
+  const handleDecreaseQuantity = async (productId) => {
+    if (currentUser) {
+      try {
+        const productQuery = query(collection(txtdb, `users/${currentUser.uid}/products`), where("productId", "==", productId));
+        const querySnapshot = await getDocs(productQuery);
+        if (!querySnapshot.empty) {
+          const docSnapshot = querySnapshot.docs[0];
+          const productData = docSnapshot.data();
+          const currentQuantity = productData.quantity || 0;
+          if (currentQuantity > 1) {
+            await updateDoc(docSnapshot.ref, { quantity: currentQuantity - 1 });
+          }
+        }
+      } catch (error) { console.error("Error decreasing quantity:", error); }
+    } else {
+      let guestCart = JSON.parse(localStorage.getItem("evanis_guest_cart")) || [];
+      const index = guestCart.findIndex(item => item.productId === productId || item.productnumber === productId);
+      if (index >= 0 && guestCart[index].quantity > 1) {
+        guestCart[index].quantity -= 1;
+        localStorage.setItem("evanis_guest_cart", JSON.stringify(guestCart));
+        setFetchedProducts([...guestCart]);
+        window.dispatchEvent(new Event('storage'));
+      }
+    }
+  };
 
-  const unsubscribe = onSnapshot(collection(txtdb, `users/${currentUser.uid}/products`), (snapshot) => {
-    const updatedProducts = [];
-    snapshot.forEach((doc) => {
-      updatedProducts.push({ id: doc.id, ...doc.data() });
-    });
-    setFetchedProducts(updatedProducts);
-  });
 
-  return () => unsubscribe();
-}
-}, [currentUser]);
-
-
-
-//
-const handleDeleteProduct = async (productId) => {
-  const userId = currentUser.uid;
-  const productRef = collection(txtdb, `users/${userId}/products`);
-  const querySnapshot = await getDocs(query(productRef, where("productId", "==", productId)));
-
-  try {
-    querySnapshot.forEach((doc) => {
-      deleteDoc(doc.ref); // Delete the document from the database
-    });
-    const updatedProducts = fetchedProducts.filter(product => product.productId !== productId);
-    setFetchedProducts(updatedProducts); // Update the state without the deleted product
-  } catch (error) {
-    console.error("Error deleting product:", error);
-  }
-};
-
-  // Calculate total price of products in the cart
   const getTotalPrice = () => {
     return fetchedProducts.reduce((total, product) => {
       if (product.isInStock) {
         return total + parseFloat(product.price) * product.quantity;
       }
-      return total; // Ignore out-of-stock items
+      return total; 
     }, 0).toLocaleString("en-US");
   };
   
   const totalItems = fetchedProducts.reduce((count, product) => {
-    return product.isInStock ? count + product.quantity : count; // Only count in-stock items
+    return product.isInStock ? count + product.quantity : count; 
   }, 0);
   
-//
+  const getTotalPriceNumeric = parseFloat(getTotalPrice().replace(/[^\d.-]/g, ''));
+  const formattedTotalPriceWithShipping = getTotalPriceNumeric.toLocaleString('en-US', { style: 'currency', currency: 'NGN' });
 
+  useEffect(() => {
+    document.title ="Cart Evanis-Interiors";
+  }, []); 
 
-const getTotalPriceNumeric = parseFloat(getTotalPrice().replace(/[^\d.-]/g, ''));
-
-const totalPriceWithShipping = getTotalPriceNumeric;
-
-const formattedTotalPriceWithShipping = totalPriceWithShipping.toLocaleString('en-US', { style: 'currency', currency: 'NGN' });
-
-
-
-useEffect(() => {
-  document.title ="Cart Evanis-Interiors"
-    fetchProducts();
-    // getTotalPrice();
-}, [currentUser]); // Fetch products whenever currentUser changes
-
-
-useEffect(() => {
-  onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-  });
-}, [auth]);
-
-
-useEffect(() => {
-  setIsLoading(true);
-  fetchProducts().then(() => {
-    setIsLoading(false); 
-  });
-}, []);
-
-//
-// Define state to track the quantity of each product in the cart
-const [productQuantities, setProductQuantities] = useState({});
-
-useEffect(() =>{
-setProductQuantities(productQuantities)
-}, [])
-
-// Inside the handleIncreaseQuantity function
-const handleIncreaseQuantity = async (productId) => {
-  try {
-    const userId = currentUser.uid;
-    const productQuery = query(collection(txtdb, `users/${userId}/products`), where("productId", "==", productId));
-    const querySnapshot = await getDocs(productQuery);
-
-    if (!querySnapshot.empty) {
-      // If a document with the matching product ID is found, update its quantity
-      const docSnapshot = querySnapshot.docs[0];
-      const productData = docSnapshot.data();
-      const newQuantity = (productData.quantity || 0) + 1;
-      await setDoc(docSnapshot.ref, { ...productData, quantity: newQuantity });
-
-      // Update the local state
-      setProductQuantities((prevQuantities) => ({
-        ...prevQuantities,
-        [productId]: newQuantity,
-      }));
-    } else {
-      console.error("Product not found in the cart.");
-    }
-  } catch (error) {
-    console.error("Error increasing quantity:", error);
-  }
-};
-
-
-// Inside the handleDecreaseQuantity function
-const handleDecreaseQuantity = async (productId) => {
-  try {
-    const userId = currentUser.uid;
-    const productRef = collection(txtdb, `users/${userId}/products`);
-    const querySnapshot = await getDocs(query(productRef, where("productId", "==", productId)));
-
-    if (!querySnapshot.empty) {
-      // If a document with the matching product ID is found, update its quantity
-      const docSnapshot = querySnapshot.docs[0];
-      const productData = docSnapshot.data();
-      const currentQuantity = productData.quantity || 0;
-
-      // Prevent quantity from going below 1
-      if (currentQuantity > 1) {
-        const newQuantity = currentQuantity - 1;
-        await setDoc(docSnapshot.ref, { ...productData, quantity: newQuantity });
-
-        // Update the local state
-        setProductQuantities((prevQuantities) => ({
-          ...prevQuantities,
-          [productId]: newQuantity,
-        }));
-      }
-    } else {
-      console.error("Product not found in the cart.");
-    }
-  } catch (error) {
-    console.error("Error decreasing quantity:", error);
-  }
-};
-
-// Inside the Cart component
-// const totalItems = fetchedProducts.reduce((total, product) => total + product.quantity, 0);
-
-//address
- const [addressData, setAddressData] = useState({
+  const [addressData, setAddressData] = useState({
     addressLine1: "",
+    addressPhone: "",
+    state: "",
+    city: ""
   });
  
-   useEffect(() => {
-
+  // Fetch Address Only if Logged In
+  useEffect(() => {
     const fetchAddressData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const userId = user.uid;
-        const userRef = doc(collection(txtdb, "users"), userId);
+      if (currentUser) {
+        const userRef = doc(collection(txtdb, "users"), currentUser.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          setAddressData(userData.address);
-        } else {
-          console.log("No address data found for the current user.");
+          setAddressData(userData.address || { addressLine1: "", addressPhone: "", state: "", city: "" });
         }
-      } else {
-        console.log("No authenticated user found.");
       }
       setLoading(false);
     };
-
     fetchAddressData();
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     const cachedAddressData = localStorage.getItem("addressData");
-    if (cachedAddressData) {
+    if (cachedAddressData && currentUser) {
       setAddressData(JSON.parse(cachedAddressData));
       setLoading(false);
-    } else {
-      const fetchAddressData = async () => {
-        // Fetch address data from Firestore as before
-      };
-      fetchAddressData();
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && currentUser) {
       localStorage.setItem("addressData", JSON.stringify(addressData));
     }
-  }, [addressData, loading]);
-
-  useEffect(() => {
-    onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-  }, [auth]);
-
-// Get the current date
-const currentDate = new Date();
-
-// Calculate the date 15 days from now
-const date15DaysFromNow = new Date(currentDate);
-date15DaysFromNow.setDate(currentDate.getDate() + 15);
-
-// Calculate the date 20 days from now
-const date20DaysFromNow = new Date(currentDate);
-date20DaysFromNow.setDate(currentDate.getDate() + 20);
-
-// Format the dates as "day month"
-const options = { day: 'numeric', month: 'short' };
-const formattedDate15DaysFromNow = date15DaysFromNow.toLocaleDateString('en-US', options);
-const formattedDate20DaysFromNow = date20DaysFromNow.toLocaleDateString('en-US', options);
-
-//shipping state
-const [selectedShipping, setSelectedShipping] = useState('');
-
-const handleShippingChange = (e) => {
-  setSelectedShipping(e.target.value);
-
-};
-
-useEffect(() => {
-  console.log(selectedShipping);
-}, [selectedShipping]);
-
-// pop up spinner
-const [showPopup, setShowPopup] = useState(false);
-
-//completed
-const [completed, setCompleted] = useState(false)
-const [orderID, setOrderID] = useState(""); // New state variable for Order ID
+  }, [addressData, loading, currentUser]);
 
 
-//delete cart
-// Function to delete all documents in the user's cart
-const deletecart = async () => {
-  try {
-    const userId = currentUser.uid;
+  const [showPopup, setShowPopup] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [orderID, setOrderID] = useState(""); 
 
-    // Get a reference to the user's cart collection
-    const productRef = collection(txtdb, `users/${userId}/products`);
-    // Fetch all documents in the user's cart collection
-    const querySnapshot = await getDocs(productRef);
+  const deletecart = async () => {
+    try {
+      const userId = currentUser.uid;
+      const productRef = collection(txtdb, `users/${userId}/products`);
+      const querySnapshot = await getDocs(productRef);
 
-    // Create an array of delete promises for each document in the collection
-    const deletePromises = querySnapshot.docs.map((document) => 
-      deleteDoc(doc(txtdb, `users/${userId}/products`, document.id))
-    );
+      const deletePromises = querySnapshot.docs.map((document) => 
+        deleteDoc(doc(txtdb, `users/${userId}/products`, document.id))
+      );
 
-    // Wait for all delete promises to resolve
-    await Promise.all(deletePromises);
-    console.log("All items in the cart have been deleted successfully.");
-  } catch (error) {
-    console.error("Error deleting cart items:", error);
-  }
-};
-
-
-
-// order email
-const userEmail = auth.currentUser?.email;
-const userName = user.displayName;
-
-//checkout logic
-//checkout logic
-const [notCompleted, setNotCompleted] = useState(false)
-
-console.log(window.PaystackPop,userEmail,  "pasystack" );
-const amount = getTotalPriceNumeric; // Total amount including shipping
-
-const check = () => {
-  if (!selectedShipping) {
-    setErrorMessage('Please choose a shipping option');
-    setTimeout(() => {
-      setErrorMessage('');
-    }, 5000);
-    return;
-  }
-  
-  if (selectedShipping === "DOOR DELIVERY" && !addressData.addressLine1) {
-    setErrorMessage('Please add a Delivery Address');
-    setTimeout(() => {
-      setErrorMessage('');
-    }, 5000);
-    return;
-  }
-  
-  if (selectedShipping === "PICKUP" && !addressData.addressPhone) {
-    setErrorMessage('Add a number for pick up');
-    setNotCompleted(true);
-    setTimeout(() => {
-      setErrorMessage('');
-    }, 5000);
-    return;
-  }
-  handlePaystackPayment()
-};
-
-const [transactionReference, setTransactionReference] = useState('')
-
-
-const handlePaystackPayment = async () => {
-  const paystackPublicKey = "pk_live_ebd855719072a4c2ac87beac3780b30f955d54c6";
- 
-
-  const handler = window.PaystackPop.setup({
-    key: paystackPublicKey,
-    email: userEmail, 
-    amount: amount * 100, 
-    currency: 'NGN', 
-    callback: function(response) {
-      setTransactionReference(response.reference);
-      handleCheckout();
-    },
-    onClose: function() {
-      setTransactionReference('Payment was not completed');
-      console.warn('Payment was not completed')
+      await Promise.all(deletePromises);
+    } catch (error) {
+      console.error("Error deleting cart items:", error);
     }
-  });
+  };
 
-  handler.openIframe();
-};
 
-const handleCheckout = async () => {
-  
-if (!selectedShipping) {
-  setErrorMessage('Please choose a shipping option');
-  return;
-}
-if (!addressData.addressLine1) {
-  setErrorMessage('Please add a Delivery Address');
-  setTimeout(() => {
-    setErrorMessage('');
-  }, 5000);
-  return;
-}
-setShowPopup(true);
+  const check = () => {
+    // 1. Guest Check Block
+    if (!currentUser) {
+      setErrorMessage('Please log in or create an account to place an order.');
+      setTimeout(() => { setErrorMessage(''); }, 5000);
+      setTimeout(() => { navigate('/login'); }, 2000);
+      return;
+    }
 
-  try {
-    // Get the current user's ID
-    const userId = currentUser.uid;
+    // 2. Normal Address Block
+    if (!addressData.addressLine1) {
+      setErrorMessage('Please add a Delivery Address in your profile so we can calculate your fee.');
+      setTimeout(() => { setErrorMessage(''); }, 5000);
+      return;
+    }
+    if (!addressData.addressPhone) {
+      setErrorMessage('Please add a Phone Number in your profile so we can contact you regarding delivery.');
+      setTimeout(() => { setErrorMessage(''); }, 5000);
+      return;
+    }
+    handleCheckout();
+  };
 
-    // Create a new order document in the "orders" collection
-    const orderRef = await addDoc(collection(txtdb, "orders"), {
-      userId: userId, // Store the user's ID in the order document
-      cartItems: fetchedProducts, // Store the contents of the user's cart
-      totalPrice: getTotalPriceNumeric, // Store the total price of the order
-      shippingOption: selectedShipping, // Store the selected shipping option
-      address: addressData.addressLine1,
-      callLine: addressData.addressPhone,
-      city: addressData.city,
-      state: addressData.state,
-      userEmail: userEmail,
-      username: userName,
-      reference: transactionReference,
-      formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-      formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-      createdAt: new Date(), // Store the current date and time as the creation date
-    });
-  
 
-   // Get the email content
-   let emailContent = `
-   `;
-   // Loop through fetchedProducts array to include product name and quantity
-   fetchedProducts.forEach((product, index) => {
-   emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
-   });
-   ;
+  const handleCheckout = async () => {
+    setShowPopup(true);
 
-              
-   const date = new Date();
-    const formattedDate = date.toISOString().split('T')[0];
-    const timestamp = formattedDate;
-          //  await sendEmailNotification(userEmail, orderRef.id);
-          emailjs.send("service_r60nfme", "template_max8cdd", {
+    try {
+      const userId = currentUser.uid;
+      const userEmail = currentUser.email;
+      const userName = currentUser.displayName || "Evanis Client";
+      const currentDate = new Date();
+      const timestamp = currentDate.toISOString();
+      const formattedDate = currentDate.toISOString().split('T')[0];
+
+      // 1. Save order to Firebase
+      const orderRef = await addDoc(collection(txtdb, "orders"), {
+        userId: userId,
+        cartItems: fetchedProducts, 
+        totalPrice: getTotalPriceNumeric, 
+        address: addressData.addressLine1,
+        callLine: addressData.addressPhone || "",
+        city: addressData.city || "",
+        state: addressData.state || "",
+        userEmail: userEmail,
+        username: userName,
+        status: "Pending Delivery Quote",
+        createdAt: currentDate, 
+      });
+    
+      // 2. Clear the cart
+      await deletecart();
+
+      // 3. EmailJS
+      let emailContent = ``;
+      fetchedProducts.forEach((product) => {
+        emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
+      });
+      
+      emailjs.send("service_r60nfme", "template_max8cdd", {
         to_email: userEmail,
         userEmail: userEmail,
         message: emailContent,
         orderRefId: orderRef.id,
         to_name: userName,
         from_name: "Evanis Interiors",
-        city: addressData.city,
-        state: addressData.state,
+        city: addressData.city || "N/A",
+        state: addressData.state || "N/A",
         totalPrice: getTotalPriceNumeric,
-        timestamp: timestamp,
-        estimatedDelivery: `${formattedDate15DaysFromNow} and ${formattedDate20DaysFromNow}`,
-        // other variables you want to include in your email template
-      })
-      .then((response) => {
-        console.log('Email sent successfully:', response);
-        setOrderID(orderRef.id)
-        //user app notifications
+        timestamp: formattedDate,
+        estimatedDelivery: "To be confirmed via WhatsApp",
+      }).catch((err) => console.log("Email Error:", err));
 
-        try {
-          const timestamp = new Date().toISOString();
-          addDoc(collection(txtdb, `userNotifications/${userId}/inbox`), {
-            orderRefId: orderRef.id,
-            state: addressData.state,
-            formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-            formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-            timestamp: timestamp
-          });
-          // notification count
-          addDoc(collection(txtdb, `userNotifications/${userId}/notificationCount`), {
-            orderRefId: orderRef.id,
-            timestamp: timestamp
-          });
-          // addDoc(collection(txtdb, `userNotifications/${userId}/myorders`), {
-          //   orderRefId: orderRef.id,
-          //   state: addressData.state,
-          //   cartItems: fetchedProducts, // Store the contents of the user's cart
-          //   totalPrice: getTotalPriceNumeric, // Store the total price of the order
-          //   shippingOption: selectedShipping, // Store the selected shipping option
-          //   formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-          //   formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-          //   timestamp: timestamp,
-          //   satus: "pending delivery"
-          // });
-          addDoc(collection(txtdb, 'notifications'), {
-            orderRefId: orderRef.id,
-            timestamp: timestamp,
-            userEmail: userEmail,
-            username: userName,
-          });
+      // 4. Notifications
+      try {
+        addDoc(collection(txtdb, `userNotifications/${userId}/inbox`), {
+          orderRefId: orderRef.id,
+          state: addressData.state || "",
+          timestamp: timestamp,
+          message: "Your order is pending a delivery quote."
+        });
+        
+        addDoc(collection(txtdb, `userNotifications/${userId}/notificationCount`), {
+          orderRefId: orderRef.id,
+          timestamp: timestamp
+        });
+        
+        addDoc(collection(txtdb, 'notifications'), {
+          orderRefId: orderRef.id,
+          timestamp: timestamp,
+          userEmail: userEmail,
+          username: userName,
+        });
 
+        const orderData = {
+          status: "Pending Delivery Quote",
+          date: timestamp,
+          orderRefId: orderRef.id,
+          state: addressData.state || "",
+          cartItems: fetchedProducts, 
+          totalPrice: getTotalPriceNumeric, 
+          address: addressData.addressLine1,
+          callLine: addressData.addressPhone || "",
+          delivery: 'Requested on'
+        };
 
-
-          const orderData = {
-            status: "Order Confirmed",
-            date: timestamp,
-              orderRefId: orderRef.id,
-            state: addressData.state,
-            cartItems: fetchedProducts, // Store the contents of the user's cart
-            totalPrice: getTotalPriceNumeric, // Store the total price of the order
-            shippingOption: selectedShipping, // Store the selected shipping option
-            formattedDate15DaysFromNow: formattedDate15DaysFromNow,
-            formattedDate20DaysFromNow: formattedDate20DaysFromNow,
-            address: addressData.addressLine1,
-            callLine: addressData.addressPhone,
-            delivery: 'Ordered on'
-          };
-          const neworder = collection(txtdb, `userNotifications/${userId}/deliveredOrders`)
-          addDoc(neworder, orderData)
-        .then((docRef) => {
-          const documentId = docRef.id; // Access the automatically generated ID
-          console.log('Document successfully added with ID:', documentId);
-          // You can now use the documentId for further operations
-          updateDoc(doc(txtdb, `userNotifications/${userId}/deliveredOrders/${documentId}`), {
+        const neworder = collection(txtdb, `userNotifications/${userId}/deliveredOrders`);
+        const docRef = await addDoc(neworder, orderData);
+        await updateDoc(doc(txtdb, `userNotifications/${userId}/deliveredOrders/${docRef.id}`), {
           docRef: docRef.id,
-        }).then(() => {
-          deletecart();
-         })
-        })
-      
+        });
 
-          console.log("Notification added");
-        } catch (error) {
-          console.error("Error adding notification:", error);
-        }
+      } catch (error) {
+        console.error("Error adding notification:", error);
+      }
+
+      // 5. WhatsApp Handoff
+      let waMessage = `Hello Evanis Interiors! I would like to place an order.%0A%0A`;
+      waMessage += `*Order ID:* ${orderRef.id}%0A`;
+      waMessage += `*Customer Name:* ${userName}%0A`;
+      waMessage += `*Phone Number:* ${addressData.addressPhone}%0A`;
+      waMessage += `*Delivery Address:* ${addressData.addressLine1}${addressData.city ? `, ${addressData.city}` : ''}${addressData.state ? `, ${addressData.state}` : ''}%0A%0A`;
+      waMessage += `*Items:*%0A`;
+      
+      fetchedProducts.forEach((product) => {
+        const itemPrice = parseFloat(product.price).toLocaleString("en-US");
+        waMessage += `- ${product.quantity}x ${product.txtVal} (N${itemPrice})%0A`;
+      });
+      
+      waMessage += `%0A*Subtotal:* ${getTotalPrice()} NGN%0A%0A`;
+      waMessage += `Please let me know the delivery fee to my location so I can complete my payment.`;
+
+      const businessWhatsAppNumber = "2348147176851"; 
+      const whatsappURL = `https://wa.me/${businessWhatsAppNumber}?text=${waMessage}`;
+      
       setShowPopup(false);
       setCompleted(true);
+      setOrderID(orderRef.id);
 
+      window.open(whatsappURL, '_blank');
 
-      })
-      .catch((error) => {
-        console.error('Email send error:', error);
-        setShowPopup(false);
-
-      });
-          console.log("Order created with ID: ", orderRef.id);
-        } catch (error) {
-          console.error("Error creating order:", error);
-          setShowPopup(false);
-
-        }
-      };
-
-
-
-
+    } catch (error) {
+      console.error("Error creating order:", error);
+      setShowPopup(false);
+    }
+  };
 
   return (
     <div>
-      <UserNav />
-      <div className="cart-page ">
-        <div className="cart-container page">
-          <h1>My Cart</h1>
-
-
-         
-          { isLoading ? (
-            <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-   
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-             
-            </div>
-   
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-   
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-   
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-   
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-          </div>
-          ) : (
-
-        <div>
-                { fetchedProducts.length === 0 ?(
-                  <div className="empty-cart">
-            <MdOutlineShoppingCart className="cart-icon" />
-            <h3>Your cart is empty</h3>
-            <p>
-              Explore our wide selection of products and find the perfect fit
-              for you.
-            </p>
-            <NavLink to="/store">Start Shopping</NavLink>
-          </div>
-                ) : (
-                  <div className='cart'>
-
-        <div className="cart-container main-container">
-          {(() => {
-            // Separate products into in-stock and out-of-stock
-            const inStockProducts = fetchedProducts.filter(product => product.isInStock);
-            const outOfStockProducts = fetchedProducts.filter(product => !product.isInStock);
-
-            // Combine the two arrays, in-stock first, out-of-stock last
-            const combinedProducts = [...inStockProducts, ...outOfStockProducts];
-
-            return combinedProducts.map((product, index) => (
-              <div key={index} className="cart-item">
-                <div className="product-info">
-                  <div className="info">
-                    <img src={product.imgUrl} alt={product.txtVal} />
-                    <div className="name-desc">
-                      <h3>
-                        {product.txtVal} {product.isInStock ? '' : '(Out of Stock)'}
-                      </h3>
-                      {product.color && <p><span>Color:</span> {product.color}</p>}
-                      {product.size && <p><span>Size:</span> {product.size}</p>}
-                      {product.isInStock && (
-                        <p className="mobile">
-                          &#8358;&nbsp;
-                          {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {product.isInStock && (
-                    <div className="price desktop">
-                      <p>
-                        &#8358;&nbsp;
-                        {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="cart-control">
-                  {product.isInStock ? (
-                    // Render controls for in-stock products
-                    <>
-                      <button className="delete-btn" onClick={() => handleDeleteProduct(product.productId)}>
-                        <CiTrash className="delete-icon" /> <p>Remove</p>
-                      </button>
-                      <div className="quantity-counter">
-                        <button onClick={() => handleDecreaseQuantity(product.productId)}><FiMinus className="count-icon" /></button>
-                        <p>{product.quantity}</p>
-                        <button onClick={() => handleIncreaseQuantity(product.productId)}><FaPlus className="count-icon" /></button>
-                      </div>
-                    </>
-                  ) : (
-                    // Render remove button for out-of-stock products
-                    <button className="delete-btn" onClick={() => handleDeleteProduct(product.productId)}>
-                      <CiTrash className="delete-icon" /> <p>Remove</p>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ));
-          })()}
-        </div>
-
-
-                {getTotalPriceNumeric > 0 && (
-
-                <div className="cart-summary" >
-                <h3>Order summary</h3>
-                <p>Subtotal: <span>{getTotalPrice()}</span></p>
-                <p>Items (+QTY): <span>{totalItems}</span></p>
-
-                <div className="address">
-                  <h6>DELIVERY ADDRESS  
-                    {addressData.addressLine1 ? (
-                      <NavLink to='/editAddress'>EDIT</NavLink>
-                    ) : (
-                      <NavLink to='/editAddress'>ADD</NavLink>
-                    )}
-                  </h6>
-                  <p>{addressData.addressLine1}</p>
-                </div>
-
-                <div className="delivery">
-                  <h6>DELIVERY DETAILS</h6>
-                  <div className="estimate">
-                    <p>Delivery between <span>{formattedDate15DaysFromNow}</span> and <span>{formattedDate20DaysFromNow}</span></p>
-                  </div>
-
-                  <div className="shipping-state">
-                    <div className="state">
-                      <input
-                        type="radio"
-                        id="lagos"
-                        name="shipping"
-                        value="LAGOS"
-                        checked={selectedShipping === 'LAGOS'}
-                        onChange={handleShippingChange}
-                      />
-                      <label htmlFor="lagos">LAGOS</label>
-                    </div>
-
-                    <div className="state">
-                      <input
-                        type="radio"
-                        id="others"
-                        name="shipping"
-                        value="OTHERS"
-                        checked={selectedShipping === 'OTHERS'}
-                        onChange={handleShippingChange}
-                      />
-                      <label htmlFor="others">Other states({addressData.state})</label>
-                    </div>
-
-                    {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-                  </div>
-                </div>
-
-                <div className="total">
-                  <p>Total <span>{formattedTotalPriceWithShipping}</span></p>
-                  <li>Shipping not included</li>
-                </div>
-
-                <button className='checkout' onClick={check}>Checkout</button>
-                 </div>
-
-                  )}
-
-
-
-                </div>
-                )}
-                
-
-                
-        </div>
-        )}
-         
-          
-        </div>
-
-            {showPopup && (
-        <div className="popup">
-
-          <div className="spinner">
-            <div></div>   
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-          </div>
-
-
-        </div>
-      )}
-
-      {completed && (
-        <div className='checkout-popup'>
-
-            <div className='close-btn'><MdKeyboardArrowLeft className='icon'/> <NavLink to='/store' className='button'>Home</NavLink> </div>
-
-          <div className='checkout-container'>
-
-          <div className="checkbox-wrapper">
-          <input defaultChecked={false} type="checkbox" />
-          <svg viewBox="0 0 35.6 35.6">
-            <circle className="background" cx="17.8" cy="17.8" r="17.8"></circle>
-            <circle className="stroke" cx="17.8" cy="17.8" r="14.37"></circle>
-            <polyline className="check" points="11.78 18.12 15.55 22.23 25.17 12.87"></polyline>
-          </svg>
-                </div>
-
-        <h2>Order Confirmed</h2>
-
-
-        <p>Thank you for shopping on Evanis interiors! <br /> We will contact you soon to confirm the delivery fees.</p>
-        <p>Order ID: <span>{orderID}</span></p>
-
-       <div className='buttons'>
-            <NavLink to= '/store'>Continue Shopping</NavLink>
-            <NavLink to='/myorders'> Order Details</NavLink>
-        </div>
-
-          </div>
-          </div>
-      )}
-
+      {currentUser && <UserNav />}
       
-      {notCompleted && (
-        <div className='addNumber'>
+      <div className="cart-page">
+        <div className="cart-container page">
+          <h1 className="page-title">
+            My Cart {totalItems > 0 && <span className="item-count">({totalItems})</span>}
+          </h1>
 
+          {isLoading ? (
+            <div className="loading-message">
+              {[...Array(6)].map((_, i) => (
+                <div className="loading-card" key={i}>
+                  <div className="loading-img"></div>
+                  <div className="loading-text"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              {fetchedProducts.length === 0 ? (
+                <div className="empty-cart">
+                  <div className="empty-cart-icon-wrapper">
+                    <MdOutlineShoppingCart className="cart-icon" />
+                  </div>
+                  <h2>Your cart is empty</h2>
+                  <p>
+                    Looks like you haven't added anything to your cart yet. 
+                    Explore our collection of premium, bespoke furniture to find your perfect fit.
+                  </p>
+                  <NavLink to="/store" className="start-shopping-btn">
+                    Start Shopping <BsArrowRight className="btn-icon" />
+                  </NavLink>
+                </div>
+              ) : (
+                <div className="cart">
+                  
+                  {/* Left Column: Cart Items */}
+                  <div className="cart-items-wrapper">
+                    <div className="cart-items-header desktop-only">
+                      <span className="left-text">Product</span>
+                      <span className="center-text">Quantity</span>
+                      <span className="center-text">Total</span>
+                      <span className="center-text">Action</span>
+                    </div>
 
-          <div className='checkout-container'>
+                    <div className="cart-items-list">
+                      {(() => {
+                        const inStockProducts = fetchedProducts.filter(product => product.isInStock);
+                        const outOfStockProducts = fetchedProducts.filter(product => !product.isInStock);
+                        const combinedProducts = [...inStockProducts, ...outOfStockProducts];
 
-        <p>Please Add a number as a way to reach you when your order is ready for Delivery</p>
+                        return combinedProducts.map((product, index) => (
+                          <div key={index} className="cart-item">
+                            
+                            <div className="item-details" onClick={() => navigate(`/store/${product.productnumber || product.id}`)} style={{cursor: 'pointer'}}>
+                              <img src={product.imgUrl} alt={product.txtVal} />
+                              <div className="item-meta">
+                                <h4>{product.txtVal} {!product.isInStock && <span className="out-of-stock">(Out of Stock)</span>}</h4>
+                                <div className="meta-sub">
+                                  {product.color && <span>Colour: {product.color}</span>}
+                                  {product.color && product.size && <span className="divider">|</span>}
+                                  {product.size && <span>Size: {product.size}</span>}
+                                </div>
+                              </div>
+                            </div>
 
-       <div className='buttons'>
-            <button onClick={() => setNotCompleted(false)} className="a">Cancel</button>
-            <NavLink onClick={() => setNotCompleted(false)} to='/addNumber' className="a again">Add Number</NavLink>
+                            <div className="item-actions-wrapper">
+                              <div className="item-quantity center-elem">
+                                {product.isInStock ? (
+                                  <div className="quantity-pill">
+                                    <button onClick={() => handleDecreaseQuantity(product.productId || product.productnumber)}><FiMinus /></button>
+                                    <span>{product.quantity}</span>
+                                    <button onClick={() => handleIncreaseQuantity(product.productId || product.productnumber)}><FaPlus /></button>
+                                  </div>
+                                ) : (
+                                  <div className="quantity-pill disabled">
+                                    <span>-</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="item-price center-elem">
+                                {product.isInStock ? (
+                                  <p className="price-text">
+                                    &#8358; {(parseFloat(product.price) * product.quantity).toLocaleString("en-US")}
+                                  </p>
+                                ) : (
+                                  <p className="price-text na">N/A</p>
+                                )}
+                              </div>
+
+                              <div className="item-action center-elem">
+                                <button className="icon-delete-btn" onClick={() => handleDeleteProduct(product.productId || product.productnumber)}>
+                                  <CiTrash className="delete-icon" />
+                                </button>
+                              </div>
+                            </div>
+
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Order Summary */}
+                  {getTotalPriceNumeric > 0 && (
+                    <div className="order-summary-card">
+                      <h3>Order Summary</h3>
+                      
+                      <div className="summary-row">
+                        <span>Sub Total</span>
+                        <span className="bold">{getTotalPrice()} NGN</span>
+                      </div>
+                      <div className="summary-row">
+                        <span>Items (+QTY)</span>
+                        <span className="bold">{totalItems}</span>
+                      </div>
+
+                      <hr className="summary-divider" />
+
+                      {/* Subtle Aesthetic Customer Details */}
+                      <div className="summary-section">
+                        <div className="section-header">
+                          <h6>Customer Details</h6>
+                          <NavLink to='/userprofile' className="action-link">
+                            {currentUser ? 'Edit' : 'Login to edit'}
+                          </NavLink>
+                        </div>
+                        
+                        <div className="info-box detailed-info">
+                          <div className="detail-row-group">
+                            <div className="detail-row">
+                              <span className="label">Name</span>
+                              <span className="value">{currentUser?.displayName || "Guest Customer"}</span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="label">Phone</span>
+                              <span className="value">
+                                {currentUser ? (
+                                  addressData.addressPhone || <span style={{color:"#e74c3c"}}>Not provided</span>
+                                ) : (
+                                  <span style={{color:"#888"}}>Login required</span>
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="detail-row">
+                            <span className="label">Delivery Address</span>
+                            <span className="value">
+                              {currentUser ? (
+                                addressData.addressLine1 ? (
+                                  <>
+                                    {addressData.addressLine1}<br />
+                                    {addressData.city ? `${addressData.city}, ` : ''}{addressData.state}
+                                  </>
+                                ) : (
+                                  <span style={{color:"#e74c3c"}}>No address provided</span>
+                                )
+                              ) : (
+                                <span style={{color:"#888"}}>Login required to view address</span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="summary-section">
+                        <div className="section-header">
+                          <h6>Delivery Timeline</h6>
+                        </div>
+                        <div className="notice-box">
+                          <p>
+                            Delivery fees vary by location and are calculated manually. 
+                            Submit your order to speak with our team on WhatsApp, confirm your delivery timeline, and complete payment.
+                          </p>
+                        </div>
+                        {errorMessage && <p className="error-text">{errorMessage}</p>}
+                      </div>
+
+                      <hr className="summary-divider desktop-only-checkout" />
+
+                      <div className="summary-row total-row desktop-only-checkout">
+                        <span>Total</span>
+                        <span className="total-price">{formattedTotalPriceWithShipping}</span>
+                      </div>
+                      <p className="shipping-note desktop-only-checkout">Shipping fee will be added on WhatsApp</p>
+
+                      <button className="btn-checkout desktop-only-checkout" onClick={check}>
+                        {currentUser ? "Order via WhatsApp" : "Login to Checkout"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* --- BOTTOM DISCOVERY SECTIONS --- */}
+              <div className="cart-discovery-wrapper">
+                {recommendedItems.length > 0 && (
+                  <div className="recently-viewed-section">
+                    <h3 className="section-title">Recommended For You</h3>
+                    <div className="recently-viewed-track">
+                      {recommendedItems.map(product => (
+                        <div className="recent-card" key={`rec-${product.id}`} onClick={() => navigate(`/store/${product.id}`)}>
+                          <div className="recent-img-box">
+                            <img src={Array.isArray(product.imgUrl) ? product.imgUrl[0] : product.imgUrl} alt={product.txtVal} />
+                          </div>
+                          <div className="recent-info">
+                            <p className="recent-name">{product.txtVal}</p>
+                            <p className="recent-price">&#8358;&nbsp;{parseFloat(product.price).toLocaleString('en-US')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {recentlyViewed.length > 0 && (
+                  <div className="recently-viewed-section">
+                    <h3 className="section-title">Recently Viewed</h3>
+                    <div className="recently-viewed-track">
+                      {recentlyViewed.slice(0,8).map(product => (
+                        <div className="recent-card" key={`recent-${product.id}`} onClick={() => navigate(`/store/${product.id}`)}>
+                          <div className="recent-img-box">
+                            <img src={Array.isArray(product.imgUrl) ? product.imgUrl[0] : product.imgUrl} alt={product.txtVal} />
+                          </div>
+                          <div className="recent-info">
+                            <p className="recent-name">{product.txtVal}</p>
+                            <p className="recent-price">&#8358;&nbsp;{parseFloat(product.price).toLocaleString('en-US')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* --- MOBILE STICKY BOTTOM CHECKOUT BAR --- */}
+        {getTotalPriceNumeric > 0 && !isLoading && fetchedProducts.length > 0 && (
+          <div className="mobile-sticky-checkout">
+            <div className="sticky-total">
+              <span>Total</span>
+              <h4>{formattedTotalPriceWithShipping}</h4>
+            </div>
+            <button className="btn-checkout sticky-btn" onClick={check}>
+              {currentUser ? "Order via WhatsApp" : "Login to Checkout"}
+            </button>
           </div>
+        )}
+
+        {/* Modals & Popups */}
+        {showPopup && (
+          <div className="popup">
+            <div className="spinner">
+              <div></div><div></div><div></div><div></div><div></div>
+              <div></div><div></div><div></div><div></div><div></div>
+            </div>
           </div>
-      )}  
+        )}
 
-
+        {completed && (
+          <div className='checkout-popup'>
+            <div className='close-btn'>
+              <MdKeyboardArrowLeft className='icon'/> 
+              <NavLink to='/store' className='button'>Home</NavLink> 
+            </div>
+            <div className='checkout-container'>
+              <div className="checkbox-wrapper">
+                <input defaultChecked={true} type="checkbox" readOnly />
+                <svg viewBox="0 0 35.6 35.6">
+                  <circle className="background" cx="17.8" cy="17.8" r="17.8"></circle>
+                  <circle className="stroke" cx="17.8" cy="17.8" r="14.37"></circle>
+                  <polyline className="check" points="11.78 18.12 15.55 22.23 25.17 12.87"></polyline>
+                </svg>
+              </div>
+              <h2>Order Request Sent!</h2>
+              <p>Thank you for choosing Evanis Interiors! <br /> Please return to the WhatsApp chat to complete your transaction with our team.</p>
+              <p>Order ID: <span>{orderID}</span></p>
+              <div className='buttons'>
+                <NavLink to='/store'>Continue Shopping</NavLink>
+                <NavLink to='/myorders'>View Order Details</NavLink>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

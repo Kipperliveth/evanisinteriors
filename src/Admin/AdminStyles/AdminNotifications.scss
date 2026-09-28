@@ -1,250 +1,234 @@
-.adminHome{
+/* =========================================
+   GLOBAL ADMIN PAGE CONTENT WRAPPER
+   (Fixes the overlap issue from the sidebar)
+   ========================================= */
+.admin-layout-wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #fafafa;
+}
 
-    .popup{
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100%;
+.admin-page-content {
+  margin-left: 280px; /* Matches the exact width of the desktop sidebar */
+  padding: 3rem 4rem;
+  width: calc(100% - 280px); /* Prevents horizontal scrolling */
+  box-sizing: border-box;
+  min-height: 100vh;
+}
+
+/* =========================================
+   NOTIFICATIONS PAGE STYLING
+   ========================================= */
+.page-header {
+  margin-bottom: 2.5rem;
+  
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.5px;
+  }
+  
+  .page-subtitle {
+    font-size: 1rem;
+    color: #777;
+    margin: 0;
+  }
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 900px; 
+
+  .section-divider {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #a0a0a0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 1rem 0 0.5rem 0;
+    padding-left: 0.5rem;
+  }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px dashed #ddd;
+    color: #888;
+    font-weight: 500;
+  }
+
+  .notification-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    border: 1px solid #eaeaea;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      transform: translateY(-2px);
+    }
+
+    &.unread {
+      background: #ffffff;
+      border-color: #e0e0e0;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    }
+
+    &.read {
+      background: #fdfdfd;
+      opacity: 0.65;
+      box-shadow: none;
+      
+      &:hover { opacity: 0.9; }
+    }
+
+    .notif-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+
+      .unread-dot {
+        color: #25d366; 
+        font-size: 0.6rem;
+        margin-top: 0.4rem;
+        flex-shrink: 0;
+      }
+      
+      .read-icon {
+        color: #888;
+        font-size: 1.2rem;
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+      }
+
+      .notif-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+
+        h4 {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #1a1a1a;
+          margin: 0;
+          
+          span {
+            font-weight: 500;
+            color: #888;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+          }
+        }
+
+        p {
+          font-size: 0.95rem;
+          color: #555;
+          margin: 0;
+          line-height: 1.4;
+
+          .customer-name {
+            font-weight: 600;
+            color: #1a1a1a;
+          }
+        }
+
+        .timestamp {
+          font-size: 0.8rem;
+          color: #a0a0a0;
+          font-weight: 500;
+          margin-top: 0.2rem;
+        }
+      }
+    }
+
+    .notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      opacity: 0; 
+      transition: opacity 0.2s ease;
+
+      .action-btn {
         display: flex;
         justify-content: center;
         align-items: center;
-        background: rgba(0, 0 , 0, 0.5);
-        z-index: 10000;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: all 0.2s ease;
 
-        .spinner {
-            position: absolute;
-            width: 9px;
-            height: 9px;
-          }
-          
-          .spinner div {
-            position: absolute;
-            width: 50%;
-            height: 150%;
-            background: white;
-            transform: rotate(calc(var(--rotation) * 1deg)) translate(0, calc(var(--translation) * 1%));
-            animation: spinner-fzua35 1s calc(var(--delay) * 1s) infinite ease;
-          }
-          
-          .spinner div:nth-child(1) {
-            --delay: 0.1;
-            --rotation: 36;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(2) {
-            --delay: 0.2;
-            --rotation: 72;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(3) {
-            --delay: 0.3;
-            --rotation: 108;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(4) {
-            --delay: 0.4;
-            --rotation: 144;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(5) {
-            --delay: 0.5;
-            --rotation: 180;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(6) {
-            --delay: 0.6;
-            --rotation: 216;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(7) {
-            --delay: 0.7;
-            --rotation: 252;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(8) {
-            --delay: 0.8;
-            --rotation: 288;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(9) {
-            --delay: 0.9;
-            --rotation: 324;
-            --translation: 150;
-          }
-          
-          .spinner div:nth-child(10) {
-            --delay: 1;
-            --rotation: 360;
-            --translation: 150;
-          }
-          
-          @keyframes spinner-fzua35 {
-            0%, 10%, 20%, 30%, 50%, 60%, 70%, 80%, 90%, 100% {
-              transform: rotate(calc(var(--rotation) * 1deg)) translate(0, calc(var(--translation) * 1%));
-            }
-          
-            50% {
-              transform: rotate(calc(var(--rotation) * 1deg)) translate(0, calc(var(--translation) * 1.5%));
-            }
-          }
+        &.mark-read {
+          background: #eefbf3;
+          color: #25d366;
+          &:hover { background: #25d366; color: #fff; transform: scale(1.1); }
+        }
+      }
     }
-    
-    .notification-container{
-        margin-block: 3rem;
-        
-        .loading-message{
-            margin-block: 3rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 2rem;
-    
-            .loading-card{
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                padding: 1rem;
-                border-radius: 10px;
-                gap: 1rem;
-                box-shadow: rgba(80, 78, 78, 0.16) 0px 1px 4px;
-    
-    
-                .loading-img{
-                    height: 20px;
-                    width: 100%;
-                    border-radius: 10px;
-                }
-    
-                .loading-text{
-                    height: 20px;
-                    width: 80%;
-                    border-radius: 10px;
-                }
-    
-                .loading-text-II{
-                    height: 20px;
-                    width: 60%;
-                    border-radius: 10px;
-                }
-                .loading-text-III{
-                    height: 20px;
-                    width: 70%;
-                    border-radius: 10px;
-                }
-    
-                .loading-img,
-                .loading-text,
-                .loading-text-II,
-                    .loading-text-III{
-                    background-color: #ededed;
-                    background: linear-gradient(
-                        100deg,
-                        rgba(255,255,255,0) 40%,
-                        rgba(255,255,255, .5) 50%,
-                        rgba(255,255,255,0) 60%
-                    ) #ededed;
-                    background-size: 200% 100%;
-                    background-position-x: 100%;
-                    animation: 1s loading ease-in-out infinite;
-                }
-                @keyframes loading {
-                    to{
-                         background-position-x: -20%;
-                    }
-                }
-    
-            }
-        }
 
-        .notifications{
-            margin-block: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-
-            
-            
-            .notification{
-                box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
-                display: flex;
-                align-items: flex-start;
-                gap: 1rem;
-                padding: 1rem;
-                border-radius: 10px;
-                width: 90%;
-                margin:0 auto;
-                border: 1px solid hsl(0, 0%, 93%);
-
-
-                .left{
-                    .icon{
-                        font-size: 25px;
-                    }
-                }
-
-                .right{
-                    line-height: 1.7;
-                    width: 100%;
-
-                    p{
-                        font-size: 14px;
-                    }
-
-                    .date{
-                        font-weight: 400;
-                        padding-top: .5rem;
-                    }
-
-                    span{
-                        margin-top: 1rem;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-
-                        button{
-                            border: none;
-                            padding: 10px 15px;
-                            border-radius: 5px;
-                            cursor: pointer;
-                            transition: .3s ease;
-
-                            &:hover{
-                                transform: scale(.95);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        .recent{
-            color: #888;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-
-            span{
-                width: 1rem;
-                height: 1px;
-                background-color: hsl(0, 0%, 73%);
-            }
-        }
-
-        .no-notifications{
-          font-weight: 500;
-          text-align: center;
-          margin-block: 5rem;
-          padding-block: 5rem;
-        }
+    &:hover .notif-actions {
+      opacity: 1;
     }
+  }
+}
+
+/* Loading Skeletons */
+.notifications-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 900px;
+
+  .notif-skeleton-card {
+    height: 100px;
+    border-radius: 16px;
+    background-color: #ededed;
+    background: linear-gradient(100deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.5) 50%, rgba(255,255,255,0) 60%) #ededed;
+    background-size: 200% 100%;
+    background-position-x: 100%;
+    animation: 1s loading ease-in-out infinite;
+  }
+}
+
+@keyframes loading {
+  to { background-position-x: -20%; }
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS
+   ========================================= */
+@media screen and (max-width: 1024px) {
+  .admin-page-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 6rem 1.5rem 2rem 1.5rem; 
+  }
+
+  .notifications-list .notification-card {
+    padding: 1.2rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+
+    .notif-actions {
+      opacity: 1; 
+      width: 100%;
+      justify-content: flex-end;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 1rem;
+    }
+  }
 }

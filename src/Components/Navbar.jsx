@@ -1,179 +1,210 @@
-import React, { useState } from "react";
-import logo from "../stock/logomain.png";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { AiOutlineShoppingCart } from "react-icons/ai";
-import { IoIosNotificationsOutline } from "react-icons/io";
-import { RiMenu4Fill } from "react-icons/ri";
-import { MdCancel } from "react-icons/md";
+import React, { useState, useEffect } from "react";
+import logo from "../stock/new-logo.svg"; 
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { 
+  AiOutlineShoppingCart, 
+  AiOutlineUser,
+  AiOutlineInfoCircle,
+  AiOutlineHome,
+  AiOutlineSend
+} from "react-icons/ai";
+import { MdOutlineChair, MdOutlinePhone } from "react-icons/md"; 
+import { RiMenu4Fill, RiCloseFill } from "react-icons/ri";
+
+import { auth, txtdb } from "../firebase-config";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, onSnapshot } from "firebase/firestore";
 
 function Navbar() {
-  const [isVisible, SetIsVisible] = useState(false);
-
-  const toggleVisibilty = () => {
-    SetIsVisible(!isVisible);
-  };
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [cartCount, setCartCount] = useState(0); 
+  
+  // NEW: Track auth state inside Navbar
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   const navigate = useNavigate();
-
-  const login = () => {
-    navigate('/login'); // Replace '/target-page' with your target route
-  };
-
   const location = useLocation();
 
+  const isTransparentPage = ["/about", "/contact", ].includes(location.pathname);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); 
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => { document.body.style.overflow = "auto"; };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (location.pathname === "/" && location.hash === "#faqs") {
+      const scrollTimer = setTimeout(() => {
+        const faqSection = document.getElementById("faqs");
+        if (faqSection) faqSection.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [location]);
+
+  // Handle Hybrid Cart Count & Auth Status
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsAuthChecking(false); // Auth check complete
+
+      if (user) {
+        const cartRef = collection(txtdb, `users/${user.uid}/products`);
+        const unsubscribeSnapshot = onSnapshot(cartRef, (snapshot) => {
+          const totalItems = snapshot.docs.reduce((sum, doc) => {
+            const data = doc.data();
+            return data.isInStock ? sum + (data.quantity || 1) : sum;
+          }, 0);
+          setCartCount(totalItems);
+        });
+        return () => unsubscribeSnapshot();
+      } else {
+        const checkLocalCart = () => {
+          const guestCart = JSON.parse(localStorage.getItem("evanis_guest_cart")) || [];
+          const totalItems = guestCart.reduce((sum, item) => item.isInStock ? sum + (item.quantity || 1) : sum, 0);
+          setCartCount(totalItems);
+        };
+        
+        checkLocalCart(); 
+        window.addEventListener('storage', checkLocalCart);
+        const intervalId = setInterval(checkLocalCart, 1000); 
+
+        return () => {
+          window.removeEventListener('storage', checkLocalCart);
+          clearInterval(intervalId);
+        };
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
+
+  const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const closeMenu = () => setIsMobileMenuOpen(false);
+
+  const handleActionClick = (path) => {
+    closeMenu();
+    navigate(path);
+  };
+
+  const handleFaqClick = (e) => {
+    closeMenu();
+    if (location.pathname === "/") {
+      e.preventDefault(); 
+      const faqSection = document.getElementById("faqs");
+      if (faqSection) faqSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // 1. REMOVED "/store" and "/cart" from this list
   const hiddenPaths = [
-    "/marketplace",
-    "/store",
-    "/address",
-    "/userMasterclass",
-    "/userDashboard",
-    "/adminHome",
-    "/adminNotifications",
-    "/post", "/orders",
-    "/cart",
-    "/userProfile",
-    '/notifications',
-    "/uploads",
-    "/onboarding",
-    '/profilePic',
-    '/editAddress',
-    '/myorders',
-    '/gethelp', '/editprofile', '/adminlog',
+    "/marketplace", "/userDashboard", "/adminHome",
+    "/adminNotifications", "/post", "/orders", 
+    "/userProfile", "/notifications", "/uploads", "/onboarding",
+    "/profilePic", "/editAddress", "/myorders", "/editprofile", "/adminlog", "/accounting", "/expenses", "/expensedash", "/clients", "/invoices", "/reminders", "/financetracking", "/client", "/estimates", "/projects",
+    "/purchases", "/reports", "/transactions", "/vendors"
   ];
 
-  const allPaths = [
-    "/", "/marketplace", "/store", "/address", "/userMasterclass", "/userDashboard",
-    "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",
-    "/notifications", "/uploads", "/onboarding", "/profilePic", "/editAddress",
-    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact','/reset', '/shop', '/shop/*', "/masterclass/enroll" 
-  ];
+  if (hiddenPaths.includes(location.pathname) || location.pathname.startsWith("/admin")) {
+    return null;
+  }
 
-  const shouldHideComponent =
-  hiddenPaths.includes(location.pathname) ||
-  (!allPaths.includes(location.pathname) && !location.pathname.startsWith("/shop/"));
+  // 2. DYNAMIC NAV SWAP: Hide Navbar on Store/Cart ONLY if logged in or still checking
+  const isStoreOrCart = ["/store", "/cart"].includes(location.pathname);
+  if (isStoreOrCart && (isAuthChecking || currentUser)) {
+    return null; // Prevents both navbars from showing at the same time
+  }
 
+  const navbarClass = `minimalist-header ${isScrolled ? "scrolled default-mode" : (isTransparentPage ? "transparent-mode" : "default-mode")}`;
 
   return (
-    <div style={{ display: shouldHideComponent ? "none" : "block" }}>
-      <div className="navigation ">
-        <nav className=" navbar">
-          <NavLink to="/" className="logo-container">
-            <img src={logo} alt="evanis-interior-logo" />
-            <p className="logo">
-              <span>EVANIS</span> INTERIORS
-            </p>
+    <header className={navbarClass}>
+      <div className="nav-container">
+        
+        <div className="nav-left">
+          <NavLink to="/" className="brand-logo" onClick={() => { closeMenu(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+            <img src={logo} alt="Evanis Interiors" />
           </NavLink>
+        </div>
 
-          <ul className="page-links">
-            <li>
-              <NavLink
-                className={({ isActive }) =>
-                  isActive ? "active-link" : "link"
-                }
-                to="/shop"
-              >
-                Shop
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                className={({ isActive }) =>
-                  isActive ? "active-link" : "link"
-                }
-                to="/masterclass"
-              >
-                {" "}
-                Masterclass
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                className={({ isActive }) =>
-                  isActive ? "active-link" : "link"
-                }
-                to="/about"
-              >
-                {" "}
-                About
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                className={({ isActive }) =>
-                  isActive ? "active-link" : "link"
-                }
-                to="/contact"
-              >
-                {" "}
-                Contact
-              </NavLink>
-            </li>
-          </ul>
-
-          <div className="app">
-            <div className='notif-bars'>
-
-            <IoIosNotificationsOutline className="app-icon desktop-view notifs" />
-            <div className="notif-bar bar1 desktop-view">
-              <NavLink to="/login">Login</NavLink> to see notifications
-            </div>
-            <AiOutlineShoppingCart className="app-icon desktop-view cart" />
-            <div className="notif-bar bar2 desktop-view">
-              <NavLink to="/login">Login</NavLink> to see cart
-            </div>
-            
-          </div>
-
-            <NavLink to="/login" className="login-btn">
-              Login
-            </NavLink>
-
-            <RiMenu4Fill
-              className="app-icon mobile-view menu"
-              onClick={toggleVisibilty}
-            />
-          </div>
+        <nav className="nav-center desktop-only">
+          <NavLink to="/about" className={({ isActive }) => (isActive && location.hash !== "#faqs" ? "active nav-link" : "nav-link")}>
+            <span className="link-text">The Studio</span>
+          </NavLink>
+          <NavLink to="/store" className={({ isActive }) => (isActive ? "active nav-link" : "nav-link")}>
+             <span className="link-text">Furnitures</span>
+          </NavLink>
+          <Link to="/#faqs" onClick={handleFaqClick} className="nav-link">
+             <span className="link-text">FAQs</span>
+          </Link>
+          <NavLink to="/contact" className={({ isActive }) => (isActive ? "active nav-link" : "nav-link")}>
+             <span className="link-text">Contact Us</span>
+          </NavLink>
         </nav>
 
-        <div
-          className={` mobile-menu-container ${isVisible ? "is-visible" : ""} `}
-        >
-          <div className="mobile-menu">
-            <div className="menu-content">
-              <MdCancel onClick={toggleVisibilty} className="cancel-btn" />
+        <div className="nav-right">
+          <div className="desktop-actions desktop-only">
+            <div className="icon-wrapper" onClick={() => handleActionClick("/login")}>
+                <AiOutlineUser className="action-icon" title="User Account" />
+            </div>
+            
+            <div className="icon-wrapper cart-wrapper" onClick={() => handleActionClick("/cart")}>
+                <AiOutlineShoppingCart className="action-icon" title="Cart" />
+                {cartCount > 0 && <span className="cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>}
+            </div>
 
-              <span>
-                <IoIosNotificationsOutline  onClick={login} className="span-icon" />
-                <AiOutlineShoppingCart  onClick={login} className="span-icon" />
-              </span>
+            <button className="solid-btn" onClick={() => handleActionClick("/contact")}>
+              Request Quote
+            </button>
+          </div>
 
-              <div className="mobilepage-links">
-                <li>
-                  <NavLink to="/shop" onClick={toggleVisibilty}>
-                    Shop
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/masterclass" onClick={toggleVisibilty}>
-                    Masterclass
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/about" onClick={toggleVisibilty}>
-                    About
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink to="/contact" onClick={toggleVisibilty}>
-                    Contact
-                  </NavLink>
-                </li>
-              </div>
+          <div className="mobile-header-actions mobile-only">
+            <div className="mobile-cart-btn cart-wrapper" onClick={() => handleActionClick("/cart")}>
+              <AiOutlineShoppingCart />
+              {cartCount > 0 && <span className="cart-badge">{cartCount > 99 ? '99+' : cartCount}</span>}
+            </div>
+            <div className="mobile-toggle" onClick={toggleMenu}>
+              {isMobileMenuOpen ? <RiCloseFill /> : <RiMenu4Fill />}
             </div>
           </div>
         </div>
+
       </div>
-    </div>
+
+      {isMobileMenuOpen && <div className="mobile-popover-overlay" onClick={closeMenu}></div>}
+
+      <div className={`mobile-popover-menu ${isMobileMenuOpen ? "active" : ""}`}>
+        <div className="popover-group">
+          <NavLink to="/about" onClick={closeMenu} className="popover-link"><AiOutlineHome className="popover-icon" /><span>The Studio</span></NavLink>
+          <NavLink to="/store" onClick={closeMenu} className="popover-link"><MdOutlineChair className="popover-icon" /><span>Furnitures</span></NavLink>
+          <Link to="/#faqs" onClick={handleFaqClick} className="popover-link"><AiOutlineInfoCircle className="popover-icon" /><span>FAQs</span></Link>
+          <NavLink to="/contact" onClick={closeMenu} className="popover-link"><MdOutlinePhone className="popover-icon" /><span>Contact Us</span></NavLink>
+        </div>
+        <div className="popover-divider"></div>
+        <div className="popover-group">
+          <div onClick={() => handleActionClick("/contact")} className="popover-link"><AiOutlineSend className="popover-icon" /><span>Request Quote</span></div>
+        </div>
+        <div className="popover-divider"></div>
+        <div className="popover-group">
+          <div onClick={() => handleActionClick("/login")} className="popover-link"><AiOutlineUser className="popover-icon" /><span>Profile / Log in</span></div>
+        </div>
+      </div>
+    </header>
   );
 }
 

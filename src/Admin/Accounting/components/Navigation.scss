@@ -1,0 +1,392 @@
+// --- Variables ---
+$bg-app: #f8fafc;
+$bg-sidebar: #ffffff;
+$border-color: #e2e8f0;
+
+$text-main: #0f172a;
+$text-muted: #64748b;
+$text-light: #94a3b8;
+
+$hover-bg: #f1f5f9;
+$active-bg: #0f172a;
+$active-text: #ffffff;
+
+$sidebar-width: 260px;
+$topbar-height: 64px;
+$transition-speed: 0.3s;
+
+// --- Brand Logo ---
+.logo-area, .sidebar-header {
+  display: flex;
+  align-items: center;
+
+  .brand-logo {
+    height: 32px;
+    width: auto;
+    max-width: 100%;
+    display: block;
+  }
+}
+
+// --- Mobile Topbar & Overlay ---
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: $topbar-height;
+  padding: 0 1.25rem;
+  background-color: $bg-sidebar;
+  border-bottom: 1px solid $border-color;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  box-sizing: border-box; // Fixes the alignment issue from your screenshot
+  z-index: 40;
+
+  @media (min-width: 1024px) {
+    display: none;
+  }
+
+  .menu-toggle {
+    background: none;
+    border: none;
+    color: $text-main;
+    padding: 0.5rem;
+    margin-right: -0.5rem; // Ensures icon aligns perfectly with right padding edge
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity $transition-speed ease;
+
+  &.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (min-width: 1024px) {
+    display: none;
+  }
+}
+
+// --- Sidebar ---
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: $sidebar-width;
+  background-color: $bg-sidebar;
+  border-right: 1px solid $border-color;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  
+  transform: translateX(-100%);
+  transition: transform $transition-speed cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.mobile-open {
+    transform: translateX(0);
+  }
+
+  @media (min-width: 1024px) {
+    transform: translateX(0);
+    position: sticky;
+  }
+
+  .sidebar-header {
+    height: $topbar-height;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid $border-color;
+
+    &.desktop-only {
+      display: none;
+      @media (min-width: 1024px) {
+        display: flex;
+      }
+    }
+  }
+
+  .sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column; 
+    
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: $border-color; border-radius: 4px; }
+  }
+
+  /* Structural Navigation Groups */
+  .nav-group {
+    margin-bottom: 2rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .nav-group-header {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: $text-light;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0 0 0.75rem 0.75rem;
+    }
+
+    .nav-group-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.75rem;
+      text-decoration: none;
+      color: $text-muted;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      .nav-icon {
+        color: $text-light;
+        transition: color 0.2s ease;
+      }
+
+      &:hover {
+        background-color: $hover-bg;
+        color: $text-main;
+        
+        .nav-icon {
+          color: $text-muted;
+        }
+      }
+
+      &.active {
+        background-color: $active-bg;
+        color: $active-text;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+        .nav-icon {
+          color: $active-text;
+        }
+      }
+    }
+  }
+
+  /* --- User Profile Footers (Mobile vs Desktop) --- */
+  
+  // Shared styles for both footers
+  .sidebar-footer {
+    padding: 1.25rem;
+    border-top: 1px solid $border-color;
+    align-items: center;
+    gap: 0.75rem;
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: $hover-bg;
+      color: $text-muted;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid $border-color;
+      flex-shrink: 0;
+    }
+
+    .user-info {
+      min-width: 0; // lets the name truncate instead of pushing the logout button out
+      overflow: hidden;
+      
+      .user-name {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: $text-main;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .user-role {
+        margin: 0;
+        font-size: 0.75rem;
+        color: $text-light;
+      }
+    }
+
+    // Logout button sits at the far right of the footer
+    .logout-btn {
+      margin-left: auto;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: none;
+      border: none;
+      border-radius: 0.5rem;
+      color: $text-light;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease;
+
+      &:hover {
+        background-color: $hover-bg;
+        color: $text-main;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $text-muted;
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  // 1. Mobile Footer (Inside the scrolling body, hidden on desktop)
+  .mobile-footer {
+    display: flex;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    padding-top: 1.25rem;
+    
+    @media (min-width: 1024px) {
+      display: none;
+    }
+  }
+
+  // 2. Desktop Footer (Pinned to absolute bottom, hidden on mobile)
+  .desktop-footer {
+    display: none;
+    background-color: $bg-sidebar;
+    
+    @media (min-width: 1024px) {
+      display: flex;
+      margin-top: auto; // Ensures it anchors to the bottom if content is short
+    }
+  }
+}
+
+// --- Logout Confirmation Popup ---
+// Sits above the sidebar (z-index 50) and mobile overlay (z-index 45)
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  animation: logout-fade-in 0.15s ease-out;
+}
+
+.logout-modal {
+  width: 100%;
+  max-width: 340px;
+  box-sizing: border-box;
+  padding: 1.5rem;
+  background-color: $bg-sidebar;
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  text-align: center;
+  animation: logout-pop-in 0.18s ease-out;
+
+  .logout-modal-icon {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background-color: $hover-bg;
+    color: $text-main;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  h2 {
+    margin: 0 0 0.375rem 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: $text-main;
+  }
+
+  p {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: $text-muted;
+  }
+
+  .logout-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+
+    button {
+      flex: 1;
+      height: 42px;
+      border-radius: 0.5rem;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease, background-color 0.2s ease;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $text-muted;
+        outline-offset: 2px;
+      }
+    }
+
+    .logout-cancel {
+      background-color: #ffffff;
+      border: 1px solid $border-color;
+      color: $text-main;
+
+      &:hover:not(:disabled) { background-color: $hover-bg; }
+    }
+
+    .logout-confirm {
+      background-color: $active-bg;
+      border: 1px solid $active-bg;
+      color: $active-text;
+
+      &:hover:not(:disabled) { opacity: 0.9; }
+    }
+  }
+}
+
+@keyframes logout-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes logout-pop-in {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

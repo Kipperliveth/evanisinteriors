@@ -159,12 +159,12 @@ const saveClientData = async (clientData, items) => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-      if (Number(formData.paid) > Number(formData.amount)) {
+  if (Number(formData.paid) > Number(formData.amount)) {
     alert("Amount paid cannot be more than total amount");
     return;
   }
 
-    const cleanData = {
+  const cleanData = {
     ...formData,
     amount: Number(formData.amount || 0),
     discount: Number(formData.discount || 0),
@@ -174,8 +174,6 @@ const handleSubmit = async (e) => {
 
   const dataToSave = {
     ...cleanData,
-    // amount: Number(formData.amount),
-    // ... (rest of your dataToSave object)
     items,
     created: Timestamp.fromDate(new Date(formData.created)),
     due: Timestamp.fromDate(new Date(formData.due)),
@@ -184,8 +182,6 @@ const handleSubmit = async (e) => {
   try {
     if (isEditing && editingInvoiceId) {
       // 🟢 UPDATE EXISTING INVOICE:
-      // When updating, we usually don't need to re-save the client unless their details changed. 
-      // For simplicity, we skip client update on invoice edit here.
       const invoiceRef = doc(txtdb, "invoices", editingInvoiceId);
       await updateDoc(invoiceRef, {
         ...dataToSave,
@@ -196,24 +192,35 @@ const handleSubmit = async (e) => {
       // 🟢 CREATE NEW INVOICE:
       
       // 1. Create or Update the Client Record
-      const clientDocId = await saveClientData(formData, items); // Pass formData and items
+      const clientDocId = await saveClientData(formData, items); 
       
       // 2. Prepare Invoice Data
       const image = `https://api.dicebear.com/9.x/adventurer/svg?seed=${formData.client.replace(/\s+/g, "")}`;
       
+      // --- NEW SERIAL INVOICE NUMBER LOGIC ---
+      const invoiceDate = new Date(formData.created);
+      const monthStr = String(invoiceDate.getMonth() + 1).padStart(2, '0'); // e.g., '04' for April
+      
+      // Count how many invoices exist for this month to generate the next sequence
+      const invoicesThisMonth = invoices.filter(inv => {
+        const invDate = new Date(inv.created);
+        return invDate.getMonth() === invoiceDate.getMonth() && invDate.getFullYear() === invoiceDate.getFullYear();
+      });
+      
+      // Generates 001, 002, etc.
+      const nextSequence = String(invoicesThisMonth.length + 1).padStart(3, '0'); 
+      const invoiceNo = `EV${monthStr}${nextSequence}`;
+      // ----------------------------------------
+
       // 3. Save the Invoice linked to the client
-      const invoiceRef = await addDoc(collection(txtdb, "invoices"), {
+      await addDoc(collection(txtdb, "invoices"), {
         ...dataToSave,
-        client_id: clientDocId, // 📌 KEY: Link invoice to the client document
+        client_id: clientDocId, 
         image,
+        invoiceNo, // 📌 Saved directly on creation
         createdAt: Timestamp.now(),
       });
-      const invoiceNo = invoiceRef.id.slice(0, 6).toUpperCase();
-
-      // 🔥 Update the same document
-      await updateDoc(invoiceRef, {
-        invoiceNo,
-      });
+      
       alert("Invoice added successfully!");
     }
 
@@ -258,16 +265,20 @@ const fetchInvoices = async () => {
     const q = collection(txtdb, "invoices");
     const querySnapshot = await getDocs(q);
 
-    const list = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      // Ensure data is properly converted to Date objects
-      created: doc.data().created.toDate(), 
-      due: doc.data().due.toDate(),
-    }));
+    const list = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Ensure data is properly converted to Date objects
+        created: data.created?.toDate() || new Date(), 
+        due: data.due?.toDate() || new Date(),
+        // 📌 NEW: Grab the exact second the invoice was generated
+        createdAt: data.createdAt ? data.createdAt.toDate() : (data.created?.toDate() || new Date()),
+      };
+    });
 
     setInvoices(list);
-    // Note: The filter useEffect will run automatically because 'invoices' changed
   } catch (error) {
     console.error("Error fetching invoices:", error);
   }
@@ -278,7 +289,6 @@ useEffect(() => {
   fetchInvoices();
 }, []); // Runs once on component mount
 
-  // --- Updated Filtering Logic (Handles Tabs + Search) ---
 // --- Updated Filtering & Sorting Logic ---
   const filteredInvoices = useMemo(() => {
     const filtered = invoices.filter((inv) => {
@@ -307,8 +317,8 @@ useEffect(() => {
 
     // 3. Sorting Logic (Newest to Oldest)
     return filtered.sort((a, b) => {
-      // Sort by 'created' date timestamp
-      return b.created.getTime() - a.created.getTime();
+      // 📌 KEY FIX: Sort by the exact 'createdAt' timestamp, not the invoice date
+      return b.createdAt.getTime() - a.createdAt.getTime();
     });
 
   }, [invoices, filter, searchTerm]);
@@ -957,13 +967,12 @@ useEffect(() => {
         </div>
       )}
 
-          {/* Image content for generation */}
+        {/* Image content for generation */}
       {isGeneratingImage && selectedInvoice && (
         <div
           id="image-content"
-        style={{
+          style={{
             position: "fixed",
-            // 🛑 CHANGED: We keep it off-screen even when generating
             top: 0,
             left: "-10000px", 
             width: "210mm",
@@ -974,12 +983,29 @@ useEffect(() => {
             fontSize: "13px",
             boxSizing: "border-box",
             padding: "15mm 20mm",
-            // 🛑 CHANGED: Ensure it is visible to DOM, just not to User
             visibility: "visible", 
             zIndex: -1, 
           }}
         >
-          <div style={{ width: '100%', lineHeight: '1.4' }}>
+          {/* --- 🟢 NEW BACKGROUND WATERMARK --- */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.08, /* Adjust this between 0.05 and 0.15 for preferred fade */
+            zIndex: 0,
+            width: '60%', /* Controls how large the background logo is */
+            pointerEvents: 'none',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <img src={logo} alt="background-watermark" style={{ width: '100%', height: 'auto' }} />
+          </div>
+
+          {/* 🛑 Added position: 'relative' and zIndex: 1 to ensure text stays above the watermark */}
+          <div style={{ width: '100%', lineHeight: '1.4', position: 'relative', zIndex: 1 }}>
             
             {/* 1. TOP HEADER SECTION */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '50px' }}>

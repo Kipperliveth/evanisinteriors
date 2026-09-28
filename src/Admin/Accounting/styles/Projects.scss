@@ -1,0 +1,643 @@
+// --- Variables ---
+$bg-app: #f8fafc;
+$card-bg: #ffffff;
+$border-color: #e2e8f0;
+
+$text-main: #0f172a;
+$text-muted: #64748b;
+$text-light: #94a3b8;
+
+$brand-primary: #0f172a;
+$color-success: #10b981; // Green for margins/deposits
+$color-warning: #f59e0b; // Orange for nearing budget
+$color-danger: #ef4444;  // Red for over budget/loss
+
+// --- Global Page Layout ---
+.page-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: $bg-app;
+}
+
+.page-content {
+  flex: 1;
+  width: 100%;
+  padding: 2rem;
+
+  @media (max-width: 1023px) {
+    padding-top: 84px; // Account for mobile top bar
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+// --- Top Section Layout (Grid powers both Desktop and Mobile) ---
+.page-top-section {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas:
+    "titles titles btn"
+    "tabs time search";
+  gap: 1.5rem 1rem;
+  margin-bottom: 2rem;
+  align-items: center;
+  line-height: 1.25;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "titles titles"
+      "btn time"
+      "tabs tabs"
+      "search search";
+    gap: 1rem;
+  }
+}
+
+.header-titles {
+  grid-area: titles;
+  h1 { font-size: 1.5rem; font-weight: 700; color: $text-main; margin: 0; }
+  p { color: $text-muted; margin-top: 0.25rem; font-size: 0.875rem; }
+}
+
+.btn-primary {
+  grid-area: btn;
+  background-color: $brand-primary;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  
+  height: 42px; 
+  padding: 0 1rem;
+  width: 100%;
+
+  &:hover { opacity: 0.9; }
+}
+
+.tabs {
+  grid-area: tabs;
+  display: flex;
+  background-color: #e2e8f0;
+  padding-block: 0.25rem;
+  padding-inline: 0.25rem;
+  border-radius: 0.5rem;
+  width: fit-content;
+  box-sizing: border-box;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    display: flex;
+  }
+
+  .tab {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $text-muted;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    @media (max-width: 768px) {
+      flex: 1; 
+      text-align: center;
+      padding: 0.625rem;
+      padding-inline: 0;
+    }
+
+    &.active {
+      background-color: white;
+      color: $text-main;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      
+      @media (max-width: 768px) {
+        width: 90%;
+        margin: 0 auto;
+      }
+    }
+  }
+}
+
+.time-filter-wrapper {
+  grid-area: time;
+  width: 100%;
+
+  .select-container {
+    position: relative;
+    width: 100%;
+    
+    .calendar-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-light;
+      pointer-events: none;
+    }
+
+    .filter-select {
+      appearance: none; 
+      background-color: white;
+      border: 1px solid $border-color;
+      border-radius: 0.5rem;
+      padding: 0 2rem 0 2.25rem; 
+      font-size: 0.875rem;
+      color: $text-main;
+      outline: none;
+      cursor: pointer;
+      box-sizing: border-box;
+      
+      width: 100%;
+      height: 42px;
+
+      &:focus { border-color: $text-muted; }
+    }
+  }
+}
+
+.search-box {
+  grid-area: search;
+  position: relative;
+  
+  width: 260px; 
+  
+  @media (max-width: 768px) {
+    width: 100%; 
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $text-light;
+  }
+
+  input {
+    width: 100%;
+    box-sizing: border-box; 
+    padding: 0 1rem 0 2.25rem;
+    border: 1px solid $border-color;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+    
+    height: 42px;
+
+    &:focus { border-color: $text-muted; }
+  }
+}
+
+// --- Projects Grid & Cards ---
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  color: $text-muted;
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px dashed $border-color;
+}
+
+.project-card {
+  background-color: $card-bg;
+  border: 1px solid $border-color;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &.cursor-pointer { cursor: pointer; }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+
+    .title-area {
+      h2 { font-size: 1rem; font-weight: 600; color: $text-main; margin: 0 0 0.25rem 0; }
+      .client-name { font-size: 0.8125rem; color: $text-muted; }
+    }
+
+    .dropdown-container {
+      position: relative;
+      
+      .icon-btn {
+        background: none; border: none; color: $text-light; cursor: pointer; padding: 0.25rem;
+        border-radius: 0.375rem;
+        &:hover { color: $text-main; background-color: #f1f5f9; }
+      }
+    }
+  }
+
+  .trackers-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .budget-tracker {
+    .tracker-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: $text-muted;
+      margin-bottom: 0.375rem;
+      text-transform: uppercase;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background-color: $bg-app;
+      border-radius: 3px;
+      overflow: hidden;
+
+      .progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.4s ease;
+
+        &.safe { background-color: $text-main; }
+        &.warning { background-color: $color-warning; }
+        &.danger { background-color: $color-danger; }
+        &.success { background-color: $color-success; }
+      }
+    }
+  }
+
+  .metrics-grid-3x2 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid $bg-app;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+
+      .label { font-size: 0.75rem; color: $text-muted; margin-bottom: 0.25rem; }
+      .value { font-size: 0.9375rem; font-weight: 600; color: $text-main; }
+      
+      .margin-value {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: $text-main;
+      }
+    }
+  }
+}
+
+// --- Dropdown Menu Styles ---
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background-color: #ffffff;
+  border: 1px solid $border-color;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  width: 220px;
+  z-index: 20;
+  padding: 0.5rem 0;
+  overflow: hidden;
+
+  .dropdown-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $text-main;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #f1f5f9;
+    }
+
+    &.danger {
+      color: $color-danger;
+      border-top: 1px solid $border-color;
+      margin-top: 0.25rem;
+      padding-top: 0.75rem;
+
+      &:hover {
+        background-color: #fef2f2;
+      }
+    }
+  }
+}
+
+// Utility Colors
+.text-main { color: $text-main !important; }
+.text-success { color: $color-success !important; }
+.text-warning { color: $color-warning !important; }
+.text-danger { color: $color-danger !important; }
+
+
+// --- Base Modal Styles ---
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem; 
+}
+
+.modal-container {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  // Make the details modal much wider on desktop to accommodate 3 columns
+  &.details-modal {
+    max-width: 900px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid $border-color;
+
+    h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $text-main;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: $text-muted;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #f1f5f9;
+        color: $text-main;
+      }
+    }
+  }
+
+  .modal-form {
+    padding: 1.5rem;
+    max-height: 80vh; 
+    overflow-y: auto;
+
+    .form-group {
+      margin-bottom: 1.25rem;
+
+      label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: $text-muted;
+        margin-bottom: 0.5rem;
+      }
+
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.75rem 1rem;
+        border: 1px solid $border-color;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: $text-main;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+        &:focus {
+          border-color: $text-main;
+          box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+        }
+      }
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 2rem;
+
+      button {
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-secondary {
+        background-color: white;
+        border: 1px solid $border-color;
+        color: $text-main;
+
+        &:hover {
+          background-color: #f1f5f9;
+        }
+      }
+
+      .btn-primary { width: auto; }
+    }
+  }
+}
+
+// --- Plain English Details Breakdown Modal ---
+.details-modal {
+  .details-content {
+    padding: 1.5rem;
+    
+    // Fix for Safari mobile cutoff: dynamic viewport height and massive bottom padding
+    max-height: 85dvh;
+    padding-bottom: 2rem; // Increased padding to ensure the final box easily clears the browser bar
+    
+    overflow-y: auto;
+    color: $text-main;
+
+    // Context Block (Removed grey background, added subtle border)
+    .context-block {
+      background-color: transparent;
+      padding: 0 0 1.5rem 0;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid $border-color;
+
+      .context-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.375rem;
+        font-size: 0.875rem;
+
+        &:last-child { margin-bottom: 0; }
+        .lbl { color: $text-muted; font-weight: 500; min-width: 60px; }
+        .val { font-weight: 600; color: $text-main; }
+      }
+    }
+
+    // New CSS Grid to enforce horizontal layout on Desktop and stacked on Mobile
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem; // Increased gap between columns on desktop
+
+      @media (max-width: 900px) {
+        grid-template-columns: 1fr; // Fallback to vertical stack on tablets and phones
+        gap: 0; 
+      }
+    }
+
+    .breakdown-section {
+      
+      // When stacked vertically (mobile), they need bottom margins and borders
+      @media (max-width: 900px) {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid $border-color;
+
+        &:last-child {
+          margin-bottom: 0;
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+
+        h3 {
+          margin: 0;
+          font-size: 0.9375rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 700;
+          color: $text-main;
+        }
+      }
+
+      .plain-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.9375rem;
+        line-height: 1.7;
+
+        li {
+          display: flex;
+          justify-content: space-between;
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+          
+          strong {
+            font-weight: 500;
+            color: $text-muted;
+          }
+
+          // Mobile text wrapping fix: Stack labels above values if screen is very small
+          @media (max-width: 480px) {
+            flex-direction: column;
+            gap: 0.125rem;
+            margin-bottom: 1.25rem;
+            
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+        }
+      }
+
+      // Bottom Line Section (Removed grey background, standardized to look like other columns)
+      &.bottom-line {
+        background-color: transparent;
+        padding: 0;
+        border-radius: 0;
+        border: none;
+        
+        // Remove margin/border on mobile since it is a self-contained card
+        @media (max-width: 900px) {
+          margin-bottom: 0;
+        }
+
+        .profit-display {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 1rem;
+          margin-bottom: 6rem;
+
+          // Mobile fix: stack label and value
+          @media (max-width: 480px) {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+
+          .profit-lbl {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: $text-muted;
+          }
+          
+          .profit-val {
+            font-size: 1.5rem;
+            font-weight: 800;
+          }
+        }
+      }
+    }
+  }
+}

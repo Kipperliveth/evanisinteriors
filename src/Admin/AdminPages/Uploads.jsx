@@ -1,18 +1,13 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import AdminDashboard from "../AdminComponents/AdminDashboard";
-import { txtdb } from "../../firebase-config";
-import { doc, updateDoc, collection, query, where, getDocs, writeBatch, deleteDoc } from 'firebase/firestore';
+import { txtdb, imgdb } from "../../firebase-config";
+import { doc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { v4 } from "uuid";
 import { CiSearch } from "react-icons/ci";
-import all from "../../stock/allmain.png";
-import sitting from "../../stock/couchicon.png";
-// import curtains from "../../stock/curtainicon.png";
-import room from "../../stock/roomicon.png";
-import lights from "../../stock/lighticon.png";
-import tables from "../../stock/tableicon.png";
-import storageicon from "../../stock/storageicon.png";
+import { MdCancel } from "react-icons/md";
 import { IoCloudUploadOutline } from "react-icons/io5";
-import { IoIosArrowBack } from "react-icons/io";
+import { FiUploadCloud, FiTrash2 } from "react-icons/fi";
 
 function Uploads() {
   const [data, setData] = useState([]);
@@ -22,8 +17,26 @@ function Uploads() {
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const [selectedPost, setSelectedPost] = useState(null); // State for selected post
-  const [showModal, setShowModal] = useState(false); // State to toggle modal visibility
+  const [selectedPost, setSelectedPost] = useState(null); 
+  const [showModal, setShowModal] = useState(false); 
+
+  const [modalImages, setModalImages] = useState([]); 
+  const [isUpdating, setIsUpdating] = useState(false); 
+
+  const dragItem = useRef();
+  const dragOverItem = useRef();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15; 
+
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => { document.body.style.overflow = "auto"; };
+  }, [showModal]);
 
   const getData = async () => {
     const valRef = collection(txtdb, "txtData");
@@ -32,18 +45,19 @@ function Uploads() {
     setData(allData);
     setFilteredData(allData);
   };
-  //
 
   const deleteItem = async (itemId) => {
-    try {
-      await deleteDoc(doc(txtdb, "txtData", itemId));
-      setData(data.filter((item) => item.id !== itemId));
-      setFilteredData(filteredData.filter((item) => item.id !== itemId)); // Update filteredData after deletion
-    } catch (error) {
-      console.error("Error deleting document: ", error);
+    if(window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await deleteDoc(doc(txtdb, "txtData", itemId));
+        setData(data.filter((item) => item.id !== itemId));
+        setFilteredData(filteredData.filter((item) => item.id !== itemId)); 
+      } catch (error) {
+        console.error("Error deleting document: ", error);
+      }
     }
   };
-  //
+
   const handleSearchClick = () => {
     const filtered = data.filter(
       (value) =>
@@ -51,348 +65,390 @@ function Uploads() {
         value.txtVal.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredData(filtered);
+    setSelectedCategory("All"); 
+    setCurrentPage(1); 
   };
-  //
+
   useEffect(() => {
-    getData();
+    setIsLoading(true); 
+    getData().then(() => {
+      setIsLoading(false); 
+    });
   }, []);
-  //
+
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
     if (category === "All") {
       setFilteredData(data);
+    } else if (category === "In Stock") {
+      setFilteredData(data.filter((item) => item.isInStock === true));
+    } else if (category === "Out of Stock") {
+      setFilteredData(data.filter((item) => item.isInStock === false));
     } else {
-      const filtered = data.filter((item) => item.category === category);
-      setFilteredData(filtered);
+      setFilteredData(data.filter((item) => item.category === category));
     }
+    setCurrentPage(1); 
   };
-  //
 
-  useEffect(() => {
-    setIsLoading(true); // Start loading before fetching data
-    getData().then(() => {
-      setIsLoading(false); // Stop loading after data is fetched
-    });
-  }, []);
-
-  //edit
   const handleEditClick = (post) => {
     setSelectedPost(post);
+    let existingUrls = Array.isArray(post.imgUrl) ? post.imgUrl : [post.imgUrl];
+    if (!existingUrls[0]) existingUrls = []; 
+    const formattedImages = existingUrls.map(url => ({ url: url, file: null }));
+    setModalImages(formattedImages);
     setShowModal(true);
   };
 
-  //updating carts
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    const newImages = files.map(file => ({
+      url: URL.createObjectURL(file),
+      file: file 
+    }));
+    setModalImages(prev => [...prev, ...newImages]);
+    e.target.value = null; 
+  };
 
-  
+  const handleRemoveImage = (indexToRemove) => {
+    const imgToRemove = modalImages[indexToRemove];
+    if (imgToRemove.file) URL.revokeObjectURL(imgToRemove.url); 
+    setModalImages(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
 
-  
+  const handleDragStart = (e, index) => {
+    dragItem.current = index;
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnter = (e, index) => {
+    dragOverItem.current = index;
+    e.preventDefault();
+  };
+
+  const handleDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    const imagesClone = [...modalImages];
+    const tempImage = imagesClone[dragItem.current];
+    imagesClone.splice(dragItem.current, 1);
+    imagesClone.splice(dragOverItem.current, 0, tempImage);
+    setModalImages(imagesClone);
+    dragItem.current = null;
+    dragOverItem.current = null;
+  };
 
   const handleUpdate = async () => {
-    try {
-        console.log("Starting update process for product:", selectedPost.txtVal);
+    if (modalImages.length === 0) {
+      alert("A product must have at least one image.");
+      return;
+    }
 
-        // Update the main product document in txtData
+    setIsUpdating(true);
+    try {
+        const finalImageUrls = await Promise.all(
+          modalImages.map(async (imgObj) => {
+            if (imgObj.file) {
+              const imgRef = ref(imgdb, `imgs/${v4()}`);
+              const snapshot = await uploadBytes(imgRef, imgObj.file);
+              return await getDownloadURL(snapshot.ref);
+            } else {
+              return imgObj.url;
+            }
+          })
+        );
+
         const postDoc = doc(txtdb, "txtData", selectedPost.id);
         await updateDoc(postDoc, {
             ...selectedPost,
+            imgUrl: finalImageUrls, 
             isInStock: selectedPost.isInStock
         });
-        console.log("Main product document updated successfully");
 
-        // Step 1: Fetch all users from 'userCart'
         const usersSnapshot = await getDocs(collection(txtdb, "users"));
+        
+        if (!usersSnapshot.empty) {
+          const updatePromises = usersSnapshot.docs.map(async (userDoc) => {
+              const userId = userDoc.id;
+              const productsRef = collection(txtdb, `users/${userId}/products`);
+              const productSnapshot = await getDocs(productsRef);
 
-        // Debugging: Log the number of users fetched
-        console.log(`Number of users found: ${usersSnapshot.size}`);
+              if (productSnapshot.empty) return;
 
-        if (usersSnapshot.empty) {
-            console.log("No users found.");
-            return;
+              const productUpdatePromises = productSnapshot.docs.map(async (productDoc) => {
+                  const productData = productDoc.data();
+                  if (productData.productnumber === selectedPost.id) {
+                      const productDocRef = doc(txtdb, `users/${userId}/products/${productDoc.id}`);
+                      await updateDoc(productDocRef, {
+                          txtVal: selectedPost.txtVal,
+                          desc: selectedPost.desc,
+                          price: selectedPost.price,
+                          isInStock: selectedPost.isInStock
+                      });
+                  } 
+              });
+              await Promise.all(productUpdatePromises);
+          });
+          await Promise.all(updatePromises);
         }
-
-        // Step 2: Iterate through each user's cart
-        const updatePromises = usersSnapshot.docs.map(async (userDoc) => {
-            const userId = userDoc.id;
-            console.log(`Processing cart for user: ${userId}`);
-
-            // Step 3: Get the user's cart products
-            const productsRef = collection(txtdb, `users/${userId}/products`);
-            const productSnapshot = await getDocs(productsRef);
-
-            if (productSnapshot.empty) {
-                console.log(`No products found in cart for user: ${userId}`);
-                return;
-            }
-
-            // Step 4: Iterate through products in the user's cart and check for matches
-            const productUpdatePromises = productSnapshot.docs.map(async (productDoc) => {
-                const productData = productDoc.data();
-                console.log(`Checking product in cart: ${productData.txtVal} (User: ${userId})`);
-
-                // Step 5: Compare productnumber with selectedPost.id
-                if (productData.productnumber === selectedPost.id) {
-                    console.log(`Match found! Updating product in cart for user: ${userId}`);
-
-                    // Step 6: Construct path for the product and update it
-                    const productDocRef = doc(txtdb, `users/${userId}/products/${productDoc.id}`);
-                    await updateDoc(productDocRef, {
-                        txtVal: selectedPost.txtVal,
-                        desc: selectedPost.desc,
-                        price: selectedPost.price,
-                        isInStock: selectedPost.isInStock
-                    });
-                    console.log(`Product updated in cart for user: ${userId}`);
-                } else {
-                    console.log(`No match for product: ${productData.txtVal} in user: ${userId} cart`);
-                }
-            });
-
-            // Await all product updates for this user
-            await Promise.all(productUpdatePromises);
-        });
-
-        // Await all user cart updates
-        await Promise.all(updatePromises);
-
-        // Step 7: Refresh data and close the modal
-        getData();
-        setShowModal(false);
-        console.log("Update process completed for all users' carts");
+        
+        getData(); 
+        closeModal();
     } catch (error) {
         console.error("Error in update process:", error);
+    } finally {
+        setIsUpdating(false);
     }
-};
+  };
 
-// const checkUserCart = async () => {
-//   try {
-//     const usersSnapshot = await getDocs(collection(txtdb, "/users/3vjKJe9Oo9Wfl1dmAZvUPVhBam53/products"));
-//     if (usersSnapshot.empty) {
-//       console.log("No users found in userCart collection.");
-//       return;
-//     }
-//     usersSnapshot.forEach((userDoc) => {
-//       console.log(`User ID: ${userDoc.id}`);
-//     });
-//   } catch (error) {
-//     console.error("Error fetching userCart:", error);
-//   }
-// };
+  const closeModal = () => {
+    modalImages.forEach(img => { if(img.file) URL.revokeObjectURL(img.url); });
+    setShowModal(false);
+  };
 
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+  const currentData = filteredData.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-  
-  
-  
-  
+  useEffect(() => {
+    if (!showModal) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentPage, showModal]);
 
-
+  const categories = ["All", "In Stock", "Out of Stock", "Sitting", "Tables", "Room", "Lights", "Storage"];
 
   return (
-    <div className="adminHome">
+    <div className="admin-layout-wrapper">
       <AdminDashboard />
 
-      <h2 className="admin-current-page mobile-content">Uploads</h2>
-
-      <div className="adminUploads adminContent">
-        <h2 className="admin-current-page desktop-content">Uploads</h2>
-
-        <div className="search-container">
-          <span>
-            <CiSearch className="search-icon" />
-            <input
-              className="searchInput"
-              type="text"
-              placeholder="search for an upload..."
-              onChange={(event) => {
-                setSearchTerm(event.target.value);
-              }}
-            />
-          </span>
-
-          <button onClick={handleSearchClick}>Search</button>
+      <div className="admin-page-content adminUploads">
+        
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Manage Inventory</h1>
+            <p className="page-subtitle">View, edit, or remove products from your catalog.</p>
+          </div>
         </div>
 
-        <div className="categories-container">
-          <h3 className="categories-header">Categories</h3>
-          <div className="categories">
-            <span className="category-name">
-              <button onClick={() => handleCategoryClick("All")}>
-                <img src={all} alt="" />
-              </button>
-              All
-            </span>
+        <div className="inventory-controls">
+          <div className="admin-search-bar">
+            <CiSearch className="icon" />
+            <input
+              type="text"
+              placeholder="Search by product name..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
+            />
+          </div>
 
-            <span className="category-name">
-              <button onClick={() => handleCategoryClick("Sitting")}>
-                <img src={sitting} alt="" />
+          <div className="admin-category-tabs">
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                className={selectedCategory === cat ? "tab active" : "tab"}
+                onClick={() => handleCategoryClick(cat)}
+              >
+                {cat}
               </button>
-              <p>Sitting</p>
-            </span>
-
-            {/* <span className="category-name">
-              <button onClick={() => handleCategoryClick("Curtains")}>
-                <img src={curtains} alt="" />
-              </button>
-              <p>Curtains</p>
-            </span> */}
-
-            <span className="category-name">
-              <button onClick={() => handleCategoryClick("Tables")}>
-                <img src={tables} alt="" />
-              </button>
-              <p>Tables</p>
-            </span>
-
-            <span className="category-name">
-              <button onClick={() => handleCategoryClick("Room")}>
-                <img src={room} alt="" />
-              </button>
-              <p>Room</p>
-            </span>
-
-            <span className="category-name">
-              <button onClick={() => handleCategoryClick("Lights")}>
-                <img src={lights} alt="" />
-              </button>
-              <p>Lights</p>
-            </span>
-
-            <span className="category-name">
-              <button onClick={() => handleCategoryClick("Storage")}>
-                <img src={storageicon} alt="" />
-              </button>
-              <p>Storage</p>
-            </span>
+            ))}
           </div>
         </div>
 
         {isLoading ? (
-          <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-II"></div>
-            </div>
+          <div className="compact-grid">
+            {Array.from({ length: 15 }).map((_, idx) => (
+              <div className="compact-card skeleton" key={idx}>
+                <div className="skel-img"></div>
+                <div className="skel-info">
+                  <div className="skel-line"></div>
+                  <div className="skel-line short"></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="uploads-container">
-            {filteredData.length === 0 ? (
-            <div className="no-results">
-              No products found.
+          <>
+            <div className="compact-grid">
+              {currentData.length === 0 ? (
+                <div className="no-results">
+                  <p>No products found in this category.</p>
+                </div>
+              ) : (
+                currentData.map((value) => (
+                  <div className="compact-card" key={value.id}>
+                    <div className="card-img-wrap">
+                      <img src={Array.isArray(value.imgUrl) ? value.imgUrl[0] : value.imgUrl} alt={value.txtVal} />
+                      {!value.isInStock && <span className="stock-badge out">Out of Stock</span>}
+                    </div>
+
+                    <div className="card-info">
+                      <h3 className="item-name" title={value.txtVal}>{value.txtVal}</h3>
+                      <p className="item-price">₦ {parseFloat(value.price).toLocaleString('en-US')}</p>
+                    </div>
+
+                    <div className="card-actions">
+                      <button className="action-btn edit" onClick={() => handleEditClick(value)}>Edit</button>
+                      <button className="action-btn delete" onClick={() => deleteItem(value.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ) : (filteredData.map((value) => (
-                        <div className="product" key={value.id}>
-                          <img
-                            src={value.imgUrl}
-                            height="200px"
-                            width="200px"
-                            alt="product"
-                          />
 
-                          <div className="product-info">
-                            <h2 className="product-name">{value.txtVal}</h2>
+            {totalPages > 1 && (
+              <div className="pagination-wrapper">
+                <button 
+                  className="page-nav-btn" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Prev
+                </button>
+                
+                <div className="page-numbers">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      className={`page-num-btn ${currentPage === pageNum ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
 
-                            <p className="product-description">{value.desc}</p>
-
-                            <p className="product-category">{value.category}</p>
-
-                            <p className="product-price">&#8358;&nbsp;{parseFloat(value.price).toLocaleString('en-US')}</p>
-                            <span>
-                              <button className="edit-btn"  onClick={() => handleEditClick(value)} >Edit</button>
-                             
-                              <button className="delete-btn" onClick={() => deleteItem(value.id)}>Delete</button>
-                            </span>
-                          </div>
-                        </div>
-                    ) ))}
-          </div>
+                <button 
+                  className="page-nav-btn" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
-        
+
       </div>
 
+      {showModal && selectedPost && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="edit-modal-content wide" onClick={(e) => e.stopPropagation()}>
+            
+            <div className="modal-header">
+              <div className="header-text">
+                <h2>Edit Product</h2>
+                <p>Update inventory details, pricing, and images.</p>
+              </div>
+              <MdCancel className="close-icon" onClick={closeModal} />
+            </div>
 
-        {/* Modal Popup */}
-        {showModal && selectedPost && (
-  <div className="modal">
-    <div className="modal-content">
-      <h2>Edit Product Details</h2>
+            <div className="modal-body horizontal-layout">
+              
+              <div className="modal-col images-col">
+                <div className="col-header-row">
+                  <label className="col-label">Product Images</label>
+                  <p className="image-helper-text">Drag to reorder.</p>
+                </div>
+                
+                <div className="image-preview-track scrollable">
+                  <label className="upload-trigger-box">
+                    <FiUploadCloud className="upload-icon" />
+                    <span>Add</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      style={{ display: "none" }}
+                    />
+                  </label>
 
-      <input
-        type="text"
-        value={selectedPost.txtVal}
-        onChange={(e) =>
-          setSelectedPost({ ...selectedPost, txtVal: e.target.value })
-        }
-      />
-      <textarea
-        value={selectedPost.desc}
-        onChange={(e) =>
-          setSelectedPost({ ...selectedPost, desc: e.target.value })
-        }
-      />
-      <input
-        type="number"
-        value={selectedPost.price}
-        onChange={(e) =>
-          setSelectedPost({ ...selectedPost, price: e.target.value })
-        }
-      />
+                  {modalImages.map((imgObj, index) => (
+                    <div 
+                      key={index} 
+                      className="preview-box"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragEnter={(e) => handleDragEnter(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
+                      <img src={imgObj.url} alt={`Preview ${index}`} />
+                      {index === 0 && <span className="main-badge">Main</span>}
+                      <button className="remove-img-btn" onClick={() => handleRemoveImage(index)}>
+                        <FiTrash2 />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-      {/* Stock Status Buttons */}
-      <div className="stock-toggle">
-        <button
-          className={`stock-btn ${selectedPost.isInStock ? 'active' : ''}`}
-          onClick={() => setSelectedPost((prev) => ({ ...prev, isInStock: true }))}
-        >
-          In Stock
-        </button>
-        <button
-          className={`stock-btn ${!selectedPost.isInStock ? 'active' : ''}`}
-          onClick={() => setSelectedPost((prev) => ({ ...prev, isInStock: false }))}
-        >
-          Out of Stock
-        </button>
-      </div>
+              <div className="modal-col data-col">
+                <div className="input-group">
+                  <label>Product Name</label>
+                  <input
+                    type="text"
+                    value={selectedPost.txtVal}
+                    onChange={(e) => setSelectedPost({ ...selectedPost, txtVal: e.target.value })}
+                  />
+                </div>
 
-      <div className="edit-buttons">
-        <button className="close" onClick={() => setShowModal(false)}>Close</button>
-        <button className="upload" onClick={handleUpdate}>Update <IoCloudUploadOutline className="icon" /> </button>
-      </div>
-    </div>
-  </div>
-)}
+                <div className="input-row">
+                  <div className="input-group">
+                    <label>Price (₦)</label>
+                    <input
+                      type="number"
+                      value={selectedPost.price}
+                      onChange={(e) => setSelectedPost({ ...selectedPost, price: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="input-group">
+                    <label>Status</label>
+                    <div className="segmented-control">
+                      <button
+                        className={`seg-btn ${selectedPost.isInStock ? 'active' : ''}`}
+                        onClick={() => setSelectedPost((prev) => ({ ...prev, isInStock: true }))}
+                      >
+                        In Stock
+                      </button>
+                      <button
+                        className={`seg-btn ${!selectedPost.isInStock ? 'active' : ''}`}
+                        onClick={() => setSelectedPost((prev) => ({ ...prev, isInStock: false }))}
+                      >
+                        Out of Stock
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
+                <div className="input-group flex-grow">
+                  <label>Description</label>
+                  <textarea
+                    className="flex-grow-textarea"
+                    value={selectedPost.desc}
+                    onChange={(e) => setSelectedPost({ ...selectedPost, desc: e.target.value })}
+                  />
+                </div>
+              </div>
 
+            </div>
 
+            <div className="form-actions">
+              <button className="cancel-btn" onClick={closeModal} disabled={isUpdating}>Cancel</button>
+              <button className="primary-btn upload" onClick={handleUpdate} disabled={isUpdating}>
+                {isUpdating ? "Saving..." : "Save Changes"} 
+                {!isUpdating && <IoCloudUploadOutline className="icon" />}
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
 
     </div>
   );

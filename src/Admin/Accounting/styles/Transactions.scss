@@ -1,0 +1,483 @@
+// --- Variables ---
+$bg-app: #f8fafc;
+$card-bg: #ffffff;
+$border-color: #e2e8f0;
+$text-main: #0f172a;
+$text-muted: #64748b;
+$text-light: #94a3b8;
+$brand-primary: #0f172a;
+$color-success: #10b981; 
+$color-warning: #f59e0b;
+$color-danger: #ef4444;
+
+.transactions-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  .btn-primary { 
+    width: auto; 
+    @media (max-width: 768px) { width: 100%; }
+  }
+}
+
+// --- Perfectly Aligned Banking Header ---
+.banking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid $border-color;
+  margin-bottom: 2rem;
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; 
+
+    .month-selector-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+
+      .custom-dropdown-trigger {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem; 
+        background: transparent;
+        border: none;
+        padding: 0;
+        font-size: 1.75rem; 
+        font-weight: 800;
+        color: $text-main;
+        cursor: pointer;
+        outline: none;
+        transition: opacity 0.2s;
+
+        &:hover { opacity: 0.8; }
+      }
+
+      .custom-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 0.5rem;
+        background-color: #ffffff;
+        border: 1px solid $border-color;
+        border-radius: 0.75rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        min-width: 180px;
+        z-index: 50;
+        padding: 0.5rem 0;
+        max-height: 320px;
+        overflow-y: auto;
+
+        .dropdown-divider {
+          height: 1px;
+          background-color: $border-color;
+          margin: 0.25rem 0;
+        }
+
+        .dropdown-item {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 0.625rem 1.25rem;
+          border: none;
+          background: transparent;
+          font-size: 0.9375rem;
+          color: $text-main;
+          cursor: pointer;
+          transition: background-color 0.2s;
+
+          &:hover {
+            background-color: #f8fafc;
+          }
+
+          &.active {
+            font-weight: 700;
+            color: $brand-primary;
+            background-color: #f1f5f9;
+          }
+        }
+      }
+    }
+
+    .in-out-totals {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 1rem; 
+      color: $text-muted;
+
+      span { display: flex; align-items: center; }
+      strong { margin-left: 0.5rem; font-weight: 700; color: $text-main; }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem; 
+
+    .balance-lbl {
+      font-size: 0.75rem;
+      color: $text-muted;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .balance-val {
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+  }
+}
+
+// --- Responsive Grid Filters ---
+.compact-filters {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "search search"
+    "proj cat";
+
+  @media (min-width: 768px) {
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-areas: "search proj cat";
+  }
+
+  .filter-item {
+    position: relative;
+    width: 100%;
+
+    .sel-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-light;
+      pointer-events: none;
+    }
+
+    input, select {
+      width: 100%;
+      appearance: none;
+      background-color: transparent;
+      border: 1px solid $border-color;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: $text-main;
+      outline: none;
+      box-sizing: border-box;
+      height: 42px;
+      transition: border-color 0.2s;
+      
+      &:focus { border-color: $text-muted; }
+    }
+
+    input {
+      padding: 0.625rem 1rem 0.625rem 2.25rem;
+      &::placeholder { color: $text-light; }
+    }
+
+    select {
+      padding: 0.625rem 0.5rem 0.625rem 2.25rem;
+      cursor: pointer;
+    }
+  }
+
+  .search-item { grid-area: search; }
+  .proj-item { grid-area: proj; }
+  .cat-item { grid-area: cat; }
+}
+
+// --- Transaction List ---
+.transaction-list {
+  background-color: transparent;
+  padding-bottom: 6rem; 
+  line-height: 1.4;
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: $text-muted;
+    background-color: white;
+    border-radius: 0.75rem;
+    border: 1px solid $border-color;
+  }
+
+  .transaction-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid $border-color;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:last-child { border-bottom: none; }
+    &:hover { opacity: 0.7; }
+
+    .tx-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      overflow: hidden;
+      padding-right: 1rem;
+
+      .tx-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        &.income { background-color: #dcfce7; color: #166534; }
+        &.expense { background-color: #f1f5f9; color: $text-main; } 
+      }
+
+      .tx-details {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .tx-title { 
+          font-size: 0.9375rem; 
+          font-weight: 600; 
+          color: $text-main; 
+          margin-bottom: 0.125rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis; 
+        }
+        .tx-subtitle { font-size: 0.8125rem; color: $text-muted; }
+      }
+    }
+
+    .tx-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+
+      .tx-amount { 
+        font-size: 1rem; 
+        font-weight: 700; 
+        margin-bottom: 0.125rem; 
+      }
+      .tx-date { font-size: 0.8125rem; color: $text-muted; }
+    }
+  }
+}
+
+// --- Forms & Modals Base ---
+
+.form-group {
+  margin-bottom: 1.25rem;
+
+  label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: $text-muted;
+    margin-bottom: 0.5rem;
+  }
+
+  // TARGETED FIX: Overriding native OS inputs for Mobile Chrome/Safari
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 1rem;
+    border: 1px solid $border-color;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: $text-main;
+    outline: none;
+    background-color: white; // Forces white bg on iOS/Android date inputs
+    transition: border-color 0.2s, box-shadow 0.2s;
+    
+    // Forces identical height across text and date inputs
+    height: 42px; 
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit;
+
+    &:focus {
+      border-color: $text-main;
+      box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+    }
+  }
+}
+
+// --- Checkbox rows & helper text inside modal forms ---
+.form-group {
+  // Comfortable line spacing for the checkbox labels and their explanations
+  label { line-height: 1.4; }
+  p { line-height: 1.5; }
+
+  // Undo the text-input styling on checkboxes so they render as normal,
+  // small, tickable boxes (this also lets accentColor work)
+  input[type="checkbox"] {
+    -webkit-appearance: checkbox;
+    appearance: auto;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0; // keeps the box from squishing when the text wraps
+    border-radius: 0;
+    box-shadow: none;
+
+    &:focus { box-shadow: none; }
+    &:focus-visible { outline: 2px solid $text-muted; outline-offset: 2px; }
+  }
+}
+
+.type-toggle {
+  display: flex;
+  background-color: #f1f5f9;
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  margin-bottom: 0.5rem;
+
+  .toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $text-muted;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.active {
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      &.expense { background-color: white; color: $color-danger; }
+      &.income { background-color: white; color: $color-success; }
+    }
+  }
+}
+
+.standard-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border: 1px solid $border-color;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: $text-main;
+  outline: none;
+  background-color: white;
+  cursor: pointer;
+  height: 42px;
+  appearance: none;
+  -webkit-appearance: none;
+  
+  &:focus {
+    border-color: $text-main;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+  }
+}
+
+// --- Receipt Modal (CHROME MOBILE SCROLL FIX) ---
+.receipt-modal {
+  max-height: 85dvh; 
+  display: flex;
+  flex-direction: column;
+
+  .modal-header { flex-shrink: 0; }
+
+  .receipt-content {
+    padding: 1.5rem;
+    flex: 1; 
+    overflow-y: auto; 
+    padding-bottom: 8rem; // Safe area
+
+    .receipt-amount-large {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 0 2rem 0;
+      border-bottom: 1px dashed $border-color;
+      margin-bottom: 1.5rem;
+
+      .val { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+      .status { font-size: 0.75rem; color: #166534; font-weight: 600; background-color: #dcfce7; padding: 0.25rem 0.75rem; border-radius: 1rem; }
+    }
+
+    .receipt-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+
+      .receipt-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+
+        .lbl { font-size: 0.875rem; color: $text-muted; font-weight: 500; }
+        .val { font-size: 0.9375rem; font-weight: 600; color: $text-main; text-align: right; word-break: break-word;}
+      }
+    }
+  }
+}
+
+// --- Action Modal (Log Transaction CHROME MOBILE SCROLL FIX) ---
+.action-modal {
+  max-height: 85dvh; 
+  display: flex;
+  flex-direction: column;
+
+  .modal-header { flex-shrink: 0; }
+
+  .modal-form {
+    padding: 1.5rem;
+    flex: 1; 
+    overflow-y: auto; 
+    padding-bottom: 8rem; // Safe area
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 2rem;
+
+      button {
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-secondary {
+        background-color: white;
+        border: 1px solid $border-color;
+        color: $text-main;
+        &:hover { background-color: #f1f5f9; }
+      }
+
+      .btn-primary { width: auto; }
+    }
+  }
+}

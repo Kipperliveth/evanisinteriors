@@ -1,84 +1,117 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { FaInstagram } from "react-icons/fa";
-import { FaWhatsapp } from "react-icons/fa";
-import { MdMailOutline } from "react-icons/md";
-import { IoLogoTiktok } from "react-icons/io5";
-import logo from "../stock/logomain.png";
+import { FaInstagram, FaWhatsapp, FaPinterestP } from "react-icons/fa";
+import { MdMailOutline, MdLocationOn } from "react-icons/md";
+import logo from "../stock/new-logo.svg"; 
 
 function Footer() {
-  const handleScrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll animation
-  };
   const location = useLocation();
 
-  const hiddenPaths = ["/adminHome", "/post", '/uploads', "/orders"]
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
+  const hiddenPaths = ["/adminHome", "/post", "/uploads", "/orders", "/adminNotifications"];
   const allPaths = [
-    "/", "/marketplace", "/store", "/address", "/userMasterclass", "/userDashboard",
+    "/", "/marketplace", "/store", "/address", "/userDashboard",
     "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",
     "/notifications", "/uploads", "/profilePic", "/editAddress",
-    "/myorders", "/gethelp", "/editprofile", "/adminlog", '/login', '/signup', '/masterclass', '/about', '/contact', '/reset', '/shop', "/masterclass/enroll", 
+    "/myorders", "/gethelp", "/editprofile", "/adminlog", "/login", "/signup", 
+    "/about", "/contact", "/reset", "/shop", "/designs", "/services"
   ];
 
-  const shouldHideComponent = hiddenPaths.includes(location.pathname) || !allPaths.includes(location.pathname);
+  const shouldHideComponent =
+    hiddenPaths.includes(location.pathname) || 
+    (!allPaths.includes(location.pathname) && !location.pathname.startsWith("/shop/"));
 
-  const isEnrollPage = location.pathname === "/masterclass/enroll";
+  if (shouldHideComponent) return null;
 
   return (
-    <div style={{ display: shouldHideComponent ? "none" : "block" }}>
-      <div className={`footer-container ${isEnrollPage ? "no-margin" : ""}`}>
-        <div className="footer">
-          <div className="footer-top">
-            <NavLink onClick={handleScrollToTop} className="logo-container">
-              <img src={logo} alt="evanis-interior-logo" />
-              <p className="logo">
-                {" "}
-                <span>EVANIS</span> INTERIORS
-              </p>
+    <footer className="modern-footer">
+      <div className="footer-container">
+        
+        {/* Top Section: 4-Column Grid */}
+        <div className="footer-grid">
+          
+          {/* Column 1: Brand & Bio */}
+          <div className="footer-brand-col">
+            <NavLink to="/" onClick={handleScrollToTop} className="logo-container">
+              <img src={logo} alt="Evanis Interiors Logo" />
             </NavLink>
-
-            <div className="footer-links">
-              <li>
-                <NavLink>FAQS</NavLink>
-              </li>
-              <li>
-                <NavLink>Get help</NavLink>
-              </li>
-              <li>
-                <NavLink>Masterclass</NavLink>
-              </li>
-              <li>
-                <NavLink>Contact</NavLink>
-              </li>
+            <p className="brand-bio">
+              Transforming spaces into timeless environments. We create bespoke furniture and execute full-scale interior architecture tailored to your lifestyle.
+            </p>
+            <div className="location-tag">
+              <MdLocationOn className="loc-icon" />
+              <span>38 Emmanuel Bus Stop, Akute/Ajuwon Road, Lagos</span>
             </div>
-
             <div className="socials">
-              <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt">
-              <FaInstagram className="footer-icon" />
+              <a href="https://www.instagram.com/evanis_homes?igsh=bGljMXdoZDR6MWtt" target="_blank" rel="noreferrer" aria-label="Instagram">
+                <FaInstagram className="footer-icon" />
               </a>
-              <a href="">
-              <IoLogoTiktok className="footer-icon" />
+              <a href="#" aria-label="Pinterest">
+                <FaPinterestP className="footer-icon" />
               </a>
-              <a href="">
-              <FaWhatsapp className="footer-icon" />
+              <a href="#" aria-label="WhatsApp">
+                <FaWhatsapp className="footer-icon" />
               </a>
-              <a href="">
-              <MdMailOutline className="footer-icon" />
+              <a href="#" aria-label="Email">
+                <MdMailOutline className="footer-icon" />
               </a>
             </div>
           </div>
 
-          <div className="footer-bottom">
-            &copy; 2025 evanis interiors
-            <div>
-              <NavLink id="terms">terms of use</NavLink> |{" "}
-              <NavLink id="policies">privacy policy</NavLink>
-            </div>
+          {/* Column 2: Services */}
+          <div className="footer-link-col">
+            <h4>Services</h4>
+            <ul>
+              <li><NavLink to="/services" onClick={handleScrollToTop}>Full Interior Architecture</NavLink></li>
+              <li><NavLink to="/services" onClick={handleScrollToTop}>Spatial Planning & Styling</NavLink></li>
+              <li><NavLink to="/services" onClick={handleScrollToTop}>Custom Furniture Builds</NavLink></li>
+              <li><NavLink to="/services" onClick={handleScrollToTop}>Renovations & Remodeling</NavLink></li>
+              <li><NavLink to="/contact" onClick={handleScrollToTop}>Design Consultations</NavLink></li>
+            </ul>
+          </div>
+
+          {/* Column 3: Furniture Shop */}
+          <div className="footer-link-col">
+            <h4>Collection</h4>
+            <ul>
+              <li><NavLink to="/shop/sofas-seating" onClick={handleScrollToTop}>Sofas & Lounges</NavLink></li>
+              <li><NavLink to="/shop/tables-desks" onClick={handleScrollToTop}>Dining & Accent Tables</NavLink></li>
+              <li><NavLink to="/shop/storage" onClick={handleScrollToTop}>Credenzas & Shelving</NavLink></li>
+              <li><NavLink to="/shop/beds" onClick={handleScrollToTop}>Beds & Headboards</NavLink></li>
+              <li><NavLink to="/shop/decor" onClick={handleScrollToTop}>Lighting & Objects</NavLink></li>
+            </ul>
+          </div>
+
+          {/* Column 4: Company & Support */}
+          <div className="footer-link-col">
+            <h4>Support</h4>
+            <ul>
+              <li><NavLink to="/about" onClick={handleScrollToTop}>Our Studio</NavLink></li>
+              <li><NavLink to="/contact" onClick={handleScrollToTop}>Request a Quote</NavLink></li>
+              <li><NavLink to="/faqs" onClick={handleScrollToTop}>FAQs</NavLink></li>
+              <li><NavLink to="/shipping" onClick={handleScrollToTop}>Delivery & Logistics</NavLink></li>
+              <li><NavLink to="/contact" onClick={handleScrollToTop}>Contact</NavLink></li>
+            </ul>
+          </div>
+
+        </div>
+
+        {/* Bottom Section: Copyright & Legal */}
+        <div className="footer-bottom">
+          <p className="copyright">
+            &copy; {new Date().getFullYear()} evanis interiors. All rights reserved.
+          </p>
+          <div className="legal-links">
+            <NavLink to="/terms" onClick={handleScrollToTop}>Terms of Service</NavLink>
+            <NavLink to="/privacy" onClick={handleScrollToTop}>Privacy Policy</NavLink>
           </div>
         </div>
+
       </div>
-    </div>
+    </footer>
   );
 }
 
