@@ -1,14 +1,21 @@
-// --- Variables ---
-$po-bg-app: #f8fafc;
-$po-card-bg: #ffffff;
-$po-border-color: #e2e8f0;
-$po-text-main: #0f172a;
-$po-text-muted: #64748b;
-$po-text-light: #94a3b8;
-$po-brand-primary: #0f172a;
+// --- Variables (Dark Mode) ---
+$po-bg-app: #0b1120;
+$po-card-bg: #0f172a;
+$po-bg-modal: #1e293b;
+$po-border-color: #1e293b;
+$po-border-strong: #334155;
+
+$po-text-main: #f1f5f9;
+$po-text-muted: #94a3b8;
+$po-text-light: #64748b;
+
+$po-brand-primary: #f1f5f9;
+$po-brand-primary-text: #0f172a;
 $po-color-success: #10b981;
 $po-color-warning: #f59e0b;
 $po-color-danger: #ef4444;
+
+$po-overlay-bg: rgba(0, 0, 0, 0.6);
 
 // Utilities
 .po-text-success { color: $po-color-success; }
@@ -23,6 +30,7 @@ $po-color-danger: #ef4444;
   min-height: 100vh;
   background-color: $po-bg-app;
   font-family: inherit;
+  color-scheme: dark; // Ensures native controls adapt to dark mode
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -38,7 +46,7 @@ $po-color-danger: #ef4444;
   box-sizing: border-box;
 
   @media (max-width: 768px) {
-    padding: 1.5rem 1rem 6rem 1rem; // Bottom padding for mobile nav if needed
+    padding: 1.5rem 1rem 6rem 1rem; 
   }
 }
 
@@ -61,7 +69,6 @@ $po-color-danger: #ef4444;
       "tabs tabs"
       "search search";
     gap: 1rem;
-    // padding: 5rem 1rem 8rem 1rem;
     padding-top: 4rem;
   }
 }
@@ -79,7 +86,7 @@ $po-color-danger: #ef4444;
   justify-content: center;
   gap: 0.5rem;
   background-color: $po-brand-primary;
-  color: white;
+  color: $po-brand-primary-text; // Swapped white
   border: none;
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;
@@ -87,15 +94,15 @@ $po-color-danger: #ef4444;
   font-weight: 600;
   cursor: pointer;
   height: 42px;
-  transition: background-color 0.2s;
+  transition: opacity 0.2s;
 
-  &:hover { background-color: #1e293b; }
+  &:hover { opacity: 0.9; } // Swapped dark hover color for opacity fade
 }
 
 .po-tabs {
   grid-area: tabs;
   display: flex;
-  background-color: #e2e8f0;
+  background-color: $po-border-color; // Swapped #e2e8f0
   padding: 0.25rem;
   border-radius: 0.5rem;
   width: fit-content;
@@ -117,9 +124,9 @@ $po-color-danger: #ef4444;
     @media (max-width: 768px) { flex: 1; padding: 0.625rem 0; }
 
     &.active {
-      background-color: white;
+      background-color: $po-border-strong; // Swapped white
       color: $po-text-main;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3); // Deepened shadow
     }
   }
 }
@@ -143,11 +150,16 @@ $po-color-danger: #ef4444;
     width: 100%;
     box-sizing: border-box; 
     padding: 0.625rem 1rem 0.625rem 2.25rem;
+    background-color: $po-card-bg; // Ensure input is filled in dark mode
+    color: $po-text-main;
     border: 1px solid $po-border-color;
     border-radius: 0.5rem;
     font-size: 0.875rem;
     outline: none;
     height: 42px;
+    transition: border-color 0.2s;
+
+    &::placeholder { color: $po-text-light; }
     &:focus { border-color: $po-text-muted; }
   }
 }
@@ -174,9 +186,14 @@ $po-color-danger: #ef4444;
     gap: 1rem;
 
     &.outstanding {
-      border: 1px solid rgba($po-color-danger, 0.3);
-      background-color: #fef2f2; 
-      .po-card-icon { background-color: white; color: $po-color-danger; border: 1px solid rgba($po-color-danger, 0.2); }
+      border: 1px solid rgba($po-color-danger, 0.4);
+      background-color: rgba($po-color-danger, 0.05); // Replaced hard pastel #fef2f2
+      
+      .po-card-icon { 
+        background-color: $po-border-strong; 
+        color: $po-color-danger; 
+        border: 1px solid rgba($po-color-danger, 0.2); 
+      }
     }
 
     .po-card-icon {
@@ -186,7 +203,8 @@ $po-color-danger: #ef4444;
       display: flex;
       align-items: center;
       justify-content: center;
-      background-color: #f1f5f9; 
+      background-color: $po-border-color; // Swapped #f1f5f9
+      color: $po-text-main; 
     }
 
     .po-card-info {
@@ -194,7 +212,7 @@ $po-color-danger: #ef4444;
       flex-direction: column;
 
       .po-lbl { font-size: 0.8125rem; color: $po-text-muted; margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase;}
-      .po-val { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+      .po-val { font-size: 1.5rem; font-weight: 800; color: $po-text-main; letter-spacing: -0.02em; }
     }
   }
 }
@@ -208,9 +226,9 @@ $po-color-danger: #ef4444;
     text-align: center;
     padding: 3rem;
     color: $po-text-muted;
-    background-color: white;
+    background-color: $po-card-bg; // Swapped white
     border-radius: 0.75rem;
-    border: 1px solid $po-border-color;
+    border: 1px dashed $po-border-color; // Used dashed border for empty states
   }
 
   .po-row {
@@ -241,8 +259,9 @@ $po-color-danger: #ef4444;
         justify-content: center;
         flex-shrink: 0;
 
-        &.paid { background-color: #dcfce7; color: #166534; }
-        &.pending { background-color: #fef2f2; color: #991b1b; } 
+        // Dark mode transparent tints instead of hard pastels
+        &.paid { background-color: rgba($po-color-success, 0.15); color: $po-color-success; }
+        &.pending { background-color: rgba($po-color-danger, 0.15); color: $po-color-danger; } 
       }
 
       .po-details {
@@ -265,12 +284,14 @@ $po-color-danger: #ef4444;
       flex-shrink: 0;
       gap: 0.25rem;
 
-      .po-amount { font-size: 1rem; font-weight: 700; }
+      .po-amount { font-size: 1rem; font-weight: 700; color: $po-text-main; }
       
       .po-status-badge {
         font-size: 0.7rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 1rem; text-transform: uppercase;
-        &.paid { background-color: #dcfce7; color: #166534; }
-        &.pending { background-color: #fef2f2; color: #991b1b; } 
+        
+        // Dark mode transparent tints instead of hard pastels
+        &.paid { background-color: rgba($po-color-success, 0.15); color: $po-color-success; }
+        &.pending { background-color: rgba($po-color-danger, 0.15); color: $po-color-danger; } 
       }
     }
   }
@@ -280,7 +301,8 @@ $po-color-danger: #ef4444;
 .po-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: $po-overlay-bg; // Used dark mode overlay var
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,9 +311,10 @@ $po-color-danger: #ef4444;
 }
 
 .po-modal-container {
-  background-color: $po-card-bg;
+  background-color: $po-bg-modal; // Swapped card-bg to specific modal-bg
+  color: $po-text-main;
   border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3); // Deepened shadow
   width: 100%;
   max-width: 600px;
   display: flex;
@@ -318,7 +341,7 @@ $po-color-danger: #ef4444;
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid $po-border-color;
+    border-bottom: 1px solid $po-border-strong; // Swapped border color
     flex-shrink: 0;
 
     .po-header-left {
@@ -332,11 +355,17 @@ $po-color-danger: #ef4444;
     .po-close-btn {
       background: none;
       border: none;
-      color: $po-text-light;
+      color: $po-text-muted;
       cursor: pointer;
       display: flex;
       padding: 0.25rem;
-      &:hover { color: $po-text-main; }
+      border-radius: 0.375rem;
+      transition: background-color 0.2s;
+
+      &:hover { 
+        color: $po-text-main; 
+        background-color: $po-border-strong; // Enhanced hover effect
+      }
     }
   }
 
@@ -353,18 +382,18 @@ $po-color-danger: #ef4444;
     padding: 1.5rem;
 
     @media (max-width: 768px) {
-      padding: 1.25rem 1rem 8rem 1rem; // Modals fix for bottom scrolling
+      padding: 1.25rem 1rem 8rem 1rem; 
     }
   }
 
   .po-modal-footer {
-    background-color: #ffffff;
-    border-top: 1px solid $po-border-color;
+    background-color: $po-bg-modal; // Swapped white
+    border-top: 1px solid $po-border-strong; // Swapped standard border for strong
     padding: 1.25rem 1.5rem;
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
-    box-shadow: 0 -4px 10px -1px rgba(0,0,0,0.05);
+    box-shadow: 0 -4px 15px -1px rgba(0,0,0,0.4); // Deepened shadow for dark mode
     flex-shrink: 0;
 
     @media (max-width: 768px) { padding: 1rem; }
@@ -380,17 +409,20 @@ $po-color-danger: #ef4444;
     }
 
     .po-btn-secondary {
-      background-color: white;
-      border: 1px solid $po-border-color;
+      background-color: transparent; // Swapped white
+      border: 1px solid $po-border-strong;
       color: $po-text-main;
-      &:hover { background-color: #f1f5f9; }
+      
+      &:hover { background-color: $po-border-strong; } // Swapped light hover
     }
     
     .po-btn-primary { 
       background-color: $po-brand-primary;
-      color: white;
+      color: $po-brand-primary-text;
       border: none;
-      &:hover { background-color: #1e293b; }
+      
+      &:hover { opacity: 0.9; } // Swapped static dark hover for opacity
+      
       @media (max-width: 768px) { flex: 1; }
     }
   }
@@ -412,29 +444,51 @@ $po-color-danger: #ef4444;
     width: 100%;
     box-sizing: border-box;
     padding: 0.75rem 1rem;
-    border: 1px solid $po-border-color;
+    border: 1px solid $po-border-strong; // Swapped for strong border
     border-radius: 0.5rem;
     font-size: 0.875rem;
     color: $po-text-main;
     outline: none;
-    background-color: white; 
+    background-color: $po-card-bg; // Swapped white
     transition: border-color 0.2s, box-shadow 0.2s;
     height: 42px; 
     appearance: none;
     -webkit-appearance: none;
     font-family: inherit;
 
+    &::placeholder { color: $po-text-light; }
+
     &:focus {
       border-color: $po-text-main;
-      box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+      box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); // Adapted to light transparent ring
     }
   }
 }
 
 .po-standard-select {
-  width: 100%; box-sizing: border-box; padding: 0.625rem 0.75rem; border: 1px solid $po-border-color; border-radius: 0.375rem; font-size: 0.875rem; outline: none; height: 42px; cursor: pointer; background-color: white;
-  appearance: none; -webkit-appearance: none;
-  &:focus { border-color: $po-text-main; }
+  width: 100%; 
+  box-sizing: border-box; 
+  padding: 0.625rem 0.75rem; 
+  border: 1px solid $po-border-strong; 
+  border-radius: 0.375rem; 
+  font-size: 0.875rem; 
+  outline: none; 
+  height: 42px; 
+  cursor: pointer; 
+  background-color: $po-card-bg; // Swapped white
+  color: $po-text-main;
+  appearance: none; 
+  -webkit-appearance: none;
+  
+  &:focus { 
+    border-color: $po-text-main;
+    box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15);
+  }
+
+  option {
+    background-color: $po-card-bg; // Ensure select options are dark
+    color: $po-text-main;
+  }
 }
 
 // --- Receipt View Styles ---
@@ -453,15 +507,17 @@ $po-color-danger: #ef4444;
     align-items: center;
     justify-content: center;
     padding: 1.5rem 0 2rem 0;
-    border-bottom: 1px dashed $po-border-color;
+    border-bottom: 1px dashed $po-border-strong; // Swapped border
     margin-bottom: 1.5rem;
 
     .po-val { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
     
     .po-status { 
       font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 1rem; text-transform: uppercase;
-      &.paid { color: #166534; background-color: #dcfce7; }
-      &.pending { color: #991b1b; background-color: #fef2f2; }
+      
+      // Adapted hardcoded pastels to transparent rgba tints
+      &.paid { color: $po-color-success; background-color: rgba($po-color-success, 0.15); }
+      &.pending { color: $po-color-danger; background-color: rgba($po-color-danger, 0.15); }
     }
   }
 
@@ -487,7 +543,7 @@ $po-color-danger: #ef4444;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    border-top: 1px solid $po-border-color;
+    border-top: 1px solid $po-border-strong; // Swapped border
     padding-top: 1.5rem;
 
     .po-full-width {

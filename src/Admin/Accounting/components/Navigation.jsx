@@ -6,7 +6,7 @@ import {
   FolderKanban, ShoppingCart, BarChart3, ReceiptText, HardHat, LogOut 
 } from 'lucide-react';
 import './Navigation.scss';
-import logo from '../../../stock/new-logo.svg';
+import logo from '../../../stock/new-logo-white.svg';
 
 function Navigation() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);

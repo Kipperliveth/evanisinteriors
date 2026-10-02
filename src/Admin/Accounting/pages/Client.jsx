@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
-import { Search, Plus, Mail, Phone, MapPin, User, FolderKanban, Wallet, X, ArrowUpRight, Loader } from 'lucide-react';
+import { Search, Plus, Phone, MapPin, User, FolderKanban, Wallet, X, ArrowUpRight, Loader, Edit2, Check } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, orderBy, query, where } from "firebase/firestore"; 
@@ -23,7 +23,11 @@ function Client() {
   const [clientProjects, setClientProjects] = useState([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+
+  // --- INLINE EDIT STATE ---
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [editContactData, setEditContactData] = useState({ phone: '', address: '' });
 
   // --- 1. READ CLIENTS FROM FIREBASE ---
   useEffect(() => {
@@ -75,29 +79,24 @@ function Client() {
         setClientProjects(projectsData);
 
         // === SELF-HEALING LOGIC ===
-        // Calculate the TRUE values based on the projects that actually exist right now
         const actualLTV = projectsData.reduce((sum, p) => sum + (Number(p.billed) || 0), 0);
         const actualPaid = projectsData.reduce((sum, p) => sum + (Number(p.amountPaid) || 0), 0);
         const actualOutstanding = actualLTV - actualPaid;
 
-        // If the database has old/wrong data (due to manual deletion or transaction updates), FIX IT
         if (selectedClient.lifetimeValue !== actualLTV || selectedClient.outstandingBalance !== actualOutstanding) {
           
-          // 1. Update Firebase
           const clientRef = doc(txtdb, "clients", selectedClient.id);
           await updateDoc(clientRef, {
             lifetimeValue: actualLTV,
             outstandingBalance: actualOutstanding
           });
 
-          // 2. Update Local UI Lists instantly
           setClients(prevClients => prevClients.map(c => 
             c.id === selectedClient.id 
               ? { ...c, lifetimeValue: actualLTV, outstandingBalance: actualOutstanding } 
               : c
           ));
 
-          // 3. Update the modal we are currently looking at
           setSelectedClient(prev => ({
             ...prev,
             lifetimeValue: actualLTV,
@@ -112,7 +111,6 @@ function Client() {
       }
     };
 
-    // We only trigger this when the ID changes to prevent infinite loops from self-healing updates
     fetchClientProjects();
   }, [selectedClient?.id]); 
 
@@ -133,8 +131,7 @@ function Client() {
 
   const filteredClients = clients.filter(client => {
     const matchesTab = client.status === activeTab;
-    const matchesSearch = client.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch = client.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
@@ -155,7 +152,6 @@ function Client() {
     try {
       const newClientData = {
         name: formData.name,
-        email: formData.email,
         phone: formData.phone,
         address: formData.address,
         status: 'active',
@@ -170,12 +166,54 @@ function Client() {
       setClients([{ id: docRef.id, ...newClientData }, ...clients]);
       
       setIsNewClientModalOpen(false);
-      setFormData({ name: '', email: '', phone: '', address: '' });
+      setFormData({ name: '', phone: '', address: '' });
       setActiveTab('active');
     } catch (error) {
       console.error("Error creating client: ", error);
       alert("Failed to save client. Please try again.");
     }
+  };
+
+  // --- 4. INLINE EDIT HANDLERS ---
+  const handleStartEditContact = () => {
+    setEditContactData({
+      phone: selectedClient.phone || '',
+      address: selectedClient.address || ''
+    });
+    setIsEditingContact(true);
+  };
+
+  const handleSaveContact = async () => {
+    try {
+      const clientRef = doc(txtdb, "clients", selectedClient.id);
+      await updateDoc(clientRef, {
+        phone: editContactData.phone,
+        address: editContactData.address
+      });
+      
+      const updatedClient = { 
+        ...selectedClient, 
+        phone: editContactData.phone, 
+        address: editContactData.address 
+      };
+      
+      setSelectedClient(updatedClient);
+      
+      setClients(prevClients => prevClients.map(c => 
+        c.id === selectedClient.id ? updatedClient : c
+      ));
+      
+      setIsEditingContact(false);
+    } catch (error) {
+      console.error("Error updating contact info:", error);
+      alert("Failed to save contact information.");
+    }
+  };
+
+  const closeProfileModal = () => {
+    setSelectedClient(null);
+    setIsEditingContact(false);
+    navigate('/clients', { replace: true });
   };
 
   return (
@@ -204,7 +242,7 @@ function Client() {
             <Search size={18} className="search-icon" />
             <input 
               type="text" 
-              placeholder="Search by name or email..." 
+              placeholder="Search by name..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -229,10 +267,6 @@ function Client() {
                 </div>
 
                 <div className="client-contact">
-                  <div className="contact-item">
-                    <Mail size={20} />
-                    <span>{client.email || 'No email provided'}</span>
-                  </div>
                   <div className="contact-item">
                     <Phone size={20} />
                     <span>{client.phone || 'No phone provided'}</span>
@@ -260,7 +294,7 @@ function Client() {
 
       {isNewClientModalOpen && (
         <div className="modal-overlay" onClick={() => setIsNewClientModalOpen(false)}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Add New Client</h2>
               <button className="close-btn" onClick={() => setIsNewClientModalOpen(false)}><X size={20} /></button>
@@ -271,15 +305,9 @@ function Client() {
                 <input type="text" placeholder="e.g. Sarah Johnson" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className="form-group">
-                  <label>Email Address</label>
-                  <input type="email" placeholder="sarah@example.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label>Phone Number</label>
-                  <input type="tel" placeholder="(555) 000-0000" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-                </div>
+              <div className="form-group">
+                <label>Phone Number (optional)</label>
+                <input type="tel" placeholder="(555) 000-0000" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
               </div>
 
               <div className="form-group">
@@ -297,10 +325,7 @@ function Client() {
       )}
 
       {selectedClient && (
-        <div className="modal-overlay" onClick={() => {
-          setSelectedClient(null);
-          navigate('/clients', { replace: true }); 
-        }}>
+        <div className="modal-overlay" onClick={closeProfileModal}>
           <div className="modal-container client-profile-modal" onClick={(e) => e.stopPropagation()}>
             
             <div className="modal-header">
@@ -308,10 +333,7 @@ function Client() {
                 <div className="avatar-small">{getInitials(selectedClient.name)}</div>
                 <h2>{selectedClient.name} Profile</h2>
               </div>
-              <button className="close-btn" onClick={() => {
-                setSelectedClient(null);
-                navigate('/clients', { replace: true });
-              }}><X size={20} /></button>
+              <button className="close-btn" onClick={closeProfileModal}><X size={20} /></button>
             </div>
 
             <div className="profile-content">
@@ -320,16 +342,53 @@ function Client() {
                 <div className="info-column">
                   
                   <div className="profile-section">
-                    <h3>Contact Information</h3>
+                    <div className="section-header-flex">
+                      <h3>Contact Information</h3>
+                      {isEditingContact ? (
+                        <button className="btn-text text-success" onClick={handleSaveContact} style={{ color: '#10b981' }}>
+                          <Check size={14} /> Save
+                        </button>
+                      ) : (
+                        <button className="btn-text" onClick={handleStartEditContact}>
+                          <Edit2 size={14} /> Edit
+                        </button>
+                      )}
+                    </div>
+                    
                     <div className="contact-list">
                       <div className="contact-row">
-                        <Mail size={16} /> <a href={`mailto:${selectedClient.email}`}>{selectedClient.email || 'N/A'}</a>
+                        <Phone size={16} /> 
+                        {isEditingContact ? (
+                          <input 
+                            type="tel"
+                            value={editContactData.phone}
+                            onChange={(e) => setEditContactData({...editContactData, phone: e.target.value})}
+                            style={{ 
+                              flex: 1, padding: '0.375rem 0.5rem', borderRadius: '0.375rem', 
+                              border: '1px solid #334155', background: 'transparent', 
+                              color: 'inherit', outline: 'none', fontSize: '0.9375rem' 
+                            }}
+                          />
+                        ) : (
+                          <a href={`tel:${selectedClient.phone}`}>{selectedClient.phone || 'N/A'}</a>
+                        )}
                       </div>
                       <div className="contact-row">
-                        <Phone size={16} /> <a href={`tel:${selectedClient.phone}`}>{selectedClient.phone || 'N/A'}</a>
-                      </div>
-                      <div className="contact-row">
-                        <MapPin size={16} /> <span>{selectedClient.address || 'N/A'}</span>
+                        <MapPin size={16} /> 
+                        {isEditingContact ? (
+                          <input 
+                            type="text"
+                            value={editContactData.address}
+                            onChange={(e) => setEditContactData({...editContactData, address: e.target.value})}
+                            style={{ 
+                              flex: 1, padding: '0.375rem 0.5rem', borderRadius: '0.375rem', 
+                              border: '1px solid #334155', background: 'transparent', 
+                              color: 'inherit', outline: 'none', fontSize: '0.9375rem' 
+                            }}
+                          />
+                        ) : (
+                          <span>{selectedClient.address || 'N/A'}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -371,7 +430,9 @@ function Client() {
                           <Loader size={16} className="animate-spin" /> Fetching projects...
                         </div>
                       ) : clientProjects.length === 0 ? (
-                        <p className="text-muted">No projects associated with this client yet.</p>
+                       <p className="text-muted" style={{ paddingBlock: "1rem" }}>
+                        No projects associated with this client yet.
+                      </p>
                       ) : (
                         clientProjects.map(proj => (
                           <div 

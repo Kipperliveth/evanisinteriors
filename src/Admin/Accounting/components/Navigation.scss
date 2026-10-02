@@ -1,15 +1,19 @@
-// --- Variables ---
-$bg-app: #f8fafc;
-$bg-sidebar: #ffffff;
-$border-color: #e2e8f0;
+// --- Variables (Dark Mode) ---
+$bg-app: #0b1120;
+$bg-sidebar: #0f172a;
+$bg-modal: #1e293b;
+$border-color: #1e293b;
+$border-strong: #334155;
 
-$text-main: #0f172a;
-$text-muted: #64748b;
-$text-light: #94a3b8;
+$text-main: #f1f5f9;
+$text-muted: #94a3b8;
+$text-light: #64748b;
 
-$hover-bg: #f1f5f9;
-$active-bg: #0f172a;
-$active-text: #ffffff;
+$hover-bg: #1e293b;
+$active-bg: #f1f5f9;
+$active-text: #0f172a;
+
+$overlay-bg: rgba(0, 0, 0, 0.6);
 
 $sidebar-width: 260px;
 $topbar-height: 64px;
@@ -62,7 +66,7 @@ $transition-speed: 0.3s;
 .mobile-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.4);
+  background-color: $overlay-bg;
   backdrop-filter: blur(2px);
   z-index: 45;
   opacity: 0;
@@ -126,7 +130,7 @@ $transition-speed: 0.3s;
     
     &::-webkit-scrollbar { width: 4px; }
     &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: $border-color; border-radius: 4px; }
+    &::-webkit-scrollbar-thumb { background: $border-strong; border-radius: 4px; }
   }
 
   /* Structural Navigation Groups */
@@ -181,7 +185,7 @@ $transition-speed: 0.3s;
       &.active {
         background-color: $active-bg;
         color: $active-text;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 
         .nav-icon {
           color: $active-text;
@@ -210,7 +214,7 @@ $transition-speed: 0.3s;
       justify-content: center;
       font-size: 0.75rem;
       font-weight: 600;
-      border: 1px solid $border-color;
+      border: 1px solid $border-strong;
       flex-shrink: 0;
     }
 
@@ -296,7 +300,7 @@ $transition-speed: 0.3s;
   align-items: center;
   justify-content: center;
   padding: 1.25rem;
-  background-color: rgba(15, 23, 42, 0.45);
+  background-color: $overlay-bg;
   backdrop-filter: blur(2px);
   animation: logout-fade-in 0.15s ease-out;
 }
@@ -306,9 +310,9 @@ $transition-speed: 0.3s;
   max-width: 340px;
   box-sizing: border-box;
   padding: 1.5rem;
-  background-color: $bg-sidebar;
+  background-color: $bg-modal;
   border-radius: 1rem;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   text-align: center;
   animation: logout-pop-in 0.18s ease-out;
 
@@ -317,7 +321,7 @@ $transition-speed: 0.3s;
     height: 44px;
     margin: 0 auto 1rem;
     border-radius: 50%;
-    background-color: $hover-bg;
+    background-color: $border-strong;
     color: $text-main;
     display: flex;
     align-items: center;
@@ -364,11 +368,11 @@ $transition-speed: 0.3s;
     }
 
     .logout-cancel {
-      background-color: #ffffff;
-      border: 1px solid $border-color;
+      background-color: transparent;
+      border: 1px solid $border-strong;
       color: $text-main;
 
-      &:hover:not(:disabled) { background-color: $hover-bg; }
+      &:hover:not(:disabled) { background-color: $border-strong; }
     }
 
     .logout-confirm {

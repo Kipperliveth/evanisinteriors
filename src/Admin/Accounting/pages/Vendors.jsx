@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
-import { Search, Plus, X, Users, Truck, HardHat, Briefcase, Phone, Mail, FileText, CreditCard, ArrowUpRight, Loader } from 'lucide-react';
+import { Search, Plus, X, Users, Truck, HardHat, Briefcase, Phone, FileText, CreditCard, ArrowUpRight, Loader } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { collection, getDocs, addDoc, serverTimestamp, orderBy, query, where } from "firebase/firestore"; 
@@ -22,7 +22,6 @@ function Vendors() {
   const [formData, setFormData] = useState({
     name: '',
     type: 'supplier',
-    email: '',
     phone: '',
     terms: 'Due on Delivery'
   });
@@ -94,8 +93,7 @@ function Vendors() {
   }, [isModalOpen, selectedVendor]);
 
   const filteredVendors = vendors.filter(v => {
-    const matchesSearch = v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          (v.email && v.email.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch = v.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === 'all' || v.type === activeTab;
     return matchesSearch && matchesTab;
   });
@@ -135,7 +133,6 @@ function Vendors() {
       const newVendorData = {
         name: formData.name,
         type: formData.type,
-        email: formData.email,
         phone: formData.phone,
         terms: formData.terms,
         totalSpent: 0,
@@ -148,7 +145,7 @@ function Vendors() {
       setVendors([{ id: docRef.id, ...newVendorData }, ...vendors]);
       
       setIsModalOpen(false);
-      setFormData({ name: '', type: 'supplier', email: '', phone: '', terms: 'Due on Delivery' });
+      setFormData({ name: '', type: 'supplier', phone: '', terms: 'Due on Delivery' });
       
     } catch (error) {
       console.error("Error adding vendor: ", error);
@@ -184,7 +181,7 @@ function Vendors() {
             <Search size={18} className="vw-search-icon" />
             <input 
               type="text" 
-              placeholder="Search names or emails..." 
+              placeholder="Search names..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -238,12 +235,6 @@ function Vendors() {
 
                   {/* Contact Info (Clean List) */}
                   <div className="vw-card-contact">
-                    {vendor.email && (
-                      <div className="vw-contact-item">
-                        <Mail size={16} />
-                        <span>{vendor.email}</span>
-                      </div>
-                    )}
                     <div className="vw-contact-item">
                       <Phone size={16} />
                       <span>
@@ -315,15 +306,9 @@ function Vendors() {
                   <input type="text" placeholder="e.g. Home Depot or John Doe" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="vw-form-group">
-                    <label>Email Address</label>
-                    <input type="email" placeholder="contact@example.com" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                  </div>
-                  <div className="vw-form-group">
-                    <label>Phone Number</label>
-                    <input type="tel" placeholder="(555) 000-0000" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-                  </div>
+                <div className="vw-form-group">
+                  <label>Phone Number (Optional)</label>
+                  <input type="tel" placeholder="(555) 000-0000" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
                 </div>
 
                 <div className="vw-form-group">
@@ -385,12 +370,14 @@ function Vendors() {
                 <div className="vw-profile-details-grid" style={{ marginBottom: 0 }}>
                   <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a', margin: '0 0 1rem 0', textTransform: 'uppercase' }}>Contact Info</h3>
                   <div className="vw-detail-row">
-                    <span className="vw-lbl"><Mail size={16}/> Email</span>
-                    <span className="vw-val"><a href={`mailto:${selectedVendor.email}`}>{selectedVendor.email || 'N/A'}</a></span>
-                  </div>
-                  <div className="vw-detail-row">
                     <span className="vw-lbl"><Phone size={16}/> Phone</span>
-                    <span className="vw-val"><a href={`tel:${selectedVendor.phone}`}>{selectedVendor.phone || 'N/A'}</a></span>
+                    <span className="vw-val">
+                      {selectedVendor.phone ? (
+                        <a href={`tel:${selectedVendor.phone}`}>{selectedVendor.phone}</a>
+                      ) : (
+                        'N/A'
+                      )}
+                    </span>
                   </div>
                   <div className="vw-detail-row">
                     <span className="vw-lbl"><FileText size={16}/> Terms</span>

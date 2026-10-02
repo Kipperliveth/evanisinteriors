@@ -73,7 +73,7 @@ function Login() {
         await migrateGuestCart(userId);
 
         if (userId === allowedUid) {
-          navigate('/adminHome');
+          navigate('/admin', { replace: true });
           return;
         }
 
@@ -81,9 +81,9 @@ function Login() {
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists() && userSnap.data().address) {
-          navigate('/store'); // Existing customers go straight to store
+          navigate('/store', { replace: true }); // Existing customers go straight to store
         } else {
-          navigate('/onboarding'); // First-time users go to onboarding
+          navigate('/onboarding', { replace: true }); // First-time users go to onboarding
         }
       } catch (err) {
         console.error("Routing error:", err);
@@ -126,7 +126,7 @@ function Login() {
       const user = userCredential.user;
       
       if (user.uid === allowedUid) {
-        navigate('/adminHome');
+        navigate('/admin', { replace: true });
       } else {
         // onAuthStateChanged will handle cart migration and routing to /store or /onboarding
       }

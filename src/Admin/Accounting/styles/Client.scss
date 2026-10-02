@@ -1,18 +1,23 @@
-// --- Variables ---
-$bg-app: #f8fafc;
-$card-bg: #ffffff;
-$border-color: #e2e8f0;
-$text-main: #0f172a;
-$text-muted: #64748b;
-$text-light: #94a3b8;
-$brand-primary: #0f172a;
+// --- Variables (Dark Mode) ---
+$bg-app: #0b1120;
+$card-bg: #0f172a;
+$bg-modal: #1e293b;
+$border-color: #1e293b;
+$border-strong: #334155;
+
+$text-main: #f1f5f9;
+$text-muted: #94a3b8;
+$text-light: #64748b;
+
+$brand-primary: #f1f5f9;
+$brand-primary-text: #0f172a;
 $color-success: #10b981;
 $color-warning: #f59e0b;
 $color-danger: #ef4444;
 
-// Client card avatar tint (change these two to re-colour the avatar circle)
-$avatar-bg: #f3e8ff;
-$avatar-fg: #9333ea;
+// Client card avatar tint (adapted for dark mode visibility)
+$avatar-bg: rgba(147, 51, 234, 0.25); 
+$avatar-fg: #c084fc; 
 
 // --- Specialized Top Section for CRM (Matches Projects.scss Grid) ---
 .crm-top-section {
@@ -58,6 +63,8 @@ $avatar-fg: #9333ea;
     width: 100%;
     box-sizing: border-box; 
     padding: 0 1rem 0 2.25rem;
+    background-color: $card-bg; 
+    color: $text-main;
     border: 1px solid $border-color;
     border-radius: 0.5rem;
     font-size: 0.875rem;
@@ -65,6 +72,7 @@ $avatar-fg: #9333ea;
     transition: border-color 0.2s;
     height: 42px;
 
+    &::placeholder { color: $text-light; }
     &:focus { border-color: $text-muted; }
   }
 }
@@ -73,7 +81,7 @@ $avatar-fg: #9333ea;
 .tabs {
   grid-area: tabs;
   display: flex;
-  background-color: #e2e8f0;
+  background-color: $border-color; 
   padding-block: 0.25rem;
   padding-inline: 0.25rem;
   border-radius: 0.5rem;
@@ -104,9 +112,9 @@ $avatar-fg: #9333ea;
     }
 
     &.active {
-      background-color: white;
+      background-color: $border-strong; 
       color: $text-main;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
       
       @media (max-width: 768px) {
         width: 90%;
@@ -125,18 +133,18 @@ $avatar-fg: #9333ea;
 
 .client-card {
   background-color: $card-bg;
-  border: 1px solid #f1f5f9;
+  border: 1px solid $border-strong; 
   border-radius: 1.25rem;
   padding: 1.125rem;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2); 
   transition: transform 0.2s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); 
   }
 
   // Row 1: avatar | name ........ status pill
@@ -190,7 +198,7 @@ $avatar-fg: #9333ea;
         font-size: 0.6875rem;
         font-weight: 600;
         text-transform: capitalize;
-        background-color: #f1f5f9;
+        background-color: $border-strong; 
         color: $text-muted;
 
         &::before {
@@ -202,8 +210,8 @@ $avatar-fg: #9333ea;
         }
 
         &.active {
-          background-color: #ecfdf5;
-          color: #047857;
+          background-color: rgba($color-success, 0.15); 
+          color: $color-success; 
 
           &::before { background-color: $color-success; }
         }
@@ -232,7 +240,7 @@ $avatar-fg: #9333ea;
         padding: 6px;
         box-sizing: border-box;
         border-radius: 0.5rem;
-        background-color: #f1f5f9;
+        background-color: $border-strong; 
         color: $text-muted;
         flex-shrink: 0;
       }
@@ -253,7 +261,7 @@ $avatar-fg: #9333ea;
     gap: 1rem;
     margin-top: auto;
     padding: 0.625rem 0.875rem;
-    background-color: $bg-app;
+    background-color: $bg-app; 
     border-radius: 0.875rem;
 
     .fin-metric {
@@ -289,19 +297,21 @@ $avatar-fg: #9333ea;
   font-weight: 600;
   text-transform: uppercase;
   
-  &.active { background-color: #dcfce7; color: #166534; }
-  &.past { background-color: #f1f5f9; color: $text-muted; }
+  // Adapted hardcoded pastels to transparent rgba tints
+  &.active { background-color: rgba($color-success, 0.15); color: $color-success; }
+  &.past { background-color: $border-strong; color: $text-muted; }
 }
 
 // --- Client Profile Modal ---
 .client-profile-modal {
   max-width: 800px !important; // Wider for split view
 
+
   .avatar-small {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: #e2e8f0;
+    background-color: $border-strong; 
     color: $text-main;
     display: flex;
     align-items: center;
@@ -313,7 +323,7 @@ $avatar-fg: #9333ea;
   .profile-content {
     padding: 1.5rem;
     max-height: 85dvh;
-    padding-bottom: 5rem; // Safari mobile fix
+    padding-bottom: 8rem; // Safari mobile fix
     overflow-y: auto;
 
     .profile-grid {
@@ -362,8 +372,8 @@ $avatar-fg: #9333ea;
 
       // Contact Block
       .contact-list {
-        background-color: #f8fafc;
-        border: 1px solid $border-color;
+        background-color: $bg-app; 
+        border: 1px solid $border-strong; // FIX: Prevents invisible border against modal bg
         border-radius: 0.5rem;
         padding: 1rem;
         display: flex;
@@ -387,8 +397,8 @@ $avatar-fg: #9333ea;
         display: flex;
         align-items: center;
         gap: 1rem;
-        background-color: #f8fafc;
-        border: 1px solid $border-color;
+        background-color: $bg-app; 
+        border: 1px solid $border-strong; // FIX: Prevents invisible border against modal bg
         border-radius: 0.5rem;
         padding: 1.25rem;
 
@@ -402,10 +412,12 @@ $avatar-fg: #9333ea;
         align-items: center;
         margin-top: 0.75rem;
         padding: 0.75rem 1rem;
-        background-color: #fffbeb; // Light amber
-        border: 1px solid #fde68a;
+        
+        // Dark mode adaptation for warning alert
+        background-color: rgba($color-warning, 0.15); 
+        border: 1px solid rgba($color-warning, 0.3); 
         border-radius: 0.5rem;
-        color: #b45309;
+        color: $color-warning; 
         font-size: 0.875rem;
       }
     }
@@ -415,19 +427,20 @@ $avatar-fg: #9333ea;
       display: flex;
       flex-direction: column;
       gap: 1rem;
+      color: $text-muted; // FIX: Ensures raw unstyled text (like empty states) doesn't render black
 
-     
       .history-card {
-        border: 1px solid $border-color;
+        border: 1px solid $border-strong; 
         border-radius: 0.5rem;
         padding: 1rem;
-        background-color: white;
-        transition: transform 0.2s, box-shadow 0.2s; // added transitions
+        background-color: $card-bg; 
+        color: $text-main; // Added to reset from the wrapper fallback
+        transition: transform 0.2s, box-shadow 0.2s; 
         
         &.cursor-pointer { cursor: pointer; }
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2); 
         }
 
         .hist-top {
@@ -436,7 +449,7 @@ $avatar-fg: #9333ea;
           align-items: flex-start;
           margin-bottom: 1rem;
           padding-bottom: 1rem;
-          border-bottom: 1px solid #f8fafc;
+          border-bottom: 1px solid $border-strong; 
 
           h4 { margin: 0; font-size: 1rem; color: $text-main; }
         }
@@ -455,5 +468,21 @@ $avatar-fg: #9333ea;
         }
       }
     }
+  }
+}
+
+.modal-container {
+  // ... your existing styles ...
+
+  @media (max-width: 768px) {
+    padding-bottom: 10rem;
+  }
+}
+
+.modal-container.client-profile-modal {
+  // ... your existing styles ...
+
+  @media (max-width: 768px) {
+    padding-bottom: 1rem;
   }
 }

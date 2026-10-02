@@ -1,11 +1,13 @@
-// --- Variables ---
-$rep-bg-app: #f8fafc;
-$rep-card-bg: #ffffff;
-$rep-border-color: #e2e8f0;
-$rep-text-main: #0f172a;
-$rep-text-muted: #64748b;
-$rep-text-light: #94a3b8;
-$rep-brand-primary: #0f172a;
+// --- Variables (Dark Mode) ---
+$rep-bg-app: #0b1120;
+$rep-card-bg: #0f172a;
+$rep-border-color: #1e293b;
+$rep-border-strong: #334155; // Added for strong borders/fills
+$rep-text-main: #f1f5f9;
+$rep-text-muted: #94a3b8;
+$rep-text-light: #64748b;
+$rep-brand-primary: #f1f5f9;
+$rep-brand-primary-text: #0f172a; // Added for button/highlight text
 $rep-color-success: #10b981;
 $rep-color-warning: #f59e0b;
 $rep-color-danger: #ef4444;
@@ -23,6 +25,7 @@ $rep-color-danger: #ef4444;
   min-height: 100vh;
   background-color: $rep-bg-app;
   font-family: inherit;
+  color-scheme: dark; // Native dark mode controls
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -78,7 +81,7 @@ $rep-color-danger: #ef4444;
   justify-content: center;
   gap: 0.5rem;
   background-color: $rep-brand-primary;
-  color: white;
+  color: $rep-brand-primary-text; // Swapped white for inverted dark text
   border: none;
   padding: 0.625rem 1.25rem;
   border-radius: 0.5rem;
@@ -119,12 +122,20 @@ $rep-color-danger: #ef4444;
     color: $rep-text-main;
     outline: none;
     height: 42px;
-    background-color: white;
+    background-color: $rep-card-bg; // Swapped white
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
 
-    &:focus { border-color: $rep-text-muted; }
+    &:focus { 
+      border-color: $rep-text-main; 
+      box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); // Added transparent focus ring
+    }
+    
+    option {
+      background-color: $rep-card-bg;
+      color: $rep-text-main;
+    }
   }
 }
 
@@ -144,32 +155,33 @@ $rep-color-danger: #ef4444;
     background-color: $rep-card-bg;
     border: 1px solid $rep-border-color;
     border-radius: 1rem;
-    padding: 1.25rem; // Reduced padding for a tighter look
+    padding: 1.25rem; 
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4); // Deepened shadow for dark mode
 
     .rep-card-info {
       display: flex;
       flex-direction: column;
-      min-width: 0; // lets long labels/values wrap instead of pushing the icon off
+      min-width: 0; 
 
       .rep-lbl { 
-        font-size: 0.75rem; // Smaller label
+        font-size: 0.75rem; 
         color: $rep-text-muted; 
-        margin-bottom: 0.125rem; // Tighter margin
+        margin-bottom: 0.125rem; 
         font-weight: 600; 
         text-transform: uppercase;
         line-height: 1.2; 
       }
       .rep-val { 
-        font-size: 1.5rem; // Smaller main value
+        font-size: 1.5rem; 
         font-weight: 800; 
+        color: $rep-text-main; // Enforce text color
         letter-spacing: -0.02em; 
         line-height: 1.2;
-        word-break: break-word; // guards against overflow on very large amounts
+        word-break: break-word; 
       }
     }
 
@@ -177,22 +189,25 @@ $rep-color-danger: #ef4444;
     .rep-icon-box {
       width: 40px; height: 40px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
-      &.bg-success { background-color: #dcfce7; }
-      &.bg-danger { background-color: #fef2f2; }
+      
+      // Converted hardcoded pastels to transparent glows
+      &.bg-success { background-color: rgba($rep-color-success, 0.15); color: $rep-color-success; }
+      &.bg-danger { background-color: rgba($rep-color-danger, 0.15); color: $rep-color-danger; }
       
       svg { width: 20px; height: 20px; }
     }
 
     &.highlight {
-      background-color: $rep-brand-primary;
+      background-color: $rep-brand-primary; // Remains bright for highlight
       border-color: $rep-brand-primary;
-      .rep-lbl { color: #94a3b8; }
-      .rep-val { color: white; }
+      
+      .rep-lbl { color: rgba($rep-brand-primary-text, 0.7); } // Inverted text
+      .rep-val { color: $rep-brand-primary-text; } // Inverted text
       
       .rep-card-badge {
         flex-shrink: 0;
-        background-color: rgba(255,255,255,0.15);
-        color: white;
+        background-color: rgba($rep-brand-primary-text, 0.1); // Inverted contrast
+        color: $rep-brand-primary-text; // Inverted text
         padding: 0.25rem 0.625rem;
         border-radius: 2rem;
         font-size: 0.75rem;
@@ -201,8 +216,8 @@ $rep-color-danger: #ef4444;
         white-space: nowrap;
 
         &.is-loss {
-          background-color: rgba(239, 68, 68, 0.25);
-          color: #fecaca;
+          background-color: rgba($rep-color-danger, 0.15);
+          color: $rep-color-danger;
         }
       }
     }
@@ -236,7 +251,7 @@ $rep-color-danger: #ef4444;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid $rep-bg-app;
+    border-bottom: 1px solid $rep-border-strong; // Used strong border
     padding-bottom: 1rem;
 
     .rep-title-group {
@@ -262,9 +277,6 @@ $rep-color-danger: #ef4444;
     gap: 0.5rem;
   }
 
-  // Base row: label on the left, amount on the right. The amount must never
-  // wrap (it stays a single tidy line) while the label is free to wrap onto
-  // a second line without dragging the amount out of alignment with it.
   .rep-table-row {
     display: flex;
     justify-content: space-between;
@@ -288,7 +300,7 @@ $rep-color-danger: #ef4444;
       font-size: 1.0625rem;
       line-height: 1.3;
       color: $rep-text-main;
-      border-bottom: 1px solid $rep-border-color;
+      border-bottom: 1px solid $rep-border-strong; // Used strong border
       padding-bottom: 0.75rem;
       margin-bottom: 0.25rem;
 
@@ -310,7 +322,7 @@ $rep-color-danger: #ef4444;
         top: 0.75rem;
         width: 6px;
         height: 1px;
-        background-color: $rep-border-color;
+        background-color: $rep-border-strong; // Better visibility
       }
     }
 
@@ -319,15 +331,13 @@ $rep-color-danger: #ef4444;
       font-size: 1rem;
       line-height: 1.3;
       color: $rep-text-muted;
-      border-top: 1px dashed $rep-border-color;
-      border-bottom: 1px solid $rep-border-color;
+      border-top: 1px dashed $rep-border-strong; // Swapped border
+      border-bottom: 1px solid $rep-border-strong;
       padding: 1rem 0;
       margin-bottom: 1.5rem;
     }
   }
 
-  // Collapsed-by-default control for a section's itemized breakdown.
-  // Sits where the sub-items would be; expands/collapses them on tap.
   .rep-toggle-row {
     display: flex;
     align-items: center;
@@ -335,7 +345,7 @@ $rep-color-danger: #ef4444;
     width: 100%;
     background: none;
     border: none;
-    padding: 0.5rem 0 0.5rem 1.5rem; // aligns with sub-item indent
+    padding: 0.5rem 0 0.5rem 1.5rem; 
     margin: 0;
     font-family: inherit;
     font-size: 0.875rem;
@@ -360,8 +370,10 @@ $rep-color-danger: #ef4444;
     flex-wrap: wrap;
     row-gap: 0.5rem;
     column-gap: 0.75rem;
-    background-color: #dcfce7; // Profit (default): solid light green block
-    border: 1px solid #bbf7d0;
+    
+    // Profit (default): Dark mode transparent green block
+    background-color: rgba($rep-color-success, 0.15); 
+    border: 1px solid rgba($rep-color-success, 0.3);
     border-radius: 0.75rem;
     padding: 1.25rem 1.5rem;
     margin-top: 1rem;
@@ -371,7 +383,7 @@ $rep-color-danger: #ef4444;
       align-items: center;
       gap: 0.75rem;
       min-width: 0;
-      color: #166534;
+      color: $rep-color-success;
       font-weight: 700;
       font-size: 1.125rem;
 
@@ -383,13 +395,12 @@ $rep-color-danger: #ef4444;
       flex-shrink: 0;
       white-space: nowrap;
       margin-left: auto;
-      color: #166534;
+      color: $rep-color-success;
       font-weight: 800;
       font-size: 1.5rem;
       letter-spacing: -0.02em;
     }
 
-    // Plain-English explanation line (only rendered for loss / break-even)
     .rep-bottom-note {
       flex-basis: 100%;
       margin: 0.25rem 0 0 0;
@@ -400,24 +411,24 @@ $rep-color-danger: #ef4444;
       line-height: 1.5;
     }
 
-    // LOSS: red block, same shape, so it reads as a warning not a win
+    // LOSS: Dark mode transparent red block
     &.is-loss {
-      background-color: #fef2f2;
-      border-color: #fecaca;
+      background-color: rgba($rep-color-danger, 0.15);
+      border-color: rgba($rep-color-danger, 0.3);
 
       .rep-bottom-text,
-      .rep-bottom-val { color: #b91c1c; }
+      .rep-bottom-val { color: $rep-color-danger; }
 
       .rep-bottom-note {
-        color: #991b1b;
-        border-top-color: #fecaca;
+        color: rgba($rep-color-danger, 0.8);
+        border-top-color: rgba($rep-color-danger, 0.3);
       }
     }
 
-    // BREAK-EVEN: neutral slate block
+    // BREAK-EVEN: Neutral slate block
     &.is-breakeven {
-      background-color: #f1f5f9;
-      border-color: $rep-border-color;
+      background-color: $rep-border-strong;
+      border-color: $rep-border-strong;
 
       .rep-bottom-text,
       .rep-bottom-val { color: $rep-text-main; }
@@ -440,10 +451,11 @@ $rep-color-danger: #ef4444;
 
 // Visual Summary (Where did the money go?)
 .visual-summary {
-  background-color: #f8fafc;
+  background-color: $rep-bg-app; // Gives a nice sunken effect against the card bg
 
    .rep-panel-header {
     margin-bottom: 0rem;
+    border-bottom: none; // Cleaner without double borders here
   }
   
   .rep-helper-text {
@@ -459,13 +471,14 @@ $rep-color-danger: #ef4444;
     border-radius: 1rem;
     overflow: hidden;
     margin-bottom: 1.5rem;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    background-color: $rep-border-strong; // Base color for unfilled space
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); // Deeper inset shadow
 
     .rep-segment {
       height: 100%;
-      &.cost { background-color: $rep-color-danger; } // Red for Project Costs
-      &.overhead { background-color: $rep-color-warning; } // Orange for Overhead
-      &.profit { background-color: $rep-color-success; } // Green for Kept Profit
+      &.cost { background-color: $rep-color-danger; } 
+      &.overhead { background-color: $rep-color-warning; } 
+      &.profit { background-color: $rep-color-success; } 
     }
   }
 
@@ -543,7 +556,7 @@ $rep-color-danger: #ef4444;
 
     .rep-progress-track {
       height: 8px;
-      background-color: #e2e8f0;
+      background-color: $rep-border-strong; // Swapped #e2e8f0
       border-radius: 4px;
       overflow: hidden;
 
@@ -561,13 +574,11 @@ $rep-color-danger: #ef4444;
     }
   }
 
-  // "Other (N categories)" — a collapsed, clickable rollup for everything
-  // past the top categories, so a busy month doesn't grow this list forever.
   .rep-cat-item--other {
     cursor: pointer;
     padding-top: 0.75rem;
     margin-top: 0.25rem;
-    border-top: 1px dashed $rep-border-color;
+    border-top: 1px dashed $rep-border-strong; // Used strong border
     border-radius: 0.375rem;
 
     .rep-cat-label { color: $rep-text-main; }
@@ -587,8 +598,6 @@ $rep-color-danger: #ef4444;
     svg { flex-shrink: 0; }
   }
 
-  // Individual categories revealed inside "Other" — visually subordinate
-  // to the top-level categories above them.
   .rep-cat-item--nested {
     padding-left: 1.25rem;
 

@@ -1,14 +1,21 @@
-// --- Variables ---
-$bg-app: #f8fafc;
-$card-bg: #ffffff;
-$border-color: #e2e8f0;
-$text-main: #0f172a;
-$text-muted: #64748b;
-$text-light: #94a3b8;
-$brand-primary: #0f172a;
+// --- Variables (Dark Mode) ---
+$bg-app: #0b1120;
+$card-bg: #0f172a;
+$bg-modal: #1e293b;
+$border-color: #1e293b;
+$border-strong: #334155; // borders/hovers on raised surfaces (modals, dropdowns)
+
+$text-main: #f1f5f9;
+$text-muted: #94a3b8;
+$text-light: #64748b;
+
+$brand-primary: #f1f5f9;
+$brand-primary-text: #0f172a;
 $color-success: #10b981; 
 $color-warning: #f59e0b;
 $color-danger: #ef4444;
+
+$overlay-bg: rgba(0, 0, 0, 0.6);
 
 .transactions-top {
   display: flex;
@@ -70,10 +77,11 @@ $color-danger: #ef4444;
         top: 100%;
         left: 0;
         margin-top: 0.5rem;
-        background-color: #ffffff;
-        border: 1px solid $border-color;
+        background-color: $bg-modal; // Swapped white for modal bg
+        border: 1px solid $border-strong;
         border-radius: 0.75rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        // Deepened shadows for dark mode visibility
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.35);
         min-width: 180px;
         z-index: 50;
         padding: 0.5rem 0;
@@ -99,13 +107,13 @@ $color-danger: #ef4444;
           transition: background-color 0.2s;
 
           &:hover {
-            background-color: #f8fafc;
+            background-color: $border-strong; // Swapped light grey for strong border
           }
 
           &.active {
             font-weight: 700;
             color: $brand-primary;
-            background-color: #f1f5f9;
+            background-color: $border-color; // Swapped light blue/grey
           }
         }
       }
@@ -139,6 +147,7 @@ $color-danger: #ef4444;
     .balance-val {
       font-size: 1.125rem;
       font-weight: 700;
+      color: $text-main; // Added text color just in case
     }
   }
 }
@@ -175,7 +184,7 @@ $color-danger: #ef4444;
     input, select {
       width: 100%;
       appearance: none;
-      background-color: transparent;
+      background-color: $card-bg; // Filled transparency to match dark input styles
       border: 1px solid $border-color;
       border-radius: 0.5rem;
       font-size: 0.875rem;
@@ -196,6 +205,11 @@ $color-danger: #ef4444;
     select {
       padding: 0.625rem 0.5rem 0.625rem 2.25rem;
       cursor: pointer;
+      
+      option {
+        background-color: $card-bg; // Ensures native dropdown options are dark
+        color: $text-main;
+      }
     }
   }
 
@@ -214,9 +228,9 @@ $color-danger: #ef4444;
     text-align: center;
     padding: 3rem;
     color: $text-muted;
-    background-color: white;
+    background-color: $card-bg; // Swapped white for dark card
     border-radius: 0.75rem;
-    border: 1px solid $border-color;
+    border: 1px dashed $border-color; // Changed to dashed to match your first file
   }
 
   .transaction-row {
@@ -247,8 +261,9 @@ $color-danger: #ef4444;
         justify-content: center;
         flex-shrink: 0;
 
-        &.income { background-color: #dcfce7; color: #166534; }
-        &.expense { background-color: #f1f5f9; color: $text-main; } 
+        // Dark mode specific transparent tinting instead of hardcoded pastels
+        &.income { background-color: rgba($color-success, 0.15); color: $color-success; }
+        &.expense { background-color: $border-color; color: $text-main; } 
       }
 
       .tx-details {
@@ -278,6 +293,7 @@ $color-danger: #ef4444;
       .tx-amount { 
         font-size: 1rem; 
         font-weight: 700; 
+        color: $text-main;
         margin-bottom: 0.125rem; 
       }
       .tx-date { font-size: 0.8125rem; color: $text-muted; }
@@ -286,7 +302,6 @@ $color-danger: #ef4444;
 }
 
 // --- Forms & Modals Base ---
-
 .form-group {
   margin-bottom: 1.25rem;
 
@@ -303,12 +318,12 @@ $color-danger: #ef4444;
     width: 100%;
     box-sizing: border-box;
     padding: 0.75rem 1rem;
-    border: 1px solid $border-color;
+    border: 1px solid $border-strong; // Used stronger border to match your first file
     border-radius: 0.5rem;
     font-size: 0.875rem;
     color: $text-main;
     outline: none;
-    background-color: white; // Forces white bg on iOS/Android date inputs
+    background-color: $card-bg; // Swapped white for dark card bg
     transition: border-color 0.2s, box-shadow 0.2s;
     
     // Forces identical height across text and date inputs
@@ -317,9 +332,11 @@ $color-danger: #ef4444;
     -webkit-appearance: none;
     font-family: inherit;
 
+    &::placeholder { color: $text-light; } // Added placeholder color for dark mode
+
     &:focus {
       border-color: $text-main;
-      box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+      box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); // Replaced dark focus ring with light transparent ring
     }
   }
 }
@@ -328,10 +345,8 @@ $color-danger: #ef4444;
 .form-group {
   // Comfortable line spacing for the checkbox labels and their explanations
   label { line-height: 1.4; }
-  p { line-height: 1.5; }
+  p { line-height: 1.5; color: $text-light; } // Added text-light for better paragraph readability
 
-  // Undo the text-input styling on checkboxes so they render as normal,
-  // small, tickable boxes (this also lets accentColor work)
   input[type="checkbox"] {
     -webkit-appearance: checkbox;
     appearance: auto;
@@ -339,9 +354,10 @@ $color-danger: #ef4444;
     height: 16px;
     padding: 0;
     margin: 0;
-    flex-shrink: 0; // keeps the box from squishing when the text wraps
+    flex-shrink: 0;
     border-radius: 0;
     box-shadow: none;
+    accent-color: $text-main; // Makes the checkbox tick match dark theme
 
     &:focus { box-shadow: none; }
     &:focus-visible { outline: 2px solid $text-muted; outline-offset: 2px; }
@@ -350,7 +366,7 @@ $color-danger: #ef4444;
 
 .type-toggle {
   display: flex;
-  background-color: #f1f5f9;
+  background-color: $border-color; // Swapped light grey background
   border-radius: 0.5rem;
   padding: 0.25rem;
   margin-bottom: 0.5rem;
@@ -368,9 +384,9 @@ $color-danger: #ef4444;
     transition: all 0.2s;
 
     &.active {
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-      &.expense { background-color: white; color: $color-danger; }
-      &.income { background-color: white; color: $color-success; }
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3); // Deepened shadow
+      &.expense { background-color: $border-strong; color: $color-danger; } // Swapped white for strong border
+      &.income { background-color: $border-strong; color: $color-success; } // Swapped white for strong border
     }
   }
 }
@@ -379,12 +395,12 @@ $color-danger: #ef4444;
   width: 100%;
   box-sizing: border-box;
   padding: 0.75rem 1rem;
-  border: 1px solid $border-color;
+  border: 1px solid $border-strong;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   color: $text-main;
   outline: none;
-  background-color: white;
+  background-color: $card-bg; // Swapped white for dark bg
   cursor: pointer;
   height: 42px;
   appearance: none;
@@ -392,7 +408,12 @@ $color-danger: #ef4444;
   
   &:focus {
     border-color: $text-main;
-    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+    box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); // Replaced dark focus ring
+  }
+
+  option {
+    background-color: $card-bg; // Ensure options are readable
+    color: $text-main;
   }
 }
 
@@ -401,6 +422,8 @@ $color-danger: #ef4444;
   max-height: 85dvh; 
   display: flex;
   flex-direction: column;
+  background-color: $bg-modal; // Just in case it isn't picking up your modal base class
+  color: $text-main;
 
   .modal-header { flex-shrink: 0; }
 
@@ -416,11 +439,20 @@ $color-danger: #ef4444;
       align-items: center;
       justify-content: center;
       padding: 1.5rem 0 2rem 0;
-      border-bottom: 1px dashed $border-color;
+      border-bottom: 1px dashed $border-strong;
       margin-bottom: 1.5rem;
 
       .val { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-      .status { font-size: 0.75rem; color: #166534; font-weight: 600; background-color: #dcfce7; padding: 0.25rem 0.75rem; border-radius: 1rem; }
+      
+      .status { 
+        font-size: 0.75rem; 
+        font-weight: 600; 
+        padding: 0.25rem 0.75rem; 
+        border-radius: 1rem; 
+        // Transparent tinting for success badge instead of hardcoded pastels
+        color: $color-success; 
+        background-color: rgba($color-success, 0.15); 
+      }
     }
 
     .receipt-grid {
@@ -471,10 +503,11 @@ $color-danger: #ef4444;
       }
 
       .btn-secondary {
-        background-color: white;
-        border: 1px solid $border-color;
+        background-color: transparent; // Swapped solid white for transparent
+        border: 1px solid $border-strong; // Used strong border
         color: $text-main;
-        &:hover { background-color: #f1f5f9; }
+
+        &:hover { background-color: $border-strong; } // Hover effect matches dark theme
       }
 
       .btn-primary { width: auto; }

@@ -1,14 +1,21 @@
-// --- Variables ---
-$bg-app: #f8fafc;
-$card-bg: #ffffff;
-$border-color: #e2e8f0;
-$text-main: #0f172a;
-$text-muted: #64748b;
-$text-light: #94a3b8;
-$brand-primary: #0f172a;
+// --- Variables (Dark Mode) ---
+$bg-app: #0b1120;
+$card-bg: #0f172a;
+$bg-modal: #1e293b;
+$border-color: #1e293b;
+$border-strong: #334155;
+
+$text-main: #f1f5f9;
+$text-muted: #94a3b8;
+$text-light: #64748b;
+
+$brand-primary: #f1f5f9;
+$brand-primary-text: #0f172a;
 $color-success: #10b981;
 $color-warning: #f59e0b;
 $color-danger: #ef4444;
+
+$overlay-bg: rgba(0, 0, 0, 0.6);
 
 .estimates-top {
   display: grid;
@@ -50,11 +57,15 @@ $color-danger: #ef4444;
     width: 100%;
     box-sizing: border-box; 
     padding: 0.625rem 1rem 0.625rem 2.25rem;
+    background-color: $card-bg; // Filled for dark mode
+    color: $text-main;
     border: 1px solid $border-color;
     border-radius: 0.5rem;
     font-size: 0.875rem;
     outline: none;
     height: 42px;
+
+    &::placeholder { color: $text-light; }
     &:focus { border-color: $text-muted; }
   }
 }
@@ -78,7 +89,8 @@ $color-danger: #ef4444;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    // Deepened shadows for dark mode visibility
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.35);
   }
 
   .est-header {
@@ -87,7 +99,7 @@ $color-danger: #ef4444;
     align-items: flex-start;
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid $bg-app;
+    border-bottom: 1px solid $border-strong; // Used stronger border
 
     .titles {
       h2 { font-size: 1rem; font-weight: 600; color: $text-main; margin: 0 0 0.375rem 0; line-height: 1.4; }
@@ -110,7 +122,7 @@ $color-danger: #ef4444;
       align-items: center;
       
       .lbl { font-size: 0.8125rem; color: $text-muted; font-weight: 500; }
-      .val { font-size: 0.9375rem; font-weight: 600; }
+      .val { font-size: 0.9375rem; font-weight: 600; color: $text-main; }
     }
   }
 
@@ -118,7 +130,7 @@ $color-danger: #ef4444;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #f8fafc;
+    background-color: $bg-app; // Swapped light #f8fafc for dark inset
     padding: 1rem;
     border-radius: 0.5rem;
     margin-top: auto;
@@ -131,7 +143,7 @@ $color-danger: #ef4444;
 
     .profit-box {
       .lbl { font-size: 0.75rem; color: $text-muted; text-transform: uppercase; font-weight: 600; }
-      .val { font-size: 1.125rem; font-weight: 800; line-height: 1.2; }
+      .val { font-size: 1.125rem; font-weight: 800; line-height: 1.2; color: $text-main; }
     }
 
     .margin-box {
@@ -149,6 +161,8 @@ $color-danger: #ef4444;
   flex-direction: column;
   max-height: 90dvh; 
   width: 100%;
+  background-color: $bg-modal; // Ensure modal base uses dark theme
+  color: $text-main;
 
 // FORCE FULL SCREEN ON MOBILE (Snaps to Top and Bottom)
   @media (max-width: 768px) {
@@ -208,7 +222,7 @@ $color-danger: #ef4444;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1.25rem;
-      border-bottom: 1px solid $border-color;
+      border-bottom: 1px solid $border-strong; // Swapped border color
       padding-bottom: 0.75rem;
 
       h3 { font-size: 1.0625rem; font-weight: 600; color: $text-main; margin: 0; line-height: 1.4; }
@@ -217,7 +231,8 @@ $color-danger: #ef4444;
         background: none; border: none; color: $brand-primary; font-weight: 600; font-size: 0.875rem;
         display: flex; align-items: center; gap: 0.375rem; cursor: pointer;
         padding: 0.25rem 0.5rem; border-radius: 0.375rem;
-        &:hover { background-color: #f1f5f9; }
+        
+        &:hover { background-color: $border-strong; } // Swapped light grey hover
       }
     }
   }
@@ -229,12 +244,18 @@ $color-danger: #ef4444;
     gap: 1.25rem;
 
     .empty-items {
-      text-align: center; padding: 2.5rem; background: #f8fafc; border: 1px dashed $border-color; border-radius: 0.5rem; color: $text-muted; font-size: 0.9375rem;
+      text-align: center; 
+      padding: 2.5rem; 
+      background: $bg-app; // Swapped #f8fafc
+      border: 1px dashed $border-strong; 
+      border-radius: 0.5rem; 
+      color: $text-muted; 
+      font-size: 0.9375rem;
     }
 
     .line-item-card {
-      background-color: #f8fafc;
-      border: 1px solid $border-color;
+      background-color: $card-bg; // Swapped #f8fafc for dark inset
+      border: 1px solid $border-strong; // Made border stronger to separate from modal bg
       border-radius: 0.5rem;
       padding: 1.25rem;
 
@@ -248,8 +269,23 @@ $color-danger: #ef4444;
         align-items: center;
         margin-bottom: 1rem;
 
-        .item-num { font-size: 0.75rem; font-weight: 700; color: $text-muted; background: #e2e8f0; padding: 0.25rem 0.5rem; border-radius: 0.25rem; }
-        .del-btn { background: none; border: none; color: $text-light; cursor: pointer; transition: color 0.2s; &:hover { color: $color-danger; } }
+        .item-num { 
+          font-size: 0.75rem; 
+          font-weight: 700; 
+          color: $text-main; // Increased contrast
+          background: $border-strong; // Swapped #e2e8f0 
+          padding: 0.25rem 0.5rem; 
+          border-radius: 0.25rem; 
+        }
+        
+        .del-btn { 
+          background: none; 
+          border: none; 
+          color: $text-muted; 
+          cursor: pointer; 
+          transition: color 0.2s; 
+          &:hover { color: $color-danger; } 
+        }
       }
 
       .item-grid {
@@ -271,8 +307,14 @@ $color-danger: #ef4444;
           label { font-size: 0.75rem; font-weight: 600; color: $text-muted; line-height: 1.4; }
           
           input {
-            width: 100%; box-sizing: border-box; padding: 0.625rem 0.75rem; border: 1px solid $border-color; border-radius: 0.375rem; font-size: 0.875rem; outline: none; height: 42px; line-height: 1.5;
-            &:focus { border-color: $text-main; }
+            width: 100%; box-sizing: border-box; padding: 0.625rem 0.75rem; 
+            border: 1px solid $border-strong; // Used stronger border
+            background-color: $bg-modal; // Input background matches modal to sink into the card
+            color: $text-main;
+            border-radius: 0.375rem; font-size: 0.875rem; outline: none; height: 42px; line-height: 1.5;
+            
+            &::placeholder { color: $text-light; }
+            &:focus { border-color: $text-main; box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); }
           }
         }
       }
@@ -285,8 +327,8 @@ $color-danger: #ef4444;
     height: 42px;
     box-sizing: border-box;
     display: flex;
-    background-color: white;
-    border: 1px solid $border-color;
+    background-color: $bg-modal; // Swapped solid white
+    border: 1px solid $border-strong;
     border-radius: 0.375rem;
 
     .toggle-btn {
@@ -306,25 +348,43 @@ $color-danger: #ef4444;
       transition: all 0.2s;
 
       &.active {
-        background-color: #f1f5f9; color: $text-main; font-weight: 600;
+        background-color: $border-strong; // Swapped #f1f5f9
+        color: $text-main; 
+        font-weight: 600;
       }
     }
   }
 
   .standard-select {
-    width: 100%; box-sizing: border-box; padding: 0.625rem 0.75rem; border: 1px solid $border-color; border-radius: 0.375rem; font-size: 0.875rem; outline: none; height: 42px; cursor: pointer; background-color: white;
+    width: 100%; 
+    box-sizing: border-box; 
+    padding: 0.625rem 0.75rem; 
+    border: 1px solid $border-strong; 
+    border-radius: 0.375rem; 
+    font-size: 0.875rem; 
+    outline: none; 
+    height: 42px; 
+    cursor: pointer; 
+    background-color: $bg-modal; // Swapped white
+    color: $text-main;
+    
     &:focus { border-color: $text-main; }
+    
+    option {
+      background-color: $bg-modal; // Ensures dropdown list is dark
+      color: $text-main;
+    }
   }
 
   // --- Fixed Footer Calculator ---
   .builder-footer {
-    background-color: #ffffff;
-    border-top: 1px solid $border-color;
+    background-color: $bg-modal; // Swapped solid white
+    border-top: 1px solid $border-strong;
     padding: 1.25rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 -4px 10px -1px rgba(0,0,0,0.05);
+    box-shadow: 0 -4px 15px -1px rgba(0,0,0,0.4); // Deepened reverse shadow for dark mode
     flex-shrink: 0;
     z-index: 10;
 
@@ -350,11 +410,12 @@ $color-danger: #ef4444;
       }
 
       .arrow-hide-mobile {
+        color: $text-muted; // Muted color for the arrow SVG
         @media (max-width: 768px) { display: none; }
       }
 
       .tot-divider {
-        width: 1px; height: 40px; background-color: $border-color;
+        width: 1px; height: 40px; background-color: $border-strong;
         @media (max-width: 768px) { width: 100%; height: 1px; margin: 0.25rem 0; }
       }
 
@@ -380,12 +441,12 @@ $color-danger: #ef4444;
             position: absolute; 
             top: -24px; 
             right: 0; 
-            background: #e2e8f0; 
+            background: $border-strong; // Swapped #e2e8f0
             font-size: 0.7rem; 
             padding: 0.25rem 0.5rem; 
             border-radius: 1rem; 
             font-weight: 700; 
-            color: $text-main;
+            color: $text-main; // High contrast text on dark pill
             white-space: nowrap;
             
             @media (max-width: 768px) {
@@ -417,10 +478,11 @@ $color-danger: #ef4444;
       }
 
       .btn-secondary {
-        background-color: white;
-        border: 1px solid $border-color;
+        background-color: transparent; // Swapped solid white for transparent
+        border: 1px solid $border-strong;
         color: $text-main;
-        &:hover { background-color: #f1f5f9; }
+        
+        &:hover { background-color: $border-strong; } // Swapped light grey hover
       }
       
       .btn-primary { 
