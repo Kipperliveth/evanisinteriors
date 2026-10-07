@@ -1,488 +1,488 @@
-// --- Variables (Dark Mode) ---
-$bg-app: #0b1120;
-$card-bg: #0f172a;
-$bg-modal: #1e293b;
-$border-color: #1e293b;
-$border-strong: #334155;
+// // --- Variables (Dark Mode) ---
+// $bg-app: #0b1120;
+// $card-bg: #0f172a;
+// $bg-modal: #1e293b;
+// $border-color: #1e293b;
+// $border-strong: #334155;
 
-$text-main: #f1f5f9;
-$text-muted: #94a3b8;
-$text-light: #64748b;
+// $text-main: #f1f5f9;
+// $text-muted: #94a3b8;
+// $text-light: #64748b;
 
-$brand-primary: #f1f5f9;
-$brand-primary-text: #0f172a;
-$color-success: #10b981;
-$color-warning: #f59e0b;
-$color-danger: #ef4444;
+// $brand-primary: #f1f5f9;
+// $brand-primary-text: #0f172a;
+// $color-success: #10b981;
+// $color-warning: #f59e0b;
+// $color-danger: #ef4444;
 
-// Client card avatar tint (adapted for dark mode visibility)
-$avatar-bg: rgba(147, 51, 234, 0.25); 
-$avatar-fg: #c084fc; 
+// // Client card avatar tint (adapted for dark mode visibility)
+// $avatar-bg: rgba(147, 51, 234, 0.25); 
+// $avatar-fg: #c084fc; 
 
-// --- Specialized Top Section for CRM (Matches Projects.scss Grid) ---
-.crm-top-section {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-template-areas:
-    "titles titles btn"
-    "tabs search search";
-  gap: 1.5rem 1rem;
-  margin-bottom: 2rem;
-  align-items: center;
+// // --- Specialized Top Section for CRM (Matches Projects.scss Grid) ---
+// .crm-top-section {
+//   display: grid;
+//   grid-template-columns: 1fr auto auto;
+//   grid-template-areas:
+//     "titles titles btn"
+//     "tabs search search";
+//   gap: 1.5rem 1rem;
+//   margin-bottom: 2rem;
+//   align-items: center;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "titles titles"
-      "btn btn"
-      "tabs tabs"
-      "search search";
-    gap: 1rem;
-  }
-}
+//   @media (max-width: 768px) {
+//     grid-template-columns: 1fr 1fr;
+//     grid-template-areas:
+//       "titles titles"
+//       "btn btn"
+//       "tabs tabs"
+//       "search search";
+//     gap: 1rem;
+//   }
+// }
 
-.crm-search {
-  grid-area: search;
-  position: relative;
-  width: 260px;
-  max-width: 100%;
+// .crm-search {
+//   grid-area: search;
+//   position: relative;
+//   width: 260px;
+//   max-width: 100%;
 
-  @media (max-width: 768px) {
-    width: 100%;
-  }
+//   @media (max-width: 768px) {
+//     width: 100%;
+//   }
 
-  .search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: $text-light;
-  }
+//   .search-icon {
+//     position: absolute;
+//     left: 0.75rem;
+//     top: 50%;
+//     transform: translateY(-50%);
+//     color: $text-light;
+//   }
 
-  input {
-    width: 100%;
-    box-sizing: border-box; 
-    padding: 0 1rem 0 2.25rem;
-    background-color: $card-bg; 
-    color: $text-main;
-    border: 1px solid $border-color;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    outline: none;
-    transition: border-color 0.2s;
-    height: 42px;
+//   input {
+//     width: 100%;
+//     box-sizing: border-box; 
+//     padding: 0 1rem 0 2.25rem;
+//     background-color: $card-bg; 
+//     color: $text-main;
+//     border: 1px solid $border-color;
+//     border-radius: 0.5rem;
+//     font-size: 0.875rem;
+//     outline: none;
+//     transition: border-color 0.2s;
+//     height: 42px;
 
-    &::placeholder { color: $text-light; }
-    &:focus { border-color: $text-muted; }
-  }
-}
+//     &::placeholder { color: $text-light; }
+//     &:focus { border-color: $text-muted; }
+//   }
+// }
 
-// Ensure CRM tabs look identical to Projects tabs
-.tabs {
-  grid-area: tabs;
-  display: flex;
-  background-color: $border-color; 
-  padding-block: 0.25rem;
-  padding-inline: 0.25rem;
-  border-radius: 0.5rem;
-  width: fit-content;
-  box-sizing: border-box;
+// // Ensure CRM tabs look identical to Projects tabs
+// .tabs {
+//   grid-area: tabs;
+//   display: flex;
+//   background-color: $border-color; 
+//   padding-block: 0.25rem;
+//   padding-inline: 0.25rem;
+//   border-radius: 0.5rem;
+//   width: fit-content;
+//   box-sizing: border-box;
   
-  @media (max-width: 768px) {
-    width: 100%;
-    display: flex;
-  }
+//   @media (max-width: 768px) {
+//     width: 100%;
+//     display: flex;
+//   }
 
-  .tab {
-    background: transparent;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: $text-muted;
-    cursor: pointer;
-    transition: all 0.2s;
+//   .tab {
+//     background: transparent;
+//     border: none;
+//     padding: 0.5rem 1rem;
+//     border-radius: 0.375rem;
+//     font-size: 0.875rem;
+//     font-weight: 500;
+//     color: $text-muted;
+//     cursor: pointer;
+//     transition: all 0.2s;
 
-    @media (max-width: 768px) {
-      flex: 1; 
-      text-align: center;
-      padding: 0.625rem;
-      padding-inline: 0;
-    }
+//     @media (max-width: 768px) {
+//       flex: 1; 
+//       text-align: center;
+//       padding: 0.625rem;
+//       padding-inline: 0;
+//     }
 
-    &.active {
-      background-color: $border-strong; 
-      color: $text-main;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
+//     &.active {
+//       background-color: $border-strong; 
+//       color: $text-main;
+//       box-shadow: 0 1px 3px rgba(0,0,0,0.3); 
       
-      @media (max-width: 768px) {
-        width: 90%;
-        margin: 0 auto;
-      }
-    }
-  }
-}
+//       @media (max-width: 768px) {
+//         width: 90%;
+//         margin: 0 auto;
+//       }
+//     }
+//   }
+// }
 
-// --- Client Grid & Cards ---
-.client-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
+// // --- Client Grid & Cards ---
+// .client-grid {
+//   display: grid;
+//   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+//   gap: 1.5rem;
+// }
 
-.client-card {
-  background-color: $card-bg;
-  border: 1px solid $border-strong; 
-  border-radius: 1.25rem;
-  padding: 1.125rem;
-  cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2); 
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
+// .client-card {
+//   background-color: $card-bg;
+//   border: 1px solid $border-strong; 
+//   border-radius: 1.25rem;
+//   padding: 1.125rem;
+//   cursor: pointer;
+//   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2); 
+//   transition: transform 0.2s, box-shadow 0.2s;
+//   display: flex;
+//   flex-direction: column;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); 
-  }
+//   &:hover {
+//     transform: translateY(-2px);
+//     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); 
+//   }
 
-  // Row 1: avatar | name ........ status pill
-  .client-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+//   // Row 1: avatar | name ........ status pill
+//   .client-header {
+//     display: flex;
+//     align-items: center;
+//     gap: 0.75rem;
+//     margin-bottom: 1rem;
 
-    .avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background-color: $avatar-bg;
-      color: $avatar-fg;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
+//     .avatar {
+//       width: 44px;
+//       height: 44px;
+//       border-radius: 50%;
+//       background-color: $avatar-bg;
+//       color: $avatar-fg;
+//       display: flex;
+//       align-items: center;
+//       justify-content: center;
+//       font-weight: 700;
+//       font-size: 1rem;
+//       flex-shrink: 0;
+//     }
 
-    .info {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
+//     .info {
+//       flex: 1;
+//       min-width: 0;
+//       display: flex;
+//       align-items: center;
+//       justify-content: space-between;
+//       gap: 0.5rem;
 
-      h2 {
-        font-size: 0.9375rem;
-        font-weight: 700;
-        color: $text-main;
-        margin: 0;
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+//       h2 {
+//         font-size: 0.9375rem;
+//         font-weight: 700;
+//         color: $text-main;
+//         margin: 0;
+//         min-width: 0;
+//         white-space: nowrap;
+//         overflow: hidden;
+//         text-overflow: ellipsis;
+//       }
 
-      // Tiny soft pill: green for active, grey for past
-      .client-status {
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3125rem;
-        padding: 0.1875rem 0.5rem;
-        border-radius: 1rem;
-        font-size: 0.6875rem;
-        font-weight: 600;
-        text-transform: capitalize;
-        background-color: $border-strong; 
-        color: $text-muted;
+//       // Tiny soft pill: green for active, grey for past
+//       .client-status {
+//         flex-shrink: 0;
+//         display: inline-flex;
+//         align-items: center;
+//         gap: 0.3125rem;
+//         padding: 0.1875rem 0.5rem;
+//         border-radius: 1rem;
+//         font-size: 0.6875rem;
+//         font-weight: 600;
+//         text-transform: capitalize;
+//         background-color: $border-strong; 
+//         color: $text-muted;
 
-        &::before {
-          content: '';
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background-color: $text-light;
-        }
+//         &::before {
+//           content: '';
+//           width: 5px;
+//           height: 5px;
+//           border-radius: 50%;
+//           background-color: $text-light;
+//         }
 
-        &.active {
-          background-color: rgba($color-success, 0.15); 
-          color: $color-success; 
+//         &.active {
+//           background-color: rgba($color-success, 0.15); 
+//           color: $color-success; 
 
-          &::before { background-color: $color-success; }
-        }
-      }
-    }
-  }
+//           &::before { background-color: $color-success; }
+//         }
+//       }
+//     }
+//   }
 
-  // Row 2: contact lines with icons in little soft chips
-  .client-contact {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+//   // Row 2: contact lines with icons in little soft chips
+//   .client-contact {
+//     display: flex;
+//     flex-direction: column;
+//     gap: 0.5rem;
+//     margin-bottom: 1rem;
 
-    .contact-item {
-      display: flex;
-      align-items: center;
-      gap: 0.625rem;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      color: $text-muted;
+//     .contact-item {
+//       display: flex;
+//       align-items: center;
+//       gap: 0.625rem;
+//       font-size: 0.8125rem;
+//       font-weight: 500;
+//       color: $text-muted;
 
-      svg {
-        width: 26px;
-        height: 26px;
-        padding: 6px;
-        box-sizing: border-box;
-        border-radius: 0.5rem;
-        background-color: $border-strong; 
-        color: $text-muted;
-        flex-shrink: 0;
-      }
+//       svg {
+//         width: 26px;
+//         height: 26px;
+//         padding: 6px;
+//         box-sizing: border-box;
+//         border-radius: 0.5rem;
+//         background-color: $border-strong; 
+//         color: $text-muted;
+//         flex-shrink: 0;
+//       }
 
-      span {
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-    }
-  }
+//       span {
+//         min-width: 0;
+//         white-space: nowrap;
+//         overflow: hidden;
+//         text-overflow: ellipsis;
+//       }
+//     }
+//   }
 
-  // Row 3: money in a soft footer panel
-  .client-financials {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-top: auto;
-    padding: 0.625rem 0.875rem;
-    background-color: $bg-app; 
-    border-radius: 0.875rem;
+//   // Row 3: money in a soft footer panel
+//   .client-financials {
+//     display: flex;
+//     justify-content: space-between;
+//     gap: 1rem;
+//     margin-top: auto;
+//     padding: 0.625rem 0.875rem;
+//     background-color: $bg-app; 
+//     border-radius: 0.875rem;
 
-    .fin-metric {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
+//     .fin-metric {
+//       display: flex;
+//       flex-direction: column;
+//       min-width: 0;
 
-      .lbl {
-        font-size: 0.6875rem;
-        font-weight: 500;
-        color: $text-light;
-        margin-bottom: 0.125rem;
-      }
-      .val {
-        font-size: 0.9375rem;
-        font-weight: 700;
-        line-height: 1.2;
-        color: $text-main;
-      }
-    }
+//       .lbl {
+//         font-size: 0.6875rem;
+//         font-weight: 500;
+//         color: $text-light;
+//         margin-bottom: 0.125rem;
+//       }
+//       .val {
+//         font-size: 0.9375rem;
+//         font-weight: 700;
+//         line-height: 1.2;
+//         color: $text-main;
+//       }
+//     }
 
-    // Right-hand metric lines up to the card's right edge
-    .fin-metric:last-child { text-align: right; }
-  }
-}
+//     // Right-hand metric lines up to the card's right edge
+//     .fin-metric:last-child { text-align: right; }
+//   }
+// }
 
-// Global Badges
-.status-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
+// // Global Badges
+// .status-badge {
+//   display: inline-block;
+//   padding: 0.125rem 0.5rem;
+//   border-radius: 1rem;
+//   font-size: 0.75rem;
+//   font-weight: 600;
+//   text-transform: uppercase;
   
-  // Adapted hardcoded pastels to transparent rgba tints
-  &.active { background-color: rgba($color-success, 0.15); color: $color-success; }
-  &.past { background-color: $border-strong; color: $text-muted; }
-}
+//   // Adapted hardcoded pastels to transparent rgba tints
+//   &.active { background-color: rgba($color-success, 0.15); color: $color-success; }
+//   &.past { background-color: $border-strong; color: $text-muted; }
+// }
 
-// --- Client Profile Modal ---
-.client-profile-modal {
-  max-width: 800px !important; // Wider for split view
+// // --- Client Profile Modal ---
+// .client-profile-modal {
+//   max-width: 800px !important; // Wider for split view
 
 
-  .avatar-small {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: $border-strong; 
-    color: $text-main;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.875rem;
-  }
+//   .avatar-small {
+//     width: 32px;
+//     height: 32px;
+//     border-radius: 50%;
+//     background-color: $border-strong; 
+//     color: $text-main;
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     font-weight: 700;
+//     font-size: 0.875rem;
+//   }
 
-  .profile-content {
-    padding: 1.5rem;
-    max-height: 85dvh;
-    padding-bottom: 8rem; // Safari mobile fix
-    overflow-y: auto;
+//   .profile-content {
+//     padding: 1.5rem;
+//     max-height: 85dvh;
+//     padding-bottom: 8rem; // Safari mobile fix
+//     overflow-y: auto;
 
-    .profile-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.5fr; // Left column smaller than Right
-      gap: 2rem;
+//     .profile-grid {
+//       display: grid;
+//       grid-template-columns: 1fr 1.5fr; // Left column smaller than Right
+//       gap: 2rem;
 
-      @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-      }
-    }
+//       @media (max-width: 768px) {
+//         grid-template-columns: 1fr;
+//         gap: 1.5rem;
+//       }
+//     }
 
-    .profile-section {
-      margin-bottom: 1.5rem;
+//     .profile-section {
+//       margin-bottom: 1.5rem;
 
-      h3 {
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: $text-muted;
-        margin: 0 0 1rem 0;
-      }
+//       h3 {
+//         font-size: 0.875rem;
+//         text-transform: uppercase;
+//         letter-spacing: 0.05em;
+//         color: $text-muted;
+//         margin: 0 0 1rem 0;
+//       }
 
-      .section-header-flex {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
+//       .section-header-flex {
+//         display: flex;
+//         justify-content: space-between;
+//         align-items: center;
+//         margin-bottom: 1rem;
 
-        h3 { margin: 0; }
+//         h3 { margin: 0; }
         
-        .btn-text {
-          background: none;
-          border: none;
-          color: $text-main;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-          cursor: pointer;
-          &:hover { text-decoration: underline; }
-        }
-      }
+//         .btn-text {
+//           background: none;
+//           border: none;
+//           color: $text-main;
+//           font-size: 0.8125rem;
+//           font-weight: 600;
+//           display: flex;
+//           align-items: center;
+//           gap: 0.25rem;
+//           cursor: pointer;
+//           &:hover { text-decoration: underline; }
+//         }
+//       }
 
-      // Contact Block
-      .contact-list {
-        background-color: $bg-app; 
-        border: 1px solid $border-strong; // FIX: Prevents invisible border against modal bg
-        border-radius: 0.5rem;
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
+//       // Contact Block
+//       .contact-list {
+//         background-color: $bg-app; 
+//         border: 1px solid $border-strong; // FIX: Prevents invisible border against modal bg
+//         border-radius: 0.5rem;
+//         padding: 1rem;
+//         display: flex;
+//         flex-direction: column;
+//         gap: 0.75rem;
 
-        .contact-row {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          color: $text-main;
-          font-size: 0.9375rem;
+//         .contact-row {
+//           display: flex;
+//           align-items: center;
+//           gap: 0.75rem;
+//           color: $text-main;
+//           font-size: 0.9375rem;
 
-          svg { color: $text-light; flex-shrink: 0; }
-          a { color: $text-main; text-decoration: none; &:hover { text-decoration: underline; } }
-        }
-      }
+//           svg { color: $text-light; flex-shrink: 0; }
+//           a { color: $text-main; text-decoration: none; &:hover { text-decoration: underline; } }
+//         }
+//       }
 
-      // LTV Block
-      .ltv-card {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        background-color: $bg-app; 
-        border: 1px solid $border-strong; // FIX: Prevents invisible border against modal bg
-        border-radius: 0.5rem;
-        padding: 1.25rem;
+//       // LTV Block
+//       .ltv-card {
+//         display: flex;
+//         align-items: center;
+//         gap: 1rem;
+//         background-color: $bg-app; 
+//         border: 1px solid $border-strong; // FIX: Prevents invisible border against modal bg
+//         border-radius: 0.5rem;
+//         padding: 1.25rem;
 
-        .ltv-lbl { display: block; font-size: 0.8125rem; color: $text-muted; margin-bottom: 0.25rem; }
-        .ltv-val { display: block; font-size: 1.5rem; font-weight: 700; color: $text-main; }
-      }
+//         .ltv-lbl { display: block; font-size: 0.8125rem; color: $text-muted; margin-bottom: 0.25rem; }
+//         .ltv-val { display: block; font-size: 1.5rem; font-weight: 700; color: $text-main; }
+//       }
 
-      .outstanding-alert {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 0.75rem;
-        padding: 0.75rem 1rem;
+//       .outstanding-alert {
+//         display: flex;
+//         justify-content: space-between;
+//         align-items: center;
+//         margin-top: 0.75rem;
+//         padding: 0.75rem 1rem;
         
-        // Dark mode adaptation for warning alert
-        background-color: rgba($color-warning, 0.15); 
-        border: 1px solid rgba($color-warning, 0.3); 
-        border-radius: 0.5rem;
-        color: $color-warning; 
-        font-size: 0.875rem;
-      }
-    }
+//         // Dark mode adaptation for warning alert
+//         background-color: rgba($color-warning, 0.15); 
+//         border: 1px solid rgba($color-warning, 0.3); 
+//         border-radius: 0.5rem;
+//         color: $color-warning; 
+//         font-size: 0.875rem;
+//       }
+//     }
 
-    // Project History List
-    .project-history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      color: $text-muted; // FIX: Ensures raw unstyled text (like empty states) doesn't render black
+//     // Project History List
+//     .project-history-list {
+//       display: flex;
+//       flex-direction: column;
+//       gap: 1rem;
+//       color: $text-muted; // FIX: Ensures raw unstyled text (like empty states) doesn't render black
 
-      .history-card {
-        border: 1px solid $border-strong; 
-        border-radius: 0.5rem;
-        padding: 1rem;
-        background-color: $card-bg; 
-        color: $text-main; // Added to reset from the wrapper fallback
-        transition: transform 0.2s, box-shadow 0.2s; 
+//       .history-card {
+//         border: 1px solid $border-strong; 
+//         border-radius: 0.5rem;
+//         padding: 1rem;
+//         background-color: $card-bg; 
+//         color: $text-main; // Added to reset from the wrapper fallback
+//         transition: transform 0.2s, box-shadow 0.2s; 
         
-        &.cursor-pointer { cursor: pointer; }
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2); 
-        }
+//         &.cursor-pointer { cursor: pointer; }
+//         &:hover {
+//           transform: translateY(-2px);
+//           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2); 
+//         }
 
-        .hist-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 1rem;
-          padding-bottom: 1rem;
-          border-bottom: 1px solid $border-strong; 
+//         .hist-top {
+//           display: flex;
+//           justify-content: space-between;
+//           align-items: flex-start;
+//           margin-bottom: 1rem;
+//           padding-bottom: 1rem;
+//           border-bottom: 1px solid $border-strong; 
 
-          h4 { margin: 0; font-size: 1rem; color: $text-main; }
-        }
+//           h4 { margin: 0; font-size: 1rem; color: $text-main; }
+//         }
 
-        .hist-bottom {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
+//         .hist-bottom {
+//           display: grid;
+//           grid-template-columns: repeat(3, 1fr);
+//           gap: 1rem;
 
-          .hist-metric {
-            display: flex;
-            flex-direction: column;
-            .lbl { font-size: 0.75rem; color: $text-muted; margin-bottom: 0.125rem; }
-            .val { font-size: 0.9375rem; font-weight: 600; color: $text-main; }
-          }
-        }
-      }
-    }
-  }
-}
+//           .hist-metric {
+//             display: flex;
+//             flex-direction: column;
+//             .lbl { font-size: 0.75rem; color: $text-muted; margin-bottom: 0.125rem; }
+//             .val { font-size: 0.9375rem; font-weight: 600; color: $text-main; }
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
 
-.modal-container {
-  // ... your existing styles ...
+// .modal-container {
+//   // ... your existing styles ...
 
-  @media (max-width: 768px) {
-    padding-bottom: 10rem;
-  }
-}
+//   @media (max-width: 768px) {
+//     padding-bottom: 10rem;
+//   }
+// }
 
-.modal-container.client-profile-modal {
-  // ... your existing styles ...
+// .modal-container.client-profile-modal {
+//   // ... your existing styles ...
 
-  @media (max-width: 768px) {
-    padding-bottom: 1rem;
-  }
-}
+//   @media (max-width: 768px) {
+//     padding-bottom: 1rem;
+//   }
+// }

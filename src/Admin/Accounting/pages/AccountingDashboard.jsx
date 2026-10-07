@@ -4,7 +4,7 @@ import Navigation from '../components/Navigation';
 import { Wallet, ArrowDownRight, ArrowUpRight, TrendingUp, Clock, ChevronRight, HardHat, FolderOpen, Loader } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
-import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore"; 
+import { collection, getDocs, query, orderBy } from "firebase/firestore"; 
 import { txtdb } from '../../../firebase-config';
 
 function AccountingDashboard() {
@@ -50,54 +50,55 @@ function AccountingDashboard() {
         setTotalCash(totalIncome - totalExpenses);
         setRecentTransactions(recentTx);
 
-        // 2. Calculate Pending Receivables (from Clients)
-        const qClients = query(collection(txtdb, "clients"));
-        const clientsSnapshot = await getDocs(qClients);
+        // 2. Calculate Pending Receivables & Active Projects (from unified Projects Ledger)
+        const qProj = query(collection(txtdb, "projects"), orderBy("createdAt", "desc"));
+        const projSnapshot = await getDocs(qProj);
+        
         let totalOwedByClients = 0;
         let owingClientsCount = 0;
+        let activeProjList = [];
 
-        clientsSnapshot.docs.forEach(doc => {
+        projSnapshot.docs.forEach(doc => {
           const data = doc.data();
-          const balance = Number(data.outstandingBalance) || 0;
+          
+          // Math for Receivables
+          const billed = Number(data.billed) || 0;
+          const paid = Number(data.amountPaid) || 0;
+          const balance = billed - paid;
+
           if (balance > 0) {
             totalOwedByClients += balance;
             owingClientsCount++;
+          }
+
+          // Math for Active Projects
+          if (data.status === 'active') {
+            activeProjList.push({ id: doc.id, ...data });
           }
         });
         
         setReceivables(totalOwedByClients);
         setClientsOwingCount(owingClientsCount);
 
-        // 3. Calculate Unpaid Workers & Bills (Vendors + Pending POs)
-        let totalLiabilities = 0;
-
-        const qVendors = query(collection(txtdb, "vendors"));
-        const vendorsSnapshot = await getDocs(qVendors);
-        vendorsSnapshot.docs.forEach(doc => {
-          totalLiabilities += (Number(doc.data().outstandingBalance) || 0);
-        });
-
-        const qPOs = query(collection(txtdb, "purchaseOrders"), where("status", "==", "pending"));
-        const posSnapshot = await getDocs(qPOs);
-        posSnapshot.docs.forEach(doc => {
-          totalLiabilities += (Number(doc.data().amount) || 0);
-        });
-
-        setPayables(totalLiabilities);
-
-        // 4. Get Active Projects for Progress Tracker
-        const qProj = query(collection(txtdb, "projects"), where("status", "==", "active"));
-        const projSnapshot = await getDocs(qProj);
-        let activeProjList = projSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
         // Sort projects by highest budget usage percentage
         activeProjList.sort((a, b) => {
-          const percentA = a.costOfProduction > 0 ? (a.expenses / a.costOfProduction) : 0;
-          const percentB = b.costOfProduction > 0 ? (b.expenses / b.costOfProduction) : 0;
+          const percentA = a.costOfProduction > 0 ? ((a.expenses || 0) / a.costOfProduction) : 0;
+          const percentB = b.costOfProduction > 0 ? ((b.expenses || 0) / b.costOfProduction) : 0;
           return percentB - percentA;
         });
 
         setActiveProjects(activeProjList);
+
+        // 3. Calculate Unpaid Workers & Vendors
+        let totalLiabilities = 0;
+        const qVendors = query(collection(txtdb, "vendors"));
+        const vendorsSnapshot = await getDocs(qVendors);
+        
+        vendorsSnapshot.docs.forEach(doc => {
+          totalLiabilities += (Number(doc.data().outstandingBalance) || 0);
+        });
+
+        setPayables(totalLiabilities);
 
       } catch (error) {
         console.error("Error fetching dashboard data: ", error);
@@ -170,7 +171,8 @@ function AccountingDashboard() {
                 </div>
               </div>
 
-              <div className="dash-metric-card success interactive" onClick={() => navigate('/clients')}>
+              {/* ROUTE UPDATED TO /projects */}
+              <div className="dash-metric-card success interactive" onClick={() => navigate('/projects')}>
                 <div className="dash-card-header">
                   <h3>Pending Receivables</h3>
                   <div className="dash-icon-wrapper"><ArrowDownRight size={20} /></div>
@@ -188,7 +190,7 @@ function AccountingDashboard() {
                 </div>
                 <div className="dash-card-body">
                   <span className="dash-value">{formatCurrency(payables)}</span>
-                  <span className="dash-subtitle">Pending POs and worker balances</span>
+                  <span className="dash-subtitle">Total worker balances owed</span>
                 </div>
               </div>
 
@@ -213,14 +215,14 @@ function AccountingDashboard() {
                     <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '1rem' }}>No active projects found.</p>
                   ) : (
                     activeProjects.map(project => {
-                      const percentUsed = project.costOfProduction > 0 ? (project.expenses / project.costOfProduction) * 100 : 0;
+                      const percentUsed = project.costOfProduction > 0 ? ((project.expenses || 0) / project.costOfProduction) * 100 : 0;
                       const isWarning = percentUsed >= 75 && percentUsed < 90;
                       const isCritical = percentUsed >= 90;
 
                       return (
                         <div key={project.id} className="dash-alert-item">
                           <div className="dash-alert-info">
-                            <span className="dash-project-name">{project.name}</span>
+                            <span className="dash-project-name">{project.name || 'Unnamed Project'}</span>
                             <span className="dash-project-stats">
                               {percentUsed.toFixed(0)}% budget used
                             </span>
@@ -235,8 +237,8 @@ function AccountingDashboard() {
                             </div>
                             
                             <span className={`dash-progress-text ${isCritical ? 'dash-text-danger' : ''}`}>
-                              {formatCurrency(project.expenses)} 
-                              <span className="dash-budget-total"> / {formatCurrency(project.costOfProduction)}</span>
+                              {formatCurrency(project.expenses || 0)} 
+                              <span className="dash-budget-total"> / {formatCurrency(project.costOfProduction || 0)}</span>
                             </span>
 
                           </div>
@@ -266,11 +268,11 @@ function AccountingDashboard() {
                           {tx.type === 'income' ? <TrendingUp size={16} /> : <ArrowUpRight size={16} />}
                         </div>
                         <div className="dash-activity-details">
-                          <span className="dash-desc">{tx.description}</span>
+                          <span className="dash-desc">{tx.description || 'Unnamed'}</span>
                           <span className="dash-date">{formatTxDate(tx.date)}</span>
                         </div>
                         <div className={`dash-activity-amount ${tx.type === 'income' ? 'dash-text-success' : 'dash-text-main'}`}>
-                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount || 0)}
                         </div>
                       </div>
                     ))

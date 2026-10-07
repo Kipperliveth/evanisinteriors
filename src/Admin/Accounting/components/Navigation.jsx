@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
 import { 
-  Menu, X, LayoutDashboard, Users, FileSignature, 
-  FolderKanban, ShoppingCart, BarChart3, ReceiptText, HardHat, LogOut 
+  Menu, X, LayoutDashboard, FolderKanban, 
+  ReceiptText, HardHat, LogOut 
 } from 'lucide-react';
 import './Navigation.scss';
 import logo from '../../../stock/new-logo-white.svg';
@@ -44,27 +44,20 @@ function Navigation() {
     }
   };
 
+  // --- RESTRUCTURED NAVIGATION ---
+  // Stripped down to match the flat ledger methodology
   const navGroups = [
     {
-      title: 'Overview',
+      title: 'Workspace',
       items: [
         { name: 'Dashboard', path: '/financetracking', icon: LayoutDashboard },
         { name: 'Projects', path: '/projects', icon: FolderKanban },
       ]
     },
     {
-      title: 'Finance & Accounting',
+      title: 'Ledger & Directory',
       items: [
         { name: 'Transactions', path: '/transactions', icon: ReceiptText },
-        { name: 'Estimates', path: '/estimates', icon: FileSignature },
-        { name: 'Purchases', path: '/purchases', icon: ShoppingCart },
-        { name: 'Reports', path: '/reports', icon: BarChart3 },
-      ]
-    },
-    {
-      title: 'Directory',
-      items: [
-        { name: 'Clients', path: '/clients', icon: Users },
         { name: 'Workers', path: '/vendors', icon: HardHat },
       ]
     }

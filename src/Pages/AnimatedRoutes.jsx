@@ -36,11 +36,7 @@ import ProfileEdit from "../App/App-auth/ProfileEdit";
 import Adminlog from "../Admin/AdminPages/Adminlog";
 import NotFound from "./NotFound";
 import Enroll from "./Enroll";
-import Dashboard from "../Admin/InvoiceTracker/pages/Dashboard";
-import Clients from "../Admin/InvoiceTracker/pages/Clients";
-import Accounting from "../Admin/InvoiceTracker/pages/Accounting";
-import Reminders from "../Admin/InvoiceTracker/pages/Reminders";
-import Invoice from "../Admin/InvoiceTracker/pages/Invoice";
+
 import AccountingDashboard from "../Admin/Accounting/pages/AccountingDashboard";
 import Client from "../Admin/Accounting/pages/Client";
 import Estimates from "../Admin/Accounting/pages/Estimates";
@@ -99,11 +95,7 @@ function AnimatedRoutes() {
         <Route path='/orders' element={<AdminRoute><Orders /></AdminRoute>} />
         <Route path='/adminlog' element={<AdminRoute><Adminlog /></AdminRoute>} />
         <Route path='/uploads' element={<Uploads />}/>
-        <Route path="/expensedash" element={<Dashboard />}/>
-        {/* <Route path="/clients" element={<Clients />}/> */}
-        <Route path="/accounting" element={<Accounting />}/>
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/invoices" element={<Invoice />}/>
+     
 
         {/* accounting */}
         <Route path="/financetracking" element={<AccountingDashboard />}/>

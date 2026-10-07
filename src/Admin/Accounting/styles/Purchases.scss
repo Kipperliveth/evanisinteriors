@@ -1,563 +1,563 @@
-// --- Variables (Dark Mode) ---
-$po-bg-app: #0b1120;
-$po-card-bg: #0f172a;
-$po-bg-modal: #1e293b;
-$po-border-color: #1e293b;
-$po-border-strong: #334155;
+// // --- Variables (Dark Mode) ---
+// $po-bg-app: #0b1120;
+// $po-card-bg: #0f172a;
+// $po-bg-modal: #1e293b;
+// $po-border-color: #1e293b;
+// $po-border-strong: #334155;
 
-$po-text-main: #f1f5f9;
-$po-text-muted: #94a3b8;
-$po-text-light: #64748b;
+// $po-text-main: #f1f5f9;
+// $po-text-muted: #94a3b8;
+// $po-text-light: #64748b;
 
-$po-brand-primary: #f1f5f9;
-$po-brand-primary-text: #0f172a;
-$po-color-success: #10b981;
-$po-color-warning: #f59e0b;
-$po-color-danger: #ef4444;
+// $po-brand-primary: #f1f5f9;
+// $po-brand-primary-text: #0f172a;
+// $po-color-success: #10b981;
+// $po-color-warning: #f59e0b;
+// $po-color-danger: #ef4444;
 
-$po-overlay-bg: rgba(0, 0, 0, 0.6);
+// $po-overlay-bg: rgba(0, 0, 0, 0.6);
 
-// Utilities
-.po-text-success { color: $po-color-success; }
-.po-text-danger { color: $po-color-danger; }
-.po-text-main { color: $po-text-main; }
-.po-text-muted { color: $po-text-muted; }
-.po-text-light { color: $po-text-light; }
+// // Utilities
+// .po-text-success { color: $po-color-success; }
+// .po-text-danger { color: $po-color-danger; }
+// .po-text-main { color: $po-text-main; }
+// .po-text-muted { color: $po-text-muted; }
+// .po-text-light { color: $po-text-light; }
 
-// --- Layout Structure ---
-.po-page-wrapper {
-  display: flex;
-  min-height: 100vh;
-  background-color: $po-bg-app;
-  font-family: inherit;
-  color-scheme: dark; // Ensures native controls adapt to dark mode
+// // --- Layout Structure ---
+// .po-page-wrapper {
+//   display: flex;
+//   min-height: 100vh;
+//   background-color: $po-bg-app;
+//   font-family: inherit;
+//   color-scheme: dark; // Ensures native controls adapt to dark mode
 
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-}
+//   @media (max-width: 768px) {
+//     flex-direction: column;
+//   }
+// }
 
-.po-main-content {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
+// .po-main-content {
+//   flex: 1;
+//   padding: 2rem;
+//   max-width: 1200px;
+//   margin: 0 auto;
+//   width: 100%;
+//   box-sizing: border-box;
 
-  @media (max-width: 768px) {
-    padding: 1.5rem 1rem 6rem 1rem; 
-  }
-}
+//   @media (max-width: 768px) {
+//     padding: 1.5rem 1rem 6rem 1rem; 
+//   }
+// }
 
-// --- Top Header Section ---
-.po-top-section {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-template-areas:
-    "titles titles btn"
-    "tabs search search";
-  gap: 1.5rem 1rem;
-  margin-bottom: 2rem;
-  align-items: center;
+// // --- Top Header Section ---
+// .po-top-section {
+//   display: grid;
+//   grid-template-columns: 1fr auto auto;
+//   grid-template-areas:
+//     "titles titles btn"
+//     "tabs search search";
+//   gap: 1.5rem 1rem;
+//   margin-bottom: 2rem;
+//   align-items: center;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "titles titles"
-      "btn btn"
-      "tabs tabs"
-      "search search";
-    gap: 1rem;
-    padding-top: 4rem;
-  }
-}
+//   @media (max-width: 768px) {
+//     grid-template-columns: 1fr 1fr;
+//     grid-template-areas:
+//       "titles titles"
+//       "btn btn"
+//       "tabs tabs"
+//       "search search";
+//     gap: 1rem;
+//     padding-top: 4rem;
+//   }
+// }
 
-.po-header-titles {
-  grid-area: titles;
-  h1 { font-size: 1.5rem; font-weight: 700; color: $po-text-main; margin: 0 0 0.25rem 0; }
-  p { font-size: 0.875rem; color: $po-text-muted; margin: 0; }
-}
+// .po-header-titles {
+//   grid-area: titles;
+//   h1 { font-size: 1.5rem; font-weight: 700; color: $po-text-main; margin: 0 0 0.25rem 0; }
+//   p { font-size: 0.875rem; color: $po-text-muted; margin: 0; }
+// }
 
-.po-btn-primary {
-  grid-area: btn;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: $po-brand-primary;
-  color: $po-brand-primary-text; // Swapped white
-  border: none;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  height: 42px;
-  transition: opacity 0.2s;
+// .po-btn-primary {
+//   grid-area: btn;
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   gap: 0.5rem;
+//   background-color: $po-brand-primary;
+//   color: $po-brand-primary-text; // Swapped white
+//   border: none;
+//   padding: 0.625rem 1.25rem;
+//   border-radius: 0.5rem;
+//   font-size: 0.875rem;
+//   font-weight: 600;
+//   cursor: pointer;
+//   height: 42px;
+//   transition: opacity 0.2s;
 
-  &:hover { opacity: 0.9; } // Swapped dark hover color for opacity fade
-}
+//   &:hover { opacity: 0.9; } // Swapped dark hover color for opacity fade
+// }
 
-.po-tabs {
-  grid-area: tabs;
-  display: flex;
-  background-color: $po-border-color; // Swapped #e2e8f0
-  padding: 0.25rem;
-  border-radius: 0.5rem;
-  width: fit-content;
-  box-sizing: border-box;
+// .po-tabs {
+//   grid-area: tabs;
+//   display: flex;
+//   background-color: $po-border-color; // Swapped #e2e8f0
+//   padding: 0.25rem;
+//   border-radius: 0.5rem;
+//   width: fit-content;
+//   box-sizing: border-box;
   
-  @media (max-width: 768px) { width: 100%; }
+//   @media (max-width: 768px) { width: 100%; }
 
-  .po-tab {
-    background: transparent;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: $po-text-muted;
-    cursor: pointer;
-    transition: all 0.2s;
+//   .po-tab {
+//     background: transparent;
+//     border: none;
+//     padding: 0.5rem 1rem;
+//     border-radius: 0.375rem;
+//     font-size: 0.875rem;
+//     font-weight: 500;
+//     color: $po-text-muted;
+//     cursor: pointer;
+//     transition: all 0.2s;
 
-    @media (max-width: 768px) { flex: 1; padding: 0.625rem 0; }
+//     @media (max-width: 768px) { flex: 1; padding: 0.625rem 0; }
 
-    &.active {
-      background-color: $po-border-strong; // Swapped white
-      color: $po-text-main;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.3); // Deepened shadow
-    }
-  }
-}
+//     &.active {
+//       background-color: $po-border-strong; // Swapped white
+//       color: $po-text-main;
+//       box-shadow: 0 1px 3px rgba(0,0,0,0.3); // Deepened shadow
+//     }
+//   }
+// }
 
-.po-search-box {
-  grid-area: search;
-  position: relative;
-  width: 260px;
+// .po-search-box {
+//   grid-area: search;
+//   position: relative;
+//   width: 260px;
   
-  @media (max-width: 768px) { width: 100%; }
+//   @media (max-width: 768px) { width: 100%; }
 
-  .po-search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: $po-text-light;
-  }
+//   .po-search-icon {
+//     position: absolute;
+//     left: 0.75rem;
+//     top: 50%;
+//     transform: translateY(-50%);
+//     color: $po-text-light;
+//   }
 
-  input {
-    width: 100%;
-    box-sizing: border-box; 
-    padding: 0.625rem 1rem 0.625rem 2.25rem;
-    background-color: $po-card-bg; // Ensure input is filled in dark mode
-    color: $po-text-main;
-    border: 1px solid $po-border-color;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    outline: none;
-    height: 42px;
-    transition: border-color 0.2s;
+//   input {
+//     width: 100%;
+//     box-sizing: border-box; 
+//     padding: 0.625rem 1rem 0.625rem 2.25rem;
+//     background-color: $po-card-bg; // Ensure input is filled in dark mode
+//     color: $po-text-main;
+//     border: 1px solid $po-border-color;
+//     border-radius: 0.5rem;
+//     font-size: 0.875rem;
+//     outline: none;
+//     height: 42px;
+//     transition: border-color 0.2s;
 
-    &::placeholder { color: $po-text-light; }
-    &:focus { border-color: $po-text-muted; }
-  }
-}
+//     &::placeholder { color: $po-text-light; }
+//     &:focus { border-color: $po-text-muted; }
+//   }
+// }
 
-// --- PO Metrics Grid ---
-.po-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+// // --- PO Metrics Grid ---
+// .po-metrics-grid {
+//   display: grid;
+//   grid-template-columns: repeat(3, 1fr);
+//   gap: 1.5rem;
+//   margin-bottom: 2rem;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+//   @media (max-width: 768px) {
+//     grid-template-columns: 1fr;
+//     gap: 1rem;
+//   }
 
-  .po-metric-card {
-    background-color: $po-card-bg;
-    border: 1px solid $po-border-color;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+//   .po-metric-card {
+//     background-color: $po-card-bg;
+//     border: 1px solid $po-border-color;
+//     border-radius: 0.75rem;
+//     padding: 1.25rem;
+//     display: flex;
+//     align-items: center;
+//     gap: 1rem;
 
-    &.outstanding {
-      border: 1px solid rgba($po-color-danger, 0.4);
-      background-color: rgba($po-color-danger, 0.05); // Replaced hard pastel #fef2f2
+//     &.outstanding {
+//       border: 1px solid rgba($po-color-danger, 0.4);
+//       background-color: rgba($po-color-danger, 0.05); // Replaced hard pastel #fef2f2
       
-      .po-card-icon { 
-        background-color: $po-border-strong; 
-        color: $po-color-danger; 
-        border: 1px solid rgba($po-color-danger, 0.2); 
-      }
-    }
+//       .po-card-icon { 
+//         background-color: $po-border-strong; 
+//         color: $po-color-danger; 
+//         border: 1px solid rgba($po-color-danger, 0.2); 
+//       }
+//     }
 
-    .po-card-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: $po-border-color; // Swapped #f1f5f9
-      color: $po-text-main; 
-    }
+//     .po-card-icon {
+//       width: 48px;
+//       height: 48px;
+//       border-radius: 0.5rem;
+//       display: flex;
+//       align-items: center;
+//       justify-content: center;
+//       background-color: $po-border-color; // Swapped #f1f5f9
+//       color: $po-text-main; 
+//     }
 
-    .po-card-info {
-      display: flex;
-      flex-direction: column;
+//     .po-card-info {
+//       display: flex;
+//       flex-direction: column;
 
-      .po-lbl { font-size: 0.8125rem; color: $po-text-muted; margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase;}
-      .po-val { font-size: 1.5rem; font-weight: 800; color: $po-text-main; letter-spacing: -0.02em; }
-    }
-  }
-}
+//       .po-lbl { font-size: 0.8125rem; color: $po-text-muted; margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase;}
+//       .po-val { font-size: 1.5rem; font-weight: 800; color: $po-text-main; letter-spacing: -0.02em; }
+//     }
+//   }
+// }
 
-// --- PO List ---
-.po-list-container {
-  background-color: transparent;
-  padding-bottom: 4rem; 
+// // --- PO List ---
+// .po-list-container {
+//   background-color: transparent;
+//   padding-bottom: 4rem; 
 
-  .po-empty-state {
-    text-align: center;
-    padding: 3rem;
-    color: $po-text-muted;
-    background-color: $po-card-bg; // Swapped white
-    border-radius: 0.75rem;
-    border: 1px dashed $po-border-color; // Used dashed border for empty states
-  }
+//   .po-empty-state {
+//     text-align: center;
+//     padding: 3rem;
+//     color: $po-text-muted;
+//     background-color: $po-card-bg; // Swapped white
+//     border-radius: 0.75rem;
+//     border: 1px dashed $po-border-color; // Used dashed border for empty states
+//   }
 
-  .po-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.25rem 0;
-    border-bottom: 1px solid $po-border-color;
-    cursor: pointer;
-    transition: opacity 0.2s;
+//   .po-row {
+//     display: flex;
+//     justify-content: space-between;
+//     align-items: center;
+//     padding: 1.25rem 0;
+//     border-bottom: 1px solid $po-border-color;
+//     cursor: pointer;
+//     transition: opacity 0.2s;
 
-    &:last-child { border-bottom: none; }
-    &:hover { opacity: 0.7; }
+//     &:last-child { border-bottom: none; }
+//     &:hover { opacity: 0.7; }
 
-    .po-left {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      overflow: hidden;
-      padding-right: 1rem;
+//     .po-left {
+//       display: flex;
+//       align-items: center;
+//       gap: 1rem;
+//       overflow: hidden;
+//       padding-right: 1rem;
 
-      .po-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
+//       .po-icon {
+//         width: 36px;
+//         height: 36px;
+//         border-radius: 50%;
+//         display: flex;
+//         align-items: center;
+//         justify-content: center;
+//         flex-shrink: 0;
 
-        // Dark mode transparent tints instead of hard pastels
-        &.paid { background-color: rgba($po-color-success, 0.15); color: $po-color-success; }
-        &.pending { background-color: rgba($po-color-danger, 0.15); color: $po-color-danger; } 
-      }
+//         // Dark mode transparent tints instead of hard pastels
+//         &.paid { background-color: rgba($po-color-success, 0.15); color: $po-color-success; }
+//         &.pending { background-color: rgba($po-color-danger, 0.15); color: $po-color-danger; } 
+//       }
 
-      .po-details {
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+//       .po-details {
+//         display: flex;
+//         flex-direction: column;
+//         overflow: hidden;
 
-        .po-vendor { 
-          font-size: 0.9375rem; font-weight: 600; color: $po-text-main; margin-bottom: 0.125rem;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-        }
-        .po-project { font-size: 0.8125rem; color: $po-text-muted; }
-      }
-    }
+//         .po-vendor { 
+//           font-size: 0.9375rem; font-weight: 600; color: $po-text-main; margin-bottom: 0.125rem;
+//           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+//         }
+//         .po-project { font-size: 0.8125rem; color: $po-text-muted; }
+//       }
+//     }
 
-    .po-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      flex-shrink: 0;
-      gap: 0.25rem;
+//     .po-right {
+//       display: flex;
+//       flex-direction: column;
+//       align-items: flex-end;
+//       flex-shrink: 0;
+//       gap: 0.25rem;
 
-      .po-amount { font-size: 1rem; font-weight: 700; color: $po-text-main; }
+//       .po-amount { font-size: 1rem; font-weight: 700; color: $po-text-main; }
       
-      .po-status-badge {
-        font-size: 0.7rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 1rem; text-transform: uppercase;
+//       .po-status-badge {
+//         font-size: 0.7rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 1rem; text-transform: uppercase;
         
-        // Dark mode transparent tints instead of hard pastels
-        &.paid { background-color: rgba($po-color-success, 0.15); color: $po-color-success; }
-        &.pending { background-color: rgba($po-color-danger, 0.15); color: $po-color-danger; } 
-      }
-    }
-  }
-}
+//         // Dark mode transparent tints instead of hard pastels
+//         &.paid { background-color: rgba($po-color-success, 0.15); color: $po-color-success; }
+//         &.pending { background-color: rgba($po-color-danger, 0.15); color: $po-color-danger; } 
+//       }
+//     }
+//   }
+// }
 
-// --- Modals (Completely Isolated) ---
-.po-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: $po-overlay-bg; // Used dark mode overlay var
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
+// // --- Modals (Completely Isolated) ---
+// .po-modal-overlay {
+//   position: fixed;
+//   inset: 0;
+//   background-color: $po-overlay-bg; // Used dark mode overlay var
+//   backdrop-filter: blur(4px);
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   z-index: 1000;
+//   padding: 1rem;
+// }
 
-.po-modal-container {
-  background-color: $po-bg-modal; // Swapped card-bg to specific modal-bg
-  color: $po-text-main;
-  border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3); // Deepened shadow
-  width: 100%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  max-height: 90dvh;
+// .po-modal-container {
+//   background-color: $po-bg-modal; // Swapped card-bg to specific modal-bg
+//   color: $po-text-main;
+//   border-radius: 1rem;
+//   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3); // Deepened shadow
+//   width: 100%;
+//   max-width: 600px;
+//   display: flex;
+//   flex-direction: column;
+//   max-height: 90dvh;
 
-  // OVERRIDE FOR MOBILE FULL SCREEN
-  @media (max-width: 768px) {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-  }
+//   // OVERRIDE FOR MOBILE FULL SCREEN
+//   @media (max-width: 768px) {
+//     position: fixed !important;
+//     top: 0 !important;
+//     left: 0 !important;
+//     right: 0 !important;
+//     bottom: 0 !important;
+//     width: 100vw !important;
+//     max-width: 100vw !important;
+//     height: 100dvh !important;
+//     max-height: 100dvh !important;
+//     border-radius: 0 !important;
+//     margin: 0 !important;
+//   }
 
-  .po-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid $po-border-strong; // Swapped border color
-    flex-shrink: 0;
+//   .po-modal-header {
+//     display: flex;
+//     justify-content: space-between;
+//     align-items: center;
+//     padding: 1.5rem;
+//     border-bottom: 1px solid $po-border-strong; // Swapped border color
+//     flex-shrink: 0;
 
-    .po-header-left {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+//     .po-header-left {
+//       display: flex;
+//       align-items: center;
+//       gap: 0.75rem;
       
-      h2 { margin: 0; font-size: 1.125rem; font-weight: 600; color: $po-text-main; }
-    }
+//       h2 { margin: 0; font-size: 1.125rem; font-weight: 600; color: $po-text-main; }
+//     }
 
-    .po-close-btn {
-      background: none;
-      border: none;
-      color: $po-text-muted;
-      cursor: pointer;
-      display: flex;
-      padding: 0.25rem;
-      border-radius: 0.375rem;
-      transition: background-color 0.2s;
+//     .po-close-btn {
+//       background: none;
+//       border: none;
+//       color: $po-text-muted;
+//       cursor: pointer;
+//       display: flex;
+//       padding: 0.25rem;
+//       border-radius: 0.375rem;
+//       transition: background-color 0.2s;
 
-      &:hover { 
-        color: $po-text-main; 
-        background-color: $po-border-strong; // Enhanced hover effect
-      }
-    }
-  }
+//       &:hover { 
+//         color: $po-text-main; 
+//         background-color: $po-border-strong; // Enhanced hover effect
+//       }
+//     }
+//   }
 
-  .po-modal-form {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0; 
-  }
+//   .po-modal-form {
+//     display: flex;
+//     flex-direction: column;
+//     flex: 1;
+//     min-height: 0; 
+//   }
 
-  .po-form-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
+//   .po-form-content {
+//     flex: 1;
+//     overflow-y: auto;
+//     padding: 1.5rem;
 
-    @media (max-width: 768px) {
-      padding: 1.25rem 1rem 8rem 1rem; 
-    }
-  }
+//     @media (max-width: 768px) {
+//       padding: 1.25rem 1rem 8rem 1rem; 
+//     }
+//   }
 
-  .po-modal-footer {
-    background-color: $po-bg-modal; // Swapped white
-    border-top: 1px solid $po-border-strong; // Swapped standard border for strong
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    box-shadow: 0 -4px 15px -1px rgba(0,0,0,0.4); // Deepened shadow for dark mode
-    flex-shrink: 0;
+//   .po-modal-footer {
+//     background-color: $po-bg-modal; // Swapped white
+//     border-top: 1px solid $po-border-strong; // Swapped standard border for strong
+//     padding: 1.25rem 1.5rem;
+//     display: flex;
+//     justify-content: flex-end;
+//     gap: 1rem;
+//     box-shadow: 0 -4px 15px -1px rgba(0,0,0,0.4); // Deepened shadow for dark mode
+//     flex-shrink: 0;
 
-    @media (max-width: 768px) { padding: 1rem; }
+//     @media (max-width: 768px) { padding: 1rem; }
 
-    button {
-      padding: 0.625rem 1.25rem;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      height: 42px;
-    }
+//     button {
+//       padding: 0.625rem 1.25rem;
+//       border-radius: 0.5rem;
+//       font-size: 0.875rem;
+//       font-weight: 600;
+//       cursor: pointer;
+//       transition: all 0.2s;
+//       height: 42px;
+//     }
 
-    .po-btn-secondary {
-      background-color: transparent; // Swapped white
-      border: 1px solid $po-border-strong;
-      color: $po-text-main;
+//     .po-btn-secondary {
+//       background-color: transparent; // Swapped white
+//       border: 1px solid $po-border-strong;
+//       color: $po-text-main;
       
-      &:hover { background-color: $po-border-strong; } // Swapped light hover
-    }
+//       &:hover { background-color: $po-border-strong; } // Swapped light hover
+//     }
     
-    .po-btn-primary { 
-      background-color: $po-brand-primary;
-      color: $po-brand-primary-text;
-      border: none;
+//     .po-btn-primary { 
+//       background-color: $po-brand-primary;
+//       color: $po-brand-primary-text;
+//       border: none;
       
-      &:hover { opacity: 0.9; } // Swapped static dark hover for opacity
+//       &:hover { opacity: 0.9; } // Swapped static dark hover for opacity
       
-      @media (max-width: 768px) { flex: 1; }
-    }
-  }
-}
+//       @media (max-width: 768px) { flex: 1; }
+//     }
+//   }
+// }
 
-// --- Forms ---
-.po-form-group {
-  margin-bottom: 1.25rem;
+// // --- Forms ---
+// .po-form-group {
+//   margin-bottom: 1.25rem;
 
-  label {
-    display: block;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: $po-text-muted;
-    margin-bottom: 0.5rem;
-  }
+//   label {
+//     display: block;
+//     font-size: 0.8125rem;
+//     font-weight: 600;
+//     color: $po-text-muted;
+//     margin-bottom: 0.5rem;
+//   }
 
-  input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.75rem 1rem;
-    border: 1px solid $po-border-strong; // Swapped for strong border
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    color: $po-text-main;
-    outline: none;
-    background-color: $po-card-bg; // Swapped white
-    transition: border-color 0.2s, box-shadow 0.2s;
-    height: 42px; 
-    appearance: none;
-    -webkit-appearance: none;
-    font-family: inherit;
+//   input {
+//     width: 100%;
+//     box-sizing: border-box;
+//     padding: 0.75rem 1rem;
+//     border: 1px solid $po-border-strong; // Swapped for strong border
+//     border-radius: 0.5rem;
+//     font-size: 0.875rem;
+//     color: $po-text-main;
+//     outline: none;
+//     background-color: $po-card-bg; // Swapped white
+//     transition: border-color 0.2s, box-shadow 0.2s;
+//     height: 42px; 
+//     appearance: none;
+//     -webkit-appearance: none;
+//     font-family: inherit;
 
-    &::placeholder { color: $po-text-light; }
+//     &::placeholder { color: $po-text-light; }
 
-    &:focus {
-      border-color: $po-text-main;
-      box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); // Adapted to light transparent ring
-    }
-  }
-}
+//     &:focus {
+//       border-color: $po-text-main;
+//       box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15); // Adapted to light transparent ring
+//     }
+//   }
+// }
 
-.po-standard-select {
-  width: 100%; 
-  box-sizing: border-box; 
-  padding: 0.625rem 0.75rem; 
-  border: 1px solid $po-border-strong; 
-  border-radius: 0.375rem; 
-  font-size: 0.875rem; 
-  outline: none; 
-  height: 42px; 
-  cursor: pointer; 
-  background-color: $po-card-bg; // Swapped white
-  color: $po-text-main;
-  appearance: none; 
-  -webkit-appearance: none;
+// .po-standard-select {
+//   width: 100%; 
+//   box-sizing: border-box; 
+//   padding: 0.625rem 0.75rem; 
+//   border: 1px solid $po-border-strong; 
+//   border-radius: 0.375rem; 
+//   font-size: 0.875rem; 
+//   outline: none; 
+//   height: 42px; 
+//   cursor: pointer; 
+//   background-color: $po-card-bg; // Swapped white
+//   color: $po-text-main;
+//   appearance: none; 
+//   -webkit-appearance: none;
   
-  &:focus { 
-    border-color: $po-text-main;
-    box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15);
-  }
+//   &:focus { 
+//     border-color: $po-text-main;
+//     box-shadow: 0 0 0 2px rgba(241, 245, 249, 0.15);
+//   }
 
-  option {
-    background-color: $po-card-bg; // Ensure select options are dark
-    color: $po-text-main;
-  }
-}
+//   option {
+//     background-color: $po-card-bg; // Ensure select options are dark
+//     color: $po-text-main;
+//   }
+// }
 
-// --- Receipt View Styles ---
-.po-receipt-content {
-  padding: 1.5rem;
-  flex: 1; 
-  overflow-y: auto; 
+// // --- Receipt View Styles ---
+// .po-receipt-content {
+//   padding: 1.5rem;
+//   flex: 1; 
+//   overflow-y: auto; 
   
-  @media (max-width: 768px) {
-    padding-bottom: 8rem; // Safe area
-  }
+//   @media (max-width: 768px) {
+//     padding-bottom: 8rem; // Safe area
+//   }
 
-  .po-receipt-amount-large {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem 0 2rem 0;
-    border-bottom: 1px dashed $po-border-strong; // Swapped border
-    margin-bottom: 1.5rem;
+//   .po-receipt-amount-large {
+//     display: flex;
+//     flex-direction: column;
+//     align-items: center;
+//     justify-content: center;
+//     padding: 1.5rem 0 2rem 0;
+//     border-bottom: 1px dashed $po-border-strong; // Swapped border
+//     margin-bottom: 1.5rem;
 
-    .po-val { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+//     .po-val { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
     
-    .po-status { 
-      font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 1rem; text-transform: uppercase;
+//     .po-status { 
+//       font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 1rem; text-transform: uppercase;
       
-      // Adapted hardcoded pastels to transparent rgba tints
-      &.paid { color: $po-color-success; background-color: rgba($po-color-success, 0.15); }
-      &.pending { color: $po-color-danger; background-color: rgba($po-color-danger, 0.15); }
-    }
-  }
+//       // Adapted hardcoded pastels to transparent rgba tints
+//       &.paid { color: $po-color-success; background-color: rgba($po-color-success, 0.15); }
+//       &.pending { color: $po-color-danger; background-color: rgba($po-color-danger, 0.15); }
+//     }
+//   }
 
-  .po-receipt-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    margin-bottom: 2rem;
+//   .po-receipt-grid {
+//     display: flex;
+//     flex-direction: column;
+//     gap: 1.25rem;
+//     margin-bottom: 2rem;
 
-    .po-receipt-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 1rem;
+//     .po-receipt-row {
+//       display: flex;
+//       justify-content: space-between;
+//       align-items: flex-start;
+//       gap: 1rem;
 
-      .po-lbl { font-size: 0.875rem; color: $po-text-muted; font-weight: 500; }
-      .po-val { font-size: 0.9375rem; font-weight: 600; color: $po-text-main; text-align: right; word-break: break-word;}
-    }
-  }
+//       .po-lbl { font-size: 0.875rem; color: $po-text-muted; font-weight: 500; }
+//       .po-val { font-size: 0.9375rem; font-weight: 600; color: $po-text-main; text-align: right; word-break: break-word;}
+//     }
+//   }
 
-  .po-modal-actions-centered {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    border-top: 1px solid $po-border-strong; // Swapped border
-    padding-top: 1.5rem;
+//   .po-modal-actions-centered {
+//     display: flex;
+//     flex-direction: column;
+//     align-items: center;
+//     gap: 0.75rem;
+//     border-top: 1px solid $po-border-strong; // Swapped border
+//     padding-top: 1.5rem;
 
-    .po-full-width {
-      width: 100%;
-      padding: 0.875rem;
-      font-size: 1rem;
-      font-weight: 600;
-    }
+//     .po-full-width {
+//       width: 100%;
+//       padding: 0.875rem;
+//       font-size: 1rem;
+//       font-weight: 600;
+//     }
 
-    .po-helper-text {
-      font-size: 0.75rem;
-      color: $po-text-muted;
-      text-align: center;
-      margin: 0;
-    }
-  }
-}
+//     .po-helper-text {
+//       font-size: 0.75rem;
+//       color: $po-text-muted;
+//       text-align: center;
+//       margin: 0;
+//     }
+//   }
+// }
