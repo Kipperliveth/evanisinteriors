@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
-import { Search, Plus, X, User, ArrowDownRight, ArrowUpRight, CheckCircle2, Wallet } from 'lucide-react';
+import { Search, Plus, X, User, ArrowDownRight, ArrowUpRight, CheckCircle2, Wallet, Edit2, Trash2 } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
-import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, orderBy, query, where, increment } from "firebase/firestore"; 
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where, increment } from "firebase/firestore"; 
 import { txtdb } from '../../../firebase-config';
 
 function Projects() {
@@ -16,6 +16,7 @@ function Projects() {
   // Modals state
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [editingTx, setEditingTx] = useState(null); // Tracks which transaction is currently being edited
   
   // Forms state
   const [newProjectForm, setNewProjectForm] = useState({ name: '', amount: '', amountPaid: '', costOfProduction: '' });
@@ -33,6 +34,20 @@ function Projects() {
     show: false 
   };
   const [newItemForm, setNewItemForm] = useState(emptyItemForm);
+
+  // Inline input styles for the edit form
+  const editInputStyle = {
+    width: '100%',
+    padding: '0.625rem 0.75rem',
+    borderRadius: '0.375rem',
+    border: '1px solid #334155',
+    backgroundColor: '#0b1120',
+    color: '#f1f5f9',
+    fontSize: '0.875rem',
+    outline: 'none',
+    boxSizing: 'border-box',
+    marginTop: '0.25rem'
+  };
 
   // --- 1. INITIAL FETCH: PROJECTS & WORKERS ---
   useEffect(() => {
@@ -84,6 +99,7 @@ function Projects() {
         });
 
         setProjectTransactions(txData);
+        setEditingTx(null); // Reset edit state if project changes
       } catch (error) {
         console.error("Error fetching project transactions: ", error);
       }
@@ -105,6 +121,20 @@ function Projects() {
   const filteredProjects = projects.filter(project => 
     (project.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getWorkerProjectDebt = (workerId) => {
+    let owed = 0;
+    projectTransactions.forEach(tx => {
+      if (tx.type === 'expense' && tx.vendorId === workerId) {
+        if (tx.isRepayment) {
+          owed -= Number(tx.amount || 0);
+        } else {
+          owed += Number(tx.balanceAmount || 0);
+        }
+      }
+    });
+    return Math.max(0, owed);
+  };
 
   // --- 3. CREATE NEW CUSTOMER PROJECT ---
   const handleCreateProject = async (e) => {
@@ -152,8 +182,6 @@ function Projects() {
   };
 
   // --- 4. LOG WORKER ALLOCATION ---
-  // Budget (project expenses) = CASH PAID OUT only. Every payment counts: deposits AND repayments.
-  // Worker balance = what we still owe them. Tracked separately, never touches the budget.
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!newItemForm.description || !newItemForm.workerId || !newItemForm.amountPaidNow) return;
@@ -166,39 +194,32 @@ function Projects() {
       return;
     }
 
-    // Budget always takes the cash that leaves the bank
     const projectExpenseToAdd = cashPaidOut;
-
-    // Worker debt calculation
     let balanceToAdd = 0;
 
     if (isRepay) {
-      const worker = workers.find(w => w.id === newItemForm.workerId);
-      const owed = worker?.outstandingBalance || 0;
-
-      if (cashPaidOut > owed) {
-        alert(`This worker is only owed ${formatCurrency(owed)}. You can't repay more than that.`);
+      const owedHere = getWorkerProjectDebt(newItemForm.workerId);
+      if (cashPaidOut > owedHere) {
+        alert(`This worker is only owed ${formatCurrency(owedHere)} on this project. You cannot repay more than what is owed here.`);
         return;
       }
-      balanceToAdd = -cashPaidOut; // reduces what we owe them
+      balanceToAdd = -cashPaidOut; 
     } else if (newItemForm.hasBalance) {
       const balanceOwed = parseFloat(newItemForm.balanceOwed) || 0;
-
       if (balanceOwed <= 0) {
         alert("Please enter the balance still owed to the worker.");
         return;
       }
-      balanceToAdd = balanceOwed; // exactly what you type in the yellow box
+      balanceToAdd = balanceOwed; 
     }
 
     let finalWorkerId = newItemForm.workerId;
     let finalWorkerName = '';
 
     try {
-      // 1. Worker setup & balance adjustments
       if (finalWorkerId === 'new') {
         if (!newItemForm.newWorkerName.trim()) {
-          alert("Please enter a name for the new worker or expense category.");
+          alert("Please enter a name for the new worker.");
           return;
         }
 
@@ -224,21 +245,16 @@ function Projects() {
         finalWorkerName = assignedWorker.name;
 
         const workerRef = doc(txtdb, "vendors", finalWorkerId);
-        
         await updateDoc(workerRef, { 
           outstandingBalance: increment(balanceToAdd),
           totalSpent: increment(cashPaidOut) 
         });
 
-        // Keep local worker balance in sync
         setWorkers(workers.map(w => 
-          w.id === finalWorkerId 
-            ? { ...w, outstandingBalance: (w.outstandingBalance || 0) + balanceToAdd } 
-            : w
+          w.id === finalWorkerId ? { ...w, outstandingBalance: (w.outstandingBalance || 0) + balanceToAdd } : w
         ));
       }
 
-      // 2. Log transaction (cash out)
       const newTx = {
         date: new Date().toISOString().split('T')[0],
         description: newItemForm.description, 
@@ -255,7 +271,6 @@ function Projects() {
       };
       const txRef = await addDoc(collection(txtdb, "transactions"), newTx);
 
-      // 3. Update project expenses (every payment counts, including repayments)
       const projectRef = doc(txtdb, "projects", selectedProject.id);
       await updateDoc(projectRef, { expenses: increment(projectExpenseToAdd) });
 
@@ -264,8 +279,6 @@ function Projects() {
       setProjects(projects.map(p => p.id === selectedProject.id ? { ...p, expenses: (p.expenses || 0) + projectExpenseToAdd } : p));
 
       setProjectTransactions([{ id: txRef.id, ...newTx, createdAt: new Date() }, ...projectTransactions]);
-      
-      // Reset form
       setNewItemForm(emptyItemForm);
 
     } catch (error) {
@@ -310,6 +323,122 @@ function Projects() {
     }
   };
 
+  // --- 6. EDIT TRANSACTIONS LOGIC ---
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingTx.description || !editingTx.amount) return;
+
+    const newAmt = parseFloat(editingTx.amount) || 0;
+    const newBal = parseFloat(editingTx.balanceAmount) || 0;
+    
+    const originalTx = projectTransactions.find(t => t.id === editingTx.id);
+    const oldAmt = parseFloat(originalTx.amount) || 0;
+    const oldBal = parseFloat(originalTx.balanceAmount) || 0;
+
+    const deltaAmt = newAmt - oldAmt;
+    const deltaBal = newBal - oldBal;
+
+    try {
+      // 1. Update Transaction Details
+      await updateDoc(doc(txtdb, "transactions", editingTx.id), {
+        description: editingTx.description,
+        amount: newAmt,
+        balanceAmount: newBal
+      });
+
+      // 2. Update Project Totals
+      if (editingTx.type === 'income') {
+        await updateDoc(doc(txtdb, "projects", selectedProject.id), { amountPaid: increment(deltaAmt) });
+        setSelectedProject(prev => ({...prev, amountPaid: prev.amountPaid + deltaAmt}));
+        setProjects(prev => prev.map(p => p.id === selectedProject.id ? {...p, amountPaid: p.amountPaid + deltaAmt} : p));
+      } else if (editingTx.type === 'expense') {
+        await updateDoc(doc(txtdb, "projects", selectedProject.id), { expenses: increment(deltaAmt) });
+        setSelectedProject(prev => ({...prev, expenses: prev.expenses + deltaAmt}));
+        setProjects(prev => prev.map(p => p.id === selectedProject.id ? {...p, expenses: p.expenses + deltaAmt} : p));
+
+        // 3. Update Vendor Totals
+        if (editingTx.vendorId) {
+          const vendorRef = doc(txtdb, "vendors", editingTx.vendorId);
+          if (editingTx.isRepayment) {
+            // Repaying MORE means debt goes DOWN further
+            await updateDoc(vendorRef, { outstandingBalance: increment(-deltaAmt) });
+          } else {
+            await updateDoc(vendorRef, { totalSpent: increment(deltaAmt), outstandingBalance: increment(deltaBal) });
+          }
+          
+          setWorkers(prev => prev.map(w => {
+            if (w.id === editingTx.vendorId) {
+              if (editingTx.isRepayment) {
+                return {...w, outstandingBalance: (w.outstandingBalance || 0) - deltaAmt};
+              } else {
+                return {...w, outstandingBalance: (w.outstandingBalance || 0) + deltaBal};
+              }
+            }
+            return w;
+          }));
+        }
+      }
+
+      setProjectTransactions(prev => prev.map(t => t.id === editingTx.id ? {...t, description: editingTx.description, amount: newAmt, balanceAmount: newBal} : t));
+      setEditingTx(null);
+
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      alert("Failed to update transaction.");
+    }
+  };
+
+  const handleDeleteTx = async () => {
+    if(!window.confirm("Are you sure you want to delete this transaction? This will automatically reverse its effects on the project and worker balances.")) return;
+
+    const oldAmt = parseFloat(editingTx.amount) || 0;
+    const oldBal = parseFloat(editingTx.balanceAmount) || 0;
+
+    try {
+      await deleteDoc(doc(txtdb, "transactions", editingTx.id));
+
+      if (editingTx.type === 'income') {
+        await updateDoc(doc(txtdb, "projects", selectedProject.id), { amountPaid: increment(-oldAmt) });
+        setSelectedProject(prev => ({...prev, amountPaid: prev.amountPaid - oldAmt}));
+        setProjects(prev => prev.map(p => p.id === selectedProject.id ? {...p, amountPaid: p.amountPaid - oldAmt} : p));
+        
+      } else if (editingTx.type === 'expense') {
+        await updateDoc(doc(txtdb, "projects", selectedProject.id), { expenses: increment(-oldAmt) });
+        setSelectedProject(prev => ({...prev, expenses: prev.expenses - oldAmt}));
+        setProjects(prev => prev.map(p => p.id === selectedProject.id ? {...p, expenses: p.expenses - oldAmt} : p));
+
+        if (editingTx.vendorId) {
+          const vendorRef = doc(txtdb, "vendors", editingTx.vendorId);
+          if (editingTx.isRepayment) {
+            // Reversing a repayment means the worker's debt goes back UP
+            await updateDoc(vendorRef, { outstandingBalance: increment(oldAmt) });
+          } else {
+            await updateDoc(vendorRef, { totalSpent: increment(-oldAmt), outstandingBalance: increment(-oldBal) });
+          }
+          
+          setWorkers(prev => prev.map(w => {
+            if (w.id === editingTx.vendorId) {
+              if (editingTx.isRepayment) {
+                return {...w, outstandingBalance: (w.outstandingBalance || 0) + oldAmt};
+              } else {
+                return {...w, outstandingBalance: (w.outstandingBalance || 0) - oldBal};
+              }
+            }
+            return w;
+          }));
+        }
+      }
+
+      setProjectTransactions(prev => prev.filter(t => t.id !== editingTx.id));
+      setEditingTx(null);
+
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      alert("Failed to delete transaction.");
+    }
+  };
+
+
   const selectedWorker = workers.find(w => w.id === newItemForm.workerId);
 
   return (
@@ -346,7 +475,12 @@ function Projects() {
 
         <div className="pj-table-container">
           {isLoading ? (
-            // SKELETON LOADER
+            // In Projects.jsx, find this line inside the .pj-table-container:
+//
+//   <div className="pj-empty-state">Loading ledger...</div>
+//
+// and replace it with everything below this comment:
+
             <table className="pj-ledger-table" aria-busy="true">
               <thead>
                 <tr>
@@ -431,7 +565,7 @@ function Projects() {
               <div className="pj-form-row">
                 <div className="pj-form-group">
                   <label>Total Amount (₦)</label>
-                  <input type="number" min="0" step="0.01" placeholder="Total amount agreed" value={newProjectForm.amount} onChange={(e) => setNewProjectForm({...newProjectForm, amount: e.target.value})} required />
+                  <input type="number" min="0" step="0.01" placeholder="Total agreed" value={newProjectForm.amount} onChange={(e) => setNewProjectForm({...newProjectForm, amount: e.target.value})} required />
                 </div>
                 <div className="pj-form-group">
                   <label>Amount Paid (Deposit)</label>
@@ -564,13 +698,34 @@ function Projects() {
                     <p className="empty-text">No payments logged yet.</p>
                   ) : (
                     projectTransactions.filter(t => t.type === 'income').map(tx => (
-                      <div key={tx.id} className="pj-list-item">
-                        <div className="item-info">
-                          <strong>{tx.description}</strong>
-                          <span>{tx.date}</span>
+                      editingTx?.id === tx.id ? (
+                        <form key={tx.id} onSubmit={handleSaveEdit} className="pj-list-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem', backgroundColor: '#0f172a', border: '1px solid #3b82f6', borderRadius: '0.5rem', padding: '1rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Description</label>
+                            <input type="text" value={editingTx.description} onChange={e => setEditingTx({...editingTx, description: e.target.value})} style={editInputStyle} required />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Amount Received</label>
+                            <input type="number" value={editingTx.amount} onChange={e => setEditingTx({...editingTx, amount: e.target.value})} style={editInputStyle} required />
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                            <button type="button" onClick={handleDeleteTx} className="pj-btn-secondary small" style={{ color: '#ef4444', borderColor: 'transparent', padding: '0.25rem 0.5rem' }}><Trash2 size={16}/></button>
+                            <button type="button" onClick={() => setEditingTx(null)} className="pj-btn-secondary small">Cancel</button>
+                            <button type="submit" className="pj-btn-primary small">Save</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div key={tx.id} className="pj-list-item" style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onClick={() => setEditingTx({ ...tx })}>
+                          <div className="item-info">
+                            <strong>{tx.description}</strong>
+                            <span>{tx.date}</span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                            <strong className="item-cost text-success">+{formatCurrency(tx.amount)}</strong>
+                            <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }}><Edit2 size={10}/> Edit</span>
+                          </div>
                         </div>
-                        <strong className="item-cost text-success">+{formatCurrency(tx.amount)}</strong>
-                      </div>
+                      )
                     ))
                   )}
                 </div>
@@ -590,13 +745,16 @@ function Projects() {
                     <input type="text" placeholder="Item Name (e.g. 6x6 Bedframe)" value={newItemForm.description} onChange={e => setNewItemForm({...newItemForm, description: e.target.value})} required/>
                     
                     <select value={newItemForm.workerId} onChange={e => setNewItemForm({...newItemForm, workerId: e.target.value, hasBalance: false, isRepayment: false})} required>
-                      <option value="" disabled>Assign Worker / Vendor</option>
+                      <option value="" disabled>Assign Worker</option>
                       <option value="new">+ Add New / Temp Worker</option>
-                      {workers.map(w => (
-                        <option key={w.id} value={w.id}>
-                          {w.name}{w.outstandingBalance > 0 ? ` (owed ${formatCurrency(w.outstandingBalance)})` : ''}
-                        </option>
-                      ))}
+                      {workers.map(w => {
+                        const owedHere = getWorkerProjectDebt(w.id);
+                        return (
+                          <option key={w.id} value={w.id}>
+                            {w.name}{owedHere > 0 ? ` (Owed ${formatCurrency(owedHere)})` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
 
                     {/* NEW WORKER / TEMP STAFF INPUT FIELDS */}
@@ -626,7 +784,7 @@ function Projects() {
                       type="number" 
                       min="0"
                       step="0.01"
-                      placeholder="How much are you paying now? (₦)" 
+                      placeholder="How much are you paying now (₦)" 
                       value={newItemForm.amountPaidNow} 
                       onChange={e => setNewItemForm({...newItemForm, amountPaidNow: e.target.value})} 
                       required
@@ -682,7 +840,7 @@ function Projects() {
                         {newItemForm.isRepayment && (
                           <p style={{ margin: '0.5rem 0 0 1.5rem', fontSize: '0.75rem', color: '#065f46', lineHeight: 1.4 }}>
                             This will deduct from the worker's owed balance and count toward the project's spending.
-                            Currently owed: {formatCurrency(selectedWorker?.outstandingBalance || 0)}
+                            Owed here: {formatCurrency(getWorkerProjectDebt(newItemForm.workerId))}
                           </p>
                         )}
                       </div>
@@ -700,21 +858,48 @@ function Projects() {
                     <p className="empty-text">No items added yet.</p>
                   ) : (
                     projectTransactions.filter(t => t.type === 'expense').map(tx => (
-                      <div key={tx.id} className="pj-list-item">
-                        <div className="item-info">
-                          <strong>{tx.description}</strong>
-                          <span>
-                            <User size={12}/> {tx.vendorName || 'Unassigned'}
-                            {tx.isRepayment && <span style={{ marginLeft: '0.5rem', color: '#10b981', fontWeight: '600' }}>(Repayment)</span>}
-                          </span>
-                          {tx.balanceAmount > 0 && (
-                            <span className="text-warning" style={{ fontWeight: 600, marginTop: '0.125rem' }}>Owed: {formatCurrency(tx.balanceAmount)}</span>
+                      editingTx?.id === tx.id ? (
+                        <form key={tx.id} onSubmit={handleSaveEdit} className="pj-list-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.75rem', backgroundColor: '#0f172a', border: '1px solid #3b82f6', borderRadius: '0.5rem', padding: '1rem' }}>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Description</label>
+                            <input type="text" value={editingTx.description} onChange={e => setEditingTx({...editingTx, description: e.target.value})} style={editInputStyle} required />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Amount Paid (Cash Out)</label>
+                            <input type="number" value={editingTx.amount} onChange={e => setEditingTx({...editingTx, amount: e.target.value})} style={editInputStyle} required />
+                          </div>
+                          {!editingTx.isRepayment && (
+                            <div>
+                              <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Balance Owed Created</label>
+                              <input type="number" value={editingTx.balanceAmount} onChange={e => setEditingTx({...editingTx, balanceAmount: e.target.value})} style={editInputStyle} />
+                            </div>
                           )}
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                            <button type="button" onClick={handleDeleteTx} className="pj-btn-secondary small" style={{ color: '#ef4444', borderColor: 'transparent', padding: '0.25rem 0.5rem' }}><Trash2 size={16}/></button>
+                            <button type="button" onClick={() => setEditingTx(null)} className="pj-btn-secondary small">Cancel</button>
+                            <button type="submit" className="pj-btn-primary small">Save</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div key={tx.id} className="pj-list-item" style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} onClick={() => setEditingTx({ ...tx })}>
+                          <div className="item-info">
+                            <strong>{tx.description}</strong>
+                            <span>
+                              <User size={12}/> {tx.vendorName || 'Unassigned'}
+                              {tx.isRepayment && <span style={{ marginLeft: '0.5rem', color: '#10b981', fontWeight: '600' }}>(Repayment)</span>}
+                            </span>
+                            {tx.balanceAmount > 0 && (
+                              <span className="text-warning" style={{ fontWeight: 600, marginTop: '0.125rem' }}>Owed: {formatCurrency(tx.balanceAmount)}</span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                            <strong className="item-cost">
+                              {formatCurrency(tx.amount)}
+                            </strong>
+                            <span style={{ fontSize: '0.6875rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.25rem', opacity: 0.8 }}><Edit2 size={10}/> Edit</span>
+                          </div>
                         </div>
-                        <strong className="item-cost">
-                          {formatCurrency(tx.amount)}
-                        </strong>
-                      </div>
+                      )
                     ))
                   )}
                   <div className="pj-list-total">
