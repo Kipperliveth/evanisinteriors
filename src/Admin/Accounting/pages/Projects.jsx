@@ -346,7 +346,29 @@ function Projects() {
 
         <div className="pj-table-container">
           {isLoading ? (
-            <div className="pj-empty-state">Loading ledger...</div>
+            // SKELETON LOADER
+            <table className="pj-ledger-table" aria-busy="true">
+              <thead>
+                <tr>
+                  <th>Customers Name</th>
+                  <th>Amount</th>
+                  <th>Amount Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="pj-skeleton-row">
+                    <td><span className="pj-skeleton" style={{ width: '60%', height: '0.9375rem' }} /></td>
+                    <td><span className="pj-skeleton" style={{ width: '5rem', height: '0.9375rem' }} /></td>
+                    <td><span className="pj-skeleton" style={{ width: '5rem', height: '0.9375rem' }} /></td>
+                    <td><span className="pj-skeleton" style={{ width: '5rem', height: '0.9375rem' }} /></td>
+                    <td><span className="pj-skeleton" style={{ width: '4.5rem', height: '1.5rem' }} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : filteredProjects.length === 0 ? (
             <div className="pj-empty-state">No records found.</div>
           ) : (
@@ -379,7 +401,7 @@ function Projects() {
                         {isSettled ? (
                           <span className="pj-badge success"><CheckCircle2 size={12}/> Settled</span>
                         ) : (
-                          <span className="pj-badge warning">Pending</span>
+                          <span className="pj-badge warning">Active</span>
                         )}
                       </td>
                     </tr>
@@ -409,7 +431,7 @@ function Projects() {
               <div className="pj-form-row">
                 <div className="pj-form-group">
                   <label>Total Amount (₦)</label>
-                  <input type="number" min="0" step="0.01" placeholder="Total agreed" value={newProjectForm.amount} onChange={(e) => setNewProjectForm({...newProjectForm, amount: e.target.value})} required />
+                  <input type="number" min="0" step="0.01" placeholder="Total amount agreed" value={newProjectForm.amount} onChange={(e) => setNewProjectForm({...newProjectForm, amount: e.target.value})} required />
                 </div>
                 <div className="pj-form-group">
                   <label>Amount Paid (Deposit)</label>
@@ -604,7 +626,7 @@ function Projects() {
                       type="number" 
                       min="0"
                       step="0.01"
-                      placeholder="Amount Paying NOW (₦)" 
+                      placeholder="How much are you paying now? (₦)" 
                       value={newItemForm.amountPaidNow} 
                       onChange={e => setNewItemForm({...newItemForm, amountPaidNow: e.target.value})} 
                       required

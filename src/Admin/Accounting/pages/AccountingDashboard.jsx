@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
-import { Wallet, ArrowDownRight, ArrowUpRight, TrendingUp, Clock, ChevronRight, HardHat, FolderOpen, Loader } from 'lucide-react';
+import { Wallet, ArrowDownRight, ArrowUpRight, TrendingUp, Clock, ChevronRight, HardHat, FolderOpen } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { collection, getDocs, query, orderBy } from "firebase/firestore"; 
@@ -50,7 +50,7 @@ function AccountingDashboard() {
         setTotalCash(totalIncome - totalExpenses);
         setRecentTransactions(recentTx);
 
-        // 2. Calculate Pending Receivables & Active Projects (from unified Projects Ledger)
+        // 2. Calculate Pending Balances & Active Projects (from unified Projects Ledger)
         const qProj = query(collection(txtdb, "projects"), orderBy("createdAt", "desc"));
         const projSnapshot = await getDocs(qProj);
         
@@ -61,7 +61,6 @@ function AccountingDashboard() {
         projSnapshot.docs.forEach(doc => {
           const data = doc.data();
           
-          // Math for Receivables
           const billed = Number(data.billed) || 0;
           const paid = Number(data.amountPaid) || 0;
           const balance = billed - paid;
@@ -71,7 +70,6 @@ function AccountingDashboard() {
             owingClientsCount++;
           }
 
-          // Math for Active Projects
           if (data.status === 'active') {
             activeProjList.push({ id: doc.id, ...data });
           }
@@ -80,7 +78,6 @@ function AccountingDashboard() {
         setReceivables(totalOwedByClients);
         setClientsOwingCount(owingClientsCount);
 
-        // Sort projects by highest budget usage percentage
         activeProjList.sort((a, b) => {
           const percentA = a.costOfProduction > 0 ? ((a.expenses || 0) / a.costOfProduction) : 0;
           const percentB = b.costOfProduction > 0 ? ((b.expenses || 0) / b.costOfProduction) : 0;
@@ -124,9 +121,7 @@ function AccountingDashboard() {
     const dateObj = new Date(dateString);
     const today = new Date();
     
-    // Reset time portion for accurate day comparison
     const isToday = dateObj.setHours(0,0,0,0) === today.setHours(0,0,0,0);
-    
     if (isToday) return 'Today';
     
     const yesterday = new Date(today);
@@ -134,6 +129,16 @@ function AccountingDashboard() {
     if (dateObj.setHours(0,0,0,0) === yesterday.setHours(0,0,0,0)) return 'Yesterday';
 
     return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  // Short "where did the money go" line: project + who was paid (or what kind of income)
+  const getTxSubtitle = (tx) => {
+    const parts = [tx.project || 'Unknown Project'];
+    if (tx.type === 'expense' && tx.vendorName) parts.push(`Paid to: ${tx.vendorName}`);
+    else parts.push(tx.category || 'Uncategorized');
+    if (tx.isReimbursable) parts.push('Reimbursable');
+    if (tx.isReimbursement) parts.push('Reimbursement');
+    return parts.join(' • ');
   };
 
   return (
@@ -150,18 +155,77 @@ function AccountingDashboard() {
         </header>
 
         {isLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#64748b', gap: '0.5rem' }}>
-            <Loader className="animate-spin" size={24} /> Syncing financials...
+          // --- SKELETON LOADER ---
+          <div aria-busy="true">
+            <div className="dash-metrics-grid">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="dash-metric-card">
+                  <div className="dash-card-header">
+                    <span className="dash-skeleton" style={{ width: '7rem', height: '0.75rem' }} />
+                    <span className="dash-skeleton" style={{ width: '18px', height: '18px' }} />
+                  </div>
+                  <div className="dash-card-body">
+                    <span className="dash-skeleton" style={{ width: '9rem', height: '1.5rem' }} />
+                    <span className="dash-skeleton" style={{ width: '11rem', height: '0.75rem', marginTop: '0.5rem' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="dash-bottom-grid">
+              <div className="dash-section-card">
+                <div className="dash-section-header">
+                  <span className="dash-skeleton" style={{ width: '9rem', height: '1rem' }} />
+                  <span className="dash-skeleton" style={{ width: '4.5rem', height: '1rem' }} />
+                </div>
+                <div className="dash-alerts-list">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="dash-alert-item">
+                      <div className="dash-alert-info">
+                        <span className="dash-skeleton" style={{ width: '9rem', height: '0.875rem' }} />
+                        <span className="dash-skeleton" style={{ width: '5rem', height: '0.75rem' }} />
+                      </div>
+                      <div className="dash-progress-container">
+                        <span className="dash-skeleton" style={{ flex: 1, height: '6px' }} />
+                        <span className="dash-skeleton" style={{ width: '7rem', height: '0.8125rem' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="dash-section-card">
+                <div className="dash-section-header">
+                  <span className="dash-skeleton" style={{ width: '8rem', height: '1rem' }} />
+                  <span className="dash-skeleton" style={{ width: '3.5rem', height: '0.75rem' }} />
+                </div>
+                <div className="dash-activity-list">
+                  {[0, 1, 2, 3, 4].map(i => (
+                    <div key={i} className="dash-activity-item">
+                      <span className="dash-skeleton dash-skeleton-circle" />
+                      <div className="dash-activity-details">
+                        <span className="dash-skeleton" style={{ width: '60%', height: '0.875rem', marginBottom: '0.375rem' }} />
+                        <span className="dash-skeleton" style={{ width: '80%', height: '0.75rem' }} />
+                      </div>
+                      <div className="dash-activity-right">
+                        <span className="dash-skeleton" style={{ width: '4.5rem', height: '0.875rem', marginBottom: '0.375rem' }} />
+                        <span className="dash-skeleton" style={{ width: '3rem', height: '0.75rem' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <>
-            {/* --- 1. CORE FINANCIAL SNAPSHOT (Clickable) --- */}
+            {/* --- 1. CORE FINANCIAL SNAPSHOT --- */}
             <div className="dash-metrics-grid">
               
-              <div className="dash-metric-card highlight interactive" onClick={() => navigate('/transactions')}>
+              <div className="dash-metric-card interactive" onClick={() => navigate('/transactions')}>
                 <div className="dash-card-header">
                   <h3>Total Cash Balance</h3>
-                  <div className="dash-icon-wrapper"><Wallet size={20} /></div>
+                  <div className="dash-icon-wrapper"><Wallet size={18} /></div>
                 </div>
                 <div className="dash-card-body">
                   <span className={`dash-value ${totalCash < 0 ? 'dash-text-danger' : ''}`}>
@@ -171,25 +235,24 @@ function AccountingDashboard() {
                 </div>
               </div>
 
-              {/* ROUTE UPDATED TO /projects */}
-              <div className="dash-metric-card success interactive" onClick={() => navigate('/projects')}>
+              <div className="dash-metric-card interactive" onClick={() => navigate('/projects')}>
                 <div className="dash-card-header">
-                  <h3>Pending Receivables</h3>
-                  <div className="dash-icon-wrapper"><ArrowDownRight size={20} /></div>
+                  <h3>Pending Balances</h3>
+                  <div className="dash-icon-wrapper success"><ArrowDownRight size={18} /></div>
                 </div>
                 <div className="dash-card-body">
-                  <span className="dash-value">{formatCurrency(receivables)}</span>
+                  <span className="dash-value dash-text-success">{formatCurrency(receivables)}</span>
                   <span className="dash-subtitle">Outstanding from ({clientsOwingCount}) clients</span>
                 </div>
               </div>
 
-              <div className="dash-metric-card danger interactive" onClick={() => navigate('/vendors')}>
+              <div className="dash-metric-card interactive" onClick={() => navigate('/vendors')}>
                 <div className="dash-card-header">
                   <h3>Unpaid Workers & Bills</h3>
-                  <div className="dash-icon-wrapper"><HardHat size={20} /></div>
+                  <div className="dash-icon-wrapper danger"><HardHat size={18} /></div>
                 </div>
                 <div className="dash-card-body">
-                  <span className="dash-value">{formatCurrency(payables)}</span>
+                  <span className="dash-value dash-text-danger">{formatCurrency(payables)}</span>
                   <span className="dash-subtitle">Total worker balances owed</span>
                 </div>
               </div>
@@ -202,17 +265,16 @@ function AccountingDashboard() {
               <div className="dash-section-card interactive-section" onClick={() => navigate('/projects')}>
                 <div className="dash-section-header">
                   <div className="dash-title-group">
-                    <FolderOpen size={20} className="dash-text-main" />
+                    <FolderOpen size={18} className="dash-text-main" />
                     <h2>Active Projects</h2>
                   </div>
                   <span className="dash-badge neutral">{activeProjects.length} Ongoing</span>
                 </div>
                 
                 <div className="dash-alerts-list">
-                  <p className="dash-helper-text">Latest internal budget tracking for active jobs.</p>
                   
                   {activeProjects.length === 0 ? (
-                    <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginTop: '1rem' }}>No active projects found.</p>
+                    <p style={{ color: '#94a3b8', fontSize: '0.8125rem' }}>No active projects found.</p>
                   ) : (
                     activeProjects.map(project => {
                       const percentUsed = project.costOfProduction > 0 ? ((project.expenses || 0) / project.costOfProduction) * 100 : 0;
@@ -253,35 +315,38 @@ function AccountingDashboard() {
               <div className="dash-section-card interactive-section" onClick={() => navigate('/transactions')}>
                 <div className="dash-section-header">
                   <div className="dash-title-group">
-                    <Clock size={20} className="dash-text-muted" />
+                    <Clock size={18} className="dash-text-muted" />
                     <h2>Recent Activity</h2>
                   </div>
+                  {/* VIEW ALL BUTTON MOVED HERE */}
+                  {recentTransactions.length > 0 && (
+                    <button className="dash-view-all-btn" onClick={(e) => { e.stopPropagation(); navigate('/transactions'); }}>
+                      View all <ChevronRight size={14} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="dash-activity-list">
                   {recentTransactions.length === 0 ? (
-                    <p style={{ color: '#94a3b8', fontSize: '0.875rem', padding: '1rem 0' }}>No transactions logged yet.</p>
+                    <p style={{ color: '#94a3b8', fontSize: '0.8125rem', padding: '1rem 0' }}>No transactions logged yet.</p>
                   ) : (
                     recentTransactions.map(tx => (
                       <div key={tx.id} className="dash-activity-item">
                         <div className={`dash-activity-icon ${tx.type}`}>
-                          {tx.type === 'income' ? <TrendingUp size={16} /> : <ArrowUpRight size={16} />}
+                          {tx.type === 'income' ? <TrendingUp size={14} /> : <ArrowUpRight size={14} />}
                         </div>
                         <div className="dash-activity-details">
-                          <span className="dash-desc">{tx.description || 'Unnamed'}</span>
-                          <span className="dash-date">{formatTxDate(tx.date)}</span>
+                          <span className="dash-desc">{(tx.description || '').trim() || 'Unnamed'}</span>
+                          <span className="dash-tx-meta">{getTxSubtitle(tx)}</span>
                         </div>
-                        <div className={`dash-activity-amount ${tx.type === 'income' ? 'dash-text-success' : 'dash-text-main'}`}>
-                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount || 0)}
+                        <div className="dash-activity-right">
+                          <span className={`dash-activity-amount ${tx.type === 'income' ? 'dash-text-success' : 'dash-text-main'}`}>
+                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount || 0)}
+                          </span>
+                          <span className="dash-date">{formatTxDate(tx.date)}</span>
                         </div>
                       </div>
                     ))
-                  )}
-                  
-                  {recentTransactions.length > 0 && (
-                    <button className="dash-view-all-btn">
-                      View all transactions <ChevronRight size={16} />
-                    </button>
                   )}
                 </div>
               </div>

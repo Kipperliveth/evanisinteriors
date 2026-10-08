@@ -39,6 +39,7 @@ function Transactions() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
 
+  const [expandedProject, setExpandedProject] = useState(null); 
   const [selectedTransaction, setSelectedTransaction] = useState(null); 
   const [isUpdatingTag, setIsUpdatingTag] = useState(false);
   
@@ -103,7 +104,6 @@ function Transactions() {
   const filteredTransactions = transactions.filter(t => {
     const searchLower = searchQuery.toLowerCase();
     
-    // SAFEFALLBACK: || '' prevents crashes if description/project/vendorName is missing in old data
     const matchesSearch = (t.description || '').toLowerCase().includes(searchLower) || 
                           (t.project || '').toLowerCase().includes(searchLower) ||
                           (t.vendorName || '').toLowerCase().includes(searchLower);
@@ -113,7 +113,6 @@ function Transactions() {
 
     let matchesTime = true;
     
-    // SAFEFALLBACK: Handle old transactions that might be missing a date string
     const tDate = t.date ? new Date(t.date) : new Date(); 
     const now = new Date();
     
@@ -126,16 +125,57 @@ function Transactions() {
     return matchesSearch && matchesCategory && matchesProject && matchesTime;
   });
 
-  // SAFEFALLBACK: Ensure valid dates for sorting
+  // INNER SORTING: Sort individual transactions newest to oldest
   filteredTransactions.sort((a, b) => {
     const dateA = a.date ? new Date(a.date).getTime() : 0;
     const dateB = b.date ? new Date(b.date).getTime() : 0;
-    return dateB - dateA;
+    
+    if (dateB !== dateA) return dateB - dateA;
+    
+    // Fallback to exact creation timestamp if dates are identical
+    const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+    const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+    return timeB - timeA;
   });
 
+  // Global Totals
   const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalExpenses = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const netCashFlow = totalIncome - totalExpenses;
+
+  // --- 5. GROUP TRANSACTIONS BY PROJECT ---
+  const groupedTransactions = Object.values(
+    filteredTransactions.reduce((acc, tx) => {
+      const pId = tx.projectId || 'internal';
+      if (!acc[pId]) {
+        acc[pId] = {
+          id: pId,
+          name: tx.project || (pId === 'internal' ? 'Internal / Overhead' : 'Unknown Project'),
+          income: 0,
+          expense: 0,
+          txs: []
+        };
+      }
+      if (tx.type === 'income') acc[pId].income += (Number(tx.amount) || 0);
+      else if (tx.type === 'expense') acc[pId].expense += (Number(tx.amount) || 0);
+      
+      acc[pId].txs.push(tx);
+      return acc;
+    }, {})
+  ).sort((a, b) => {
+    // OUTER SORTING: Sort the parent project folders by their most recent transaction
+    const txA = a.txs[0];
+    const txB = b.txs[0];
+
+    const dateA = txA?.date ? new Date(txA.date).getTime() : 0;
+    const dateB = txB?.date ? new Date(txB.date).getTime() : 0;
+    
+    if (dateB !== dateA) return dateB - dateA;
+
+    const timeA = txA?.createdAt?.toDate ? txA.createdAt.toDate().getTime() : 0;
+    const timeB = txB?.createdAt?.toDate ? txB.createdAt.toDate().getTime() : 0;
+    return timeB - timeA;
+  });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount || 0);
@@ -152,13 +192,11 @@ function Transactions() {
     return opt ? opt.label : 'Current Month';
   };
 
-  // Values used by the "pass-through" tag section of the details modal
   const canTagPassThrough = !!selectedTransaction && !!selectedTransaction.projectId && selectedTransaction.projectId !== 'internal';
   const isSelectedIncome = !!selectedTransaction && selectedTransaction.type === 'income';
   const isPassThroughFlagged = !!selectedTransaction && (isSelectedIncome ? !!selectedTransaction.isReimbursement : !!selectedTransaction.isReimbursable);
 
-
-  // --- 5. TAG / UN-TAG AN EXISTING PROJECT TRANSACTION AS PASS-THROUGH ---
+  // --- 6. TAG / UN-TAG AN EXISTING PROJECT TRANSACTION AS PASS-THROUGH ---
   const handleTogglePassThrough = async (tx) => {
     if (!tx || !tx.projectId || tx.projectId === 'internal') return;
 
@@ -260,8 +298,8 @@ function Transactions() {
           <div className="filter-item proj-item">
             <Folder size={14} className="sel-icon" />
             <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
-              <option value="all">All Projects & Internal</option>
-              <option value="internal">Internal / Overhead</option>
+              <option value="all">All Projects</option>
+              <option value="internal">Internal spend</option>
               {projectsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
@@ -277,37 +315,78 @@ function Transactions() {
 
         <div className="transaction-list">
           {isLoading ? (
-            <div className="empty-state">Loading transactions from database...</div>
-          ) : filteredTransactions.length === 0 ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="project-group-card" aria-busy="true">
+                <div className="project-group-header">
+                  <div className="pg-left">
+                    <span className="tx-skeleton tx-skeleton-circle" style={{ width: '24px', height: '24px' }} />
+                    <span className="tx-skeleton" style={{ width: '12rem', height: '1.25rem' }} />
+                  </div>
+                  <div className="pg-right">
+                    <span className="tx-skeleton" style={{ width: '8rem', height: '1.25rem' }} />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : groupedTransactions.length === 0 ? (
             <div className="empty-state">No transactions match your filters.</div>
           ) : (
-            filteredTransactions.map(tx => (
-              <div 
-                key={tx.id} 
-                className="transaction-row"
-                onClick={() => setSelectedTransaction(tx)}
-              >
-                <div className="tx-left">
-                  <div className={`tx-icon ${tx.type}`}>
-                    {tx.type === 'income' ? <ArrowDown size={18} strokeWidth={2.5} /> : <ArrowUp size={18} strokeWidth={2.5} />}
+            groupedTransactions.map(group => (
+              <div key={group.id} className={`project-group-card ${expandedProject === group.id ? 'expanded' : ''}`}>
+                
+                {/* PROJECT GROUP HEADER */}
+                <div 
+                  className="project-group-header" 
+                  onClick={() => setExpandedProject(expandedProject === group.id ? null : group.id)}
+                >
+                  <div className="pg-left">
+                    <Folder size={18} className="text-muted" />
+                    <span className="pg-name">{group.name}</span>
+                    <span className="pg-count">{group.txs.length} {group.txs.length === 1 ? 'entry' : 'entries'}</span>
                   </div>
-                  <div className="tx-details">
-                    <span className="tx-title">{tx.description || 'Unnamed Transaction'}</span>
-                    <span className="tx-subtitle">
-                      {tx.project || 'Unknown Project'} &bull; {tx.category || 'Uncategorized'}
-                      {tx.vendorName && ` • Paid to: ${tx.vendorName}`}
-                      {tx.isReimbursable && ' • Reimbursable'}
-                      {tx.isReimbursement && ' • Reimbursement'}
-                    </span>
+                  <div className="pg-right">
+                    <div className="pg-totals">
+                      {group.income > 0 && <span className="text-success">In: {formatCurrency(group.income)}</span>}
+                      {group.expense > 0 && <span className="text-main">Out: {formatCurrency(group.expense)}</span>}
+                    </div>
+                    <ChevronDown size={16} className={`pg-chevron ${expandedProject === group.id ? 'open' : ''}`} />
                   </div>
                 </div>
 
-                <div className="tx-right">
-                  <span className={`tx-amount ${tx.type === 'income' ? 'text-success' : 'text-main'}`}>
-                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                  </span>
-                  <span className="tx-date">{formatDate(tx.date)}</span>
-                </div>
+                {/* PROJECT TRANSACTIONS LIST */}
+                {expandedProject === group.id && (
+                  <div className="project-group-body">
+                    {group.txs.map(tx => (
+                      <div 
+                        key={tx.id} 
+                        className="transaction-row"
+                        onClick={() => setSelectedTransaction(tx)}
+                      >
+                        <div className="tx-left">
+                          <div className={`tx-icon ${tx.type}`}>
+                            {tx.type === 'income' ? <ArrowDown size={16} strokeWidth={2.5} /> : <ArrowUp size={16} strokeWidth={2.5} />}
+                          </div>
+                          <div className="tx-details">
+                            <span className="tx-title">{tx.description || 'Unnamed Transaction'}</span>
+                            <span className="tx-subtitle">
+                              {tx.category || 'Uncategorized'}
+                              {tx.vendorName && ` • Paid to: ${tx.vendorName}`}
+                              {tx.isReimbursable && ' • Reimbursable'}
+                              {tx.isReimbursement && ' • Reimbursement'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="tx-right">
+                          <span className={`tx-amount ${tx.type === 'income' ? 'text-success' : 'text-main'}`}>
+                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                          </span>
+                          <span className="tx-date">{formatDate(tx.date)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}

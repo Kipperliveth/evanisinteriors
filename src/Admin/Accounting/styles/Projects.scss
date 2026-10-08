@@ -339,3 +339,23 @@ $overlay-bg: rgba(0, 0, 0, 0.6);
     }
   }
 }
+
+// --- Skeleton loader (add at the bottom of your existing Projects SCSS) ---
+@keyframes pj-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.pj-skeleton {
+  display: block;
+  max-width: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: pj-shimmer 1.5s linear infinite;
+}
+
+.pj-ledger-table tr.pj-skeleton-row {
+  cursor: default;
+  &:hover { background-color: transparent; }
+}
+

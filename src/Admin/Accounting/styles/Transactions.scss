@@ -261,7 +261,7 @@ $overlay-bg: rgba(0, 0, 0, 0.6);
   .cat-item { grid-area: cat; }
 }
 
-// --- Transaction List ---
+// --- TRANSACTION ACCORDION LIST ---
 .transaction-list {
   background-color: transparent;
   padding-bottom: 6rem; 
@@ -272,73 +272,158 @@ $overlay-bg: rgba(0, 0, 0, 0.6);
     padding: 3rem;
     color: $text-muted;
     background-color: $card-bg; 
-    border-radius: 0.75rem;
-    border: 1px dashed $border-color; 
+    border-radius: 0.5rem;
+    border: 1px dashed $border-strong; 
   }
 
-  .transaction-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.25rem 0;
-    border-bottom: 1px solid $border-color;
-    cursor: pointer;
-    transition: opacity 0.2s;
+  // GROUPED PROJECT CARDS
+  .project-group-card {
+    background-color: transparent;
+    border: 1px solid $border-strong;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: border-color 0.2s;
 
-    &:last-child { border-bottom: none; }
-    &:hover { opacity: 0.7; }
+    &.expanded {
+      border-color: $text-light;
+    }
 
-    .tx-left {
+    .project-group-header {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 1rem;
-      overflow: hidden;
-      padding-right: 1rem;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      background-color: $card-bg;
+      transition: background-color 0.2s;
 
-      .tx-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
+      &:hover { background-color: rgba(255, 255, 255, 0.02); }
 
-        &.income { background-color: rgba($color-success, 0.15); color: $color-success; }
-        &.expense { background-color: $border-color; color: $text-main; } 
+      @media (max-width: 500px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
       }
 
-      .tx-details {
+      .pg-left {
         display: flex;
-        flex-direction: column;
-        overflow: hidden;
-
-        .tx-title { 
-          font-size: 0.9375rem; 
-          font-weight: 600; 
-          color: $text-main; 
-          margin-bottom: 0.125rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis; 
+        align-items: center;
+        gap: 0.75rem;
+        
+        .pg-name { font-weight: 700; color: $text-main; font-size: 0.9375rem; }
+        .pg-count { 
+          font-size: 0.75rem; 
+          font-weight: 600;
+          color: $text-muted; 
+          background: $bg-modal; 
+          padding: 0.125rem 0.5rem; 
+          border-radius: 1rem; 
+          border: 1px solid $border-strong;
         }
-        .tx-subtitle { font-size: 0.8125rem; color: $text-muted; }
+      }
+
+      .pg-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        @media (max-width: 500px) {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .pg-totals {
+          display: flex;
+          gap: 1rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+
+          span {
+            background-color: $bg-modal;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+          }
+        }
+
+        .pg-chevron {
+          color: $text-muted;
+          transition: transform 0.3s ease;
+          &.open { transform: rotate(180deg); }
+        }
       }
     }
 
-    .tx-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      flex-shrink: 0;
+    .project-group-body {
+      border-top: 1px solid $border-strong;
+      background-color: transparent;
+      padding: 0 1.25rem; 
 
-      .tx-amount { 
-        font-size: 1rem; 
-        font-weight: 700; 
-        color: $text-main;
-        margin-bottom: 0.125rem; 
+      .transaction-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid $border-color;
+        cursor: pointer;
+        transition: opacity 0.2s;
+
+        &:last-child { border-bottom: none; }
+        &:hover { opacity: 0.7; }
+
+        .tx-left {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          overflow: hidden;
+          padding-right: 1rem;
+
+          .tx-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            &.income { background-color: rgba($color-success, 0.15); color: $color-success; }
+            &.expense { background-color: $border-color; color: $text-main; } 
+          }
+
+          .tx-details {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+
+            .tx-title { 
+              font-size: 0.875rem; 
+              font-weight: 600; 
+              color: $text-main; 
+              margin-bottom: 0.125rem;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis; 
+            }
+            .tx-subtitle { font-size: 0.75rem; color: $text-muted; }
+          }
+        }
+
+        .tx-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          flex-shrink: 0;
+
+          .tx-amount { 
+            font-size: 0.9375rem; 
+            font-weight: 700; 
+            color: $text-main;
+            margin-bottom: 0.125rem; 
+          }
+          .tx-date { font-size: 0.75rem; color: $text-muted; }
+        }
       }
-      .tx-date { font-size: 0.8125rem; color: $text-muted; }
     }
   }
 }
@@ -604,5 +689,24 @@ $overlay-bg: rgba(0, 0, 0, 0.6);
         color: $text-main;
       }
     }
+  }
+}
+
+// --- Skeleton loader ---
+@keyframes tx-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.tx-skeleton {
+  display: block;
+  max-width: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%;
+  animation: tx-shimmer 1.5s linear infinite;
+
+  &.tx-skeleton-circle {
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 }

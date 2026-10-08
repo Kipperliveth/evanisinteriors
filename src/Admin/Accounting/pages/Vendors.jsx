@@ -1,10 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
-import { Search, Plus, X, Users, Truck, HardHat, Briefcase, CreditCard, ArrowUpRight, Loader } from 'lucide-react';
+import { Search, Plus, X, Users, Truck, HardHat, Briefcase } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { collection, getDocs, addDoc, serverTimestamp, orderBy, query, where } from "firebase/firestore"; 
 import { txtdb } from '../../../firebase-config';
+
+const Skeleton = ({ width = '100%', height = '0.875rem' }) => (
+  <span className="vw-skeleton" style={{ width, height }} />
+);
+
+const getTime = (tx) => (tx.createdAt?.toDate ? tx.createdAt.toDate().getTime() : 0);
+
+// Repayments are applied to the oldest unpaid balances first.
+// What's left tells us which projects the worker is still owed from (newest first).
+const buildOwedProjects = (transactions) => {
+  const byVendor = {};
+  transactions.forEach(tx => {
+    if (!tx.vendorId) return;
+    if (!byVendor[tx.vendorId]) byVendor[tx.vendorId] = [];
+    byVendor[tx.vendorId].push(tx);
+  });
+
+  const result = {};
+  Object.keys(byVendor).forEach(vendorId => {
+    const list = byVendor[vendorId].sort((a, b) => getTime(a) - getTime(b)); // oldest first
+
+    let repaid = list
+      .filter(t => t.isRepayment)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const debts = list
+      .filter(t => !t.isRepayment && (t.balanceAmount || 0) > 0)
+      .map(t => ({ key: t.projectId || t.project, name: t.project || 'Unknown project', remaining: t.balanceAmount }));
+
+    debts.forEach(d => {
+      const used = Math.min(d.remaining, repaid);
+      d.remaining -= used;
+      repaid -= used;
+    });
+
+    const seen = new Set();
+    const projects = [];
+    debts
+      .filter(d => d.remaining > 0)
+      .reverse() // newest first
+      .forEach(d => {
+        if (!seen.has(d.key)) {
+          seen.add(d.key);
+          projects.push(d.name);
+        }
+      });
+
+    result[vendorId] = projects;
+  });
+
+  return result;
+};
 
 function Vendors() {
   const [vendors, setVendors] = useState([]);
@@ -12,6 +64,10 @@ function Vendors() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all'); 
+  const [showOwedOnly, setShowOwedOnly] = useState(false);
+
+  const [isLoadingOwed, setIsLoadingOwed] = useState(true);
+  const [owedProjects, setOwedProjects] = useState({}); // { vendorId: [project names, newest first] }
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -41,6 +97,18 @@ function Vendors() {
         console.error("Error fetching vendors: ", error);
       } finally {
         setIsLoading(false);
+      }
+
+      // Work out which projects each worker's outstanding balance is still coming from
+      try {
+        const txQuery = query(collection(txtdb, "transactions"), where("category", "==", "Worker Allocation"));
+        const txSnapshot = await getDocs(txQuery);
+        const allTx = txSnapshot.docs.map(document => ({ id: document.id, ...document.data() }));
+        setOwedProjects(buildOwedProjects(allTx));
+      } catch (error) {
+        console.error("Error fetching owed projects: ", error);
+      } finally {
+        setIsLoadingOwed(false);
       }
     };
 
@@ -93,11 +161,11 @@ function Vendors() {
   const filteredVendors = vendors.filter(v => {
     const matchesSearch = (v.name || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === 'all' || v.type === activeTab;
-    return matchesSearch && matchesTab;
+    const matchesOwed = !showOwedOnly || (v.outstandingBalance || 0) > 0;
+    return matchesSearch && matchesTab && matchesOwed;
   });
 
   const totalOwed = vendors.reduce((sum, v) => sum + (v.outstandingBalance || 0), 0);
-  const totalHistoricalSpend = vendors.reduce((sum, v) => sum + (v.totalSpent || 0), 0);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(amount || 0);
@@ -109,9 +177,11 @@ function Vendors() {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
-  const getInitials = (name) => {
-    if (!name) return 'V';
-    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const getOwedLabel = (vendorId) => {
+    const projects = owedProjects[vendorId] || [];
+    if (projects.length === 0) return null;
+    if (projects.length === 1) return projects[0];
+    return `${projects[0]} +${projects.length - 1} more`;
   };
 
   const getTypeIcon = (type) => {
@@ -171,6 +241,7 @@ function Vendors() {
             <button className={`vw-tab ${activeTab === 'supplier' ? 'active' : ''}`} onClick={() => setActiveTab('supplier')}>Suppliers</button>
             <button className={`vw-tab ${activeTab === 'subcontractor' ? 'active' : ''}`} onClick={() => setActiveTab('subcontractor')}>Subcontractors</button>
             <button className={`vw-tab ${activeTab === 'staff' ? 'active' : ''}`} onClick={() => setActiveTab('staff')}>Staff</button>
+            <button className={`vw-tab ${activeTab === 'temporary' ? 'active' : ''}`} onClick={() => setActiveTab('temporary')}>Temporary</button>
           </div>
 
           <div className="vw-search-box">
@@ -184,72 +255,85 @@ function Vendors() {
           </div>
         </div>
 
-        <div className="vw-metrics-grid">
-          <div className="vw-metric-card alert">
-            <div className="vw-card-icon"><ArrowUpRight size={20} /></div>
-            <div className="vw-card-info">
-              <span className="vw-lbl">Total Owed (Payables)</span>
-              <span className="vw-val vw-text-danger">{formatCurrency(totalOwed)}</span>
-            </div>
-          </div>
-          <div className="vw-metric-card">
-            <div className="vw-card-icon"><CreditCard size={20} className="vw-text-main" /></div>
-            <div className="vw-card-info">
-              <span className="vw-lbl">Total Historical Spend</span>
-              <span className="vw-val">{formatCurrency(totalHistoricalSpend)}</span>
-            </div>
-          </div>
-          <div className="vw-metric-card">
-            <div className="vw-card-icon"><Users size={20} className="vw-text-main" /></div>
-            <div className="vw-card-info">
-              <span className="vw-lbl">Active Profiles</span>
-              <span className="vw-val">{vendors.length}</span>
-            </div>
+        {/* SUMMARY STRIP */}
+        <div className="vw-summary-strip">
+          <button
+            type="button"
+            className={`vw-summary-item clickable ${showOwedOnly ? 'active' : ''}`}
+            onClick={() => setShowOwedOnly(!showOwedOnly)}
+          >
+            <span className="vw-lbl">Total Owed (Payables)</span>
+            <span className="vw-val vw-text-danger">{isLoading ? <Skeleton width="8rem" height="1.5rem" /> : formatCurrency(totalOwed)}</span>
+            <span className="vw-hint">{showOwedOnly ? 'Showing only people you owe. Click to show everyone.' : 'Click to show only people you owe.'}</span>
+          </button>
+          <div className="vw-summary-item">
+            <span className="vw-lbl">Active Profiles</span>
+            <span className="vw-val">{isLoading ? <Skeleton width="3rem" height="1.5rem" /> : vendors.length}</span>
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="vw-empty-state">Loading directory from database...</div>
-        ) : (
-          <div className="vw-directory-grid">
-            {filteredVendors.length === 0 ? (
-              <div className="vw-empty-state">No workers or vendors found.</div>
-            ) : (
-              filteredVendors.map(vendor => (
-                <div key={vendor.id} className="vw-profile-card" onClick={() => setSelectedVendor(vendor)}>
-                  
-                  {/* Avatar, Name, and Role */}
-                  <div className="vw-card-header">
-                    <div className={`vw-avatar ${vendor.type}`}>
-                      {getInitials(vendor.name)}
-                    </div>
-                    <div className="vw-user-info">
-                      <h2>{vendor.name}</h2>
-                      <span className="vw-role">{vendor.type}</span>
-                    </div>
-                  </div>
+        <div className="vw-swipe-indicator">
+          Swipe to see more details &rarr;
+        </div>
 
-                  <div className="vw-card-divider"></div>
-
-                  {/* Financials */}
-                  <div className="vw-card-financials">
-                    <div className="vw-fin-metric">
-                      <span className="vw-lbl">Total Spent</span>
-                      <span className="vw-val">{formatCurrency(vendor.totalSpent)}</span>
-                    </div>
-                    <div className="vw-fin-metric right">
-                      <span className="vw-lbl">Outstanding</span>
-                      <span className={`vw-val ${vendor.outstandingBalance > 0 ? 'vw-text-danger' : 'vw-text-success'}`}>
-                        {formatCurrency(vendor.outstandingBalance)}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-              ))
-            )}
-          </div>
-        )}
+        {/* DIRECTORY TABLE */}
+        <div className="vw-table-container">
+          {isLoading ? (
+            <table className="vw-directory-table" aria-busy="true">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Outstanding</th>
+                  <th>Total Spent</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="vw-skeleton-row">
+                    <td><Skeleton width="55%" /></td>
+                    <td><Skeleton width="45%" /><Skeleton width="30%" height="0.625rem" /></td>
+                    <td><Skeleton width="50%" /></td>
+                    <td><Skeleton width="40%" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : filteredVendors.length === 0 ? (
+            <div className="vw-empty-state">{showOwedOnly ? 'You don\'t owe anyone right now.' : 'No workers or vendors found.'}</div>
+          ) : (
+            <table className="vw-directory-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Outstanding</th>
+                  <th>Total Spent</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVendors.map(vendor => {
+                  const owed = vendor.outstandingBalance || 0;
+                  const owedLabel = owed > 0 ? getOwedLabel(vendor.id) : null;
+                  return (
+                    <tr key={vendor.id} onClick={() => setSelectedVendor(vendor)}>
+                      <td className="vw-col-name"><strong>{vendor.name || 'Unnamed'}</strong></td>
+                      <td className="vw-col-owed">
+                        <span className={owed > 0 ? 'vw-text-danger' : 'vw-text-muted'}>{formatCurrency(owed)}</span>
+                        {owed > 0 && isLoadingOwed && <Skeleton width="5rem" height="0.625rem" />}
+                        {owedLabel && <span className="vw-owed-projects">{owedLabel}</span>}
+                      </td>
+                      <td className="vw-col-spent">{formatCurrency(vendor.totalSpent)}</td>
+                      <td className="vw-col-type">
+                        <span className="vw-type-label">{getTypeIcon(vendor.type)} {vendor.type}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
       </main>
 
       {/* ADD VENDOR MODAL */}
@@ -258,7 +342,6 @@ function Vendors() {
           <div className="vw-modal-container vw-action-modal" onClick={(e) => e.stopPropagation()}>
             <div className="vw-modal-header">
               <div className="vw-header-left">
-                <Users size={20} className="vw-text-muted" />
                 <h2>Add Worker or Vendor</h2>
               </div>
               <button className="vw-close-btn" onClick={() => setIsModalOpen(false)}><X size={20} /></button>
@@ -299,14 +382,12 @@ function Vendors() {
       {/* VENDOR PROFILE MODAL */}
       {selectedVendor && (
         <div className="vw-modal-overlay" onClick={() => setSelectedVendor(null)}>
-          <div className="vw-modal-container vw-profile-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+          <div className="vw-modal-container vw-profile-modal" onClick={(e) => e.stopPropagation()}>
             
             <div className="vw-modal-header">
               <div className="vw-header-left">
-                <div className={`vw-avatar-small ${selectedVendor.type}`}>
-                  {getInitials(selectedVendor.name)}
-                </div>
                 <h2>{selectedVendor.name}</h2>
+                <span className="vw-type-label">{getTypeIcon(selectedVendor.type)} {selectedVendor.type}</span>
               </div>
               <button className="vw-close-btn" onClick={() => setSelectedVendor(null)}><X size={20} /></button>
             </div>
@@ -318,7 +399,6 @@ function Vendors() {
                   <span className="vw-lbl">Total Historical Spend</span>
                   <span className="vw-val">{formatCurrency(selectedVendor.totalSpent)}</span>
                 </div>
-                <div className="vw-snap-divider"></div>
                 <div className="vw-snap-box outstanding">
                   <span className="vw-lbl">Currently Owed</span>
                   <span className={`vw-val ${selectedVendor.outstandingBalance > 0 ? 'vw-text-danger' : 'vw-text-success'}`}>
@@ -327,38 +407,59 @@ function Vendors() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#f1f5f9', margin: '0 0 1rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment History</h3>
-                
-                <div className="vw-history-list">
-                  {isLoadingHistory ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.875rem' }}>
-                      <Loader size={16} className="animate-spin" /> Fetching history...
-                    </div>
-                  ) : vendorTransactions.length === 0 ? (
-                    <div className="empty-text">
-                      No payments logged for this worker yet.
-                    </div>
-                  ) : (
-                    vendorTransactions.map(tx => (
-                      <div key={tx.id} className="vw-history-item">
-                        <div className="tx-top">
-                          <strong>{tx.description}</strong>
-                          <span>{formatDate(tx.date)}</span>
-                        </div>
-                        
-                        <div className="tx-project">Project: {tx.project}</div>
-                        
-                        <div className="tx-bottom">
-                          <span className="paid">Paid: {formatCurrency(tx.amount)}</span>
-                          <span className={`owed ${tx.balanceAmount > 0 ? 'vw-text-danger' : 'vw-text-muted'}`}>
-                            Owed: {formatCurrency(tx.balanceAmount || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+              <h3 className="vw-section-heading">Payment History</h3>
+
+              <div className="vw-history-container">
+                {isLoadingHistory ? (
+                  <table className="vw-history-table" aria-busy="true">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Item / Project</th>
+                        <th className="right">Paid</th>
+                        <th className="right">Owed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <tr key={i}>
+                          <td><Skeleton width="4.5rem" /></td>
+                          <td><Skeleton width="70%" /><Skeleton width="40%" height="0.625rem" /></td>
+                          <td className="right"><Skeleton width="4rem" /></td>
+                          <td className="right"><Skeleton width="3rem" /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : vendorTransactions.length === 0 ? (
+                  <div className="vw-empty-state">No payments logged for this worker yet.</div>
+                ) : (
+                  <table className="vw-history-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Item / Project</th>
+                        <th className="right">Paid</th>
+                        <th className="right">Owed</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {vendorTransactions.map(tx => (
+                        <tr key={tx.id}>
+                          <td className="vw-col-date">{formatDate(tx.date)}</td>
+                          <td className="vw-col-desc">
+                            <strong>{tx.description}</strong>
+                            <span>{tx.project}{tx.isRepayment ? ' · Repayment' : ''}</span>
+                          </td>
+                          <td className="right vw-col-paid">{formatCurrency(tx.amount)}</td>
+                          <td className={`right vw-col-owed ${tx.balanceAmount > 0 ? 'vw-text-danger' : 'vw-text-muted'}`}>
+                            {formatCurrency(tx.balanceAmount || 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
 
             </div>
