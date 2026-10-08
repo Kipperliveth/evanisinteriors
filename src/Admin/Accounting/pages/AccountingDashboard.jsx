@@ -27,12 +27,14 @@ function AccountingDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // 1. Calculate Total Cash (from Transactions) & Get Recent Activity
+        // 1. Calculate Total Cash & Get Recent Activity + Project Activity Timestamps
         const qTx = query(collection(txtdb, "transactions"), orderBy("createdAt", "desc"));
         const txSnapshot = await getDocs(qTx);
+        
         let totalIncome = 0;
         let totalExpenses = 0;
         const recentTx = [];
+        const projectLatestActivity = {}; // Track newest transaction time per project
 
         txSnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
@@ -40,6 +42,19 @@ function AccountingDashboard() {
           
           if (data.type === 'income') totalIncome += amt;
           if (data.type === 'expense') totalExpenses += amt;
+
+          // Track the most recent activity timestamp for each project
+          // (Since the query is descending, the first time we see a projectId, it's the newest)
+          const pId = data.projectId;
+          if (pId && !projectLatestActivity[pId]) {
+            let txTime = 0;
+            if (data.createdAt?.toDate) {
+              txTime = data.createdAt.toDate().getTime();
+            } else if (data.date) {
+              txTime = new Date(data.date).getTime();
+            }
+            projectLatestActivity[pId] = txTime;
+          }
 
           // Grab the 5 most recent transactions for the feed
           if (index < 5) {
@@ -78,10 +93,16 @@ function AccountingDashboard() {
         setReceivables(totalOwedByClients);
         setClientsOwingCount(owingClientsCount);
 
+        // Sort projects by most recent transaction activity (newest first)
         activeProjList.sort((a, b) => {
-          const percentA = a.costOfProduction > 0 ? ((a.expenses || 0) / a.costOfProduction) : 0;
-          const percentB = b.costOfProduction > 0 ? ((b.expenses || 0) / b.costOfProduction) : 0;
-          return percentB - percentA;
+          let timeA = projectLatestActivity[a.id] || 0;
+          let timeB = projectLatestActivity[b.id] || 0;
+
+          // Fallback to the project's creation date if there are no transactions yet
+          if (!timeA) timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+          if (!timeB) timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+
+          return timeB - timeA;
         });
 
         setActiveProjects(activeProjList);
@@ -318,7 +339,6 @@ function AccountingDashboard() {
                     <Clock size={18} className="dash-text-muted" />
                     <h2>Recent Activity</h2>
                   </div>
-                  {/* VIEW ALL BUTTON MOVED HERE */}
                   {recentTransactions.length > 0 && (
                     <button className="dash-view-all-btn" onClick={(e) => { e.stopPropagation(); navigate('/transactions'); }}>
                       View all <ChevronRight size={14} />

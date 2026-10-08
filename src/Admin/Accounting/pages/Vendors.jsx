@@ -262,7 +262,7 @@ function Vendors() {
             className={`vw-summary-item clickable ${showOwedOnly ? 'active' : ''}`}
             onClick={() => setShowOwedOnly(!showOwedOnly)}
           >
-            <span className="vw-lbl">Total Owed (Payables)</span>
+            <span className="vw-lbl">Total Amount Owed</span>
             <span className="vw-val vw-text-danger">{isLoading ? <Skeleton width="8rem" height="1.5rem" /> : formatCurrency(totalOwed)}</span>
             <span className="vw-hint">{showOwedOnly ? 'Showing only people you owe. Click to show everyone.' : 'Click to show only people you owe.'}</span>
           </button>
