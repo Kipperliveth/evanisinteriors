@@ -1,169 +1,144 @@
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import AdminDashboard from "../AdminComponents/AdminDashboard";
 import { txtdb } from "../../firebase-config";
 import { collection, onSnapshot, getDocs, doc, setDoc, deleteDoc, addDoc, updateDoc } from "firebase/firestore";
-import { MdOutlineKeyboardArrowRight } from "react-icons/md";
-import { FaCheckDouble } from "react-icons/fa6";
-import { FaSearch } from "react-icons/fa";
-import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
-import { FaTruck } from "react-icons/fa";
-import { FaCheck } from "react-icons/fa";
-import { ImSpinner8 } from "react-icons/im";
+import { MdCancel } from "react-icons/md";
+import { FaCheckDouble, FaTruck, FaCheck } from "react-icons/fa";
+import { CiSearch } from "react-icons/ci";
 import emailjs from 'emailjs-com';
 
-
-
 function Orders() {
-
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  //new orders
-  const fetchOrders = async () => {
-    try {
-      const ordersCollection = collection(txtdb, "orders");
-      const ordersSnapshot = await getDocs(ordersCollection);
-      const ordersList = ordersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      setOrders(ordersList);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
-    }
+  // --- PAGINATION STATE ---
+  const [tablePage, setTablePage] = useState(1);
+  const ORDERS_PER_PAGE = 15;
+
+  // Helper to safely extract milliseconds for sorting newest to oldest
+  const getTimeInMs = (dateVal) => {
+    if (!dateVal) return 0;
+    if (typeof dateVal.toDate === "function") return dateVal.toDate().getTime();
+    const parsed = new Date(dateVal).getTime();
+    return isNaN(parsed) ? 0 : parsed;
   };
 
+  // New orders (Sorted newest to oldest by createdAt)
   useEffect(() => {
-    fetchOrders(orders);
-  }, [orders]);
+    const unsubscribe = onSnapshot(
+      collection(txtdb, "orders"),
+      (snapshot) => {
+        const ordersList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        ordersList.sort((a, b) => getTimeInMs(b.createdAt) - getTimeInMs(a.createdAt));
+        setOrders(ordersList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching orders:", error);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
 
-    //completed orders
-    const [completedOrders, setCompletedOrders] = useState([]);
+  // Completed orders (Sorted newest to oldest by completionDate / createdAt)
+  const [completedOrders, setCompletedOrders] = useState([]);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(txtdb, "completed"), (snapshot) => {
+      const ordersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      ordersList.sort((a, b) => getTimeInMs(b.completionDate || b.createdAt) - getTimeInMs(a.completionDate || a.createdAt));
+      setCompletedOrders(ordersList);
+    });
+    return () => unsubscribe(); 
+  }, []);
 
-    useEffect(() => {
-      const unsubscribe = onSnapshot(collection(txtdb, "completed"), (snapshot) => {
-        const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setCompletedOrders(orders);
-      });
-  
-      return () => unsubscribe(); // Cleanup subscription on unmount
-    }, []);
+  // Orders for pickup / Shipped (Sorted newest to oldest)
+  const [readyForPickup, setReadyForPickup] = useState([]);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(txtdb, "pendingPickup"), (snapshot) => {
+      const ordersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      ordersList.sort((a, b) => getTimeInMs(b.completionDate || b.createdAt) - getTimeInMs(a.completionDate || a.createdAt));
+      setReadyForPickup(ordersList);
+    });
+    return () => unsubscribe(); 
+  }, []);
 
-        //orders for pickup
-        const [readyForPickup, setReadyForPickup] = useState([]);
+  // Orders for deliveries / Pending Delivery (Sorted newest to oldest)
+  const [readyForDelivery, setReadyForDelivery] = useState([]);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(txtdb, "pendingDelivery"), (snapshot) => {
+      const ordersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      ordersList.sort((a, b) => getTimeInMs(b.completionDate || b.createdAt) - getTimeInMs(a.completionDate || a.createdAt));
+      setReadyForDelivery(ordersList);
+    });
+    return () => unsubscribe(); 
+  }, []);
 
-        useEffect(() => {
-          const unsubscribe = onSnapshot(collection(txtdb, "pendingPickup"), (snapshot) => {
-            const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setReadyForPickup(orders);
-          });
-      
-          return () => unsubscribe(); // Cleanup subscription on unmount
-        }, []);
-
-            //orders for deliveries
-            const [readyForDelivery, setReadyForDelivery] = useState([]);
-
-            useEffect(() => {
-              const unsubscribe = onSnapshot(collection(txtdb, "pendingDelivery"), (snapshot) => {
-                const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setReadyForDelivery(orders);
-              });
-          
-              return () => unsubscribe(); // Cleanup subscription on unmount
-            }, []);
-
-  //search
+  // Search States
   const [searchInput, setSearchInput] = useState('');
-  const [filteredOrders, setFilteredOrders] = useState(orders);
+  const [filteredOrders, setFilteredOrders] = useState([]);
+  
+  const [filterCompleted, setFilterCompleted] = useState([]);
+  const [completedInput, setCompletedInput] = useState('');
 
+  const [filterPendingPickup, setFilterPendingPickup] = useState([]);
+  const [pendingPickupInput, setPendingPickupInput] = useState('');
 
-  const handleSearch = () => {
-    const filtered = currentPage ? 
-      orders.filter(order => {
-        const formattedDate = formatDate(order.createdAt.toDate());
-        return order.id.includes(searchInput) || formattedDate.includes(searchInput);
-      }) :
-      completedOrders.filter(order => {
-        const formattedDate = formatDate(new Date(order.completionDate));
-        return order.id.includes(searchInput) || formattedDate.includes(searchInput);
-      });
-    setFilteredOrders(filtered);
+  const [filterPendingDelivery, setFilterPendingDelivery] = useState([]);
+  const [pendingDeliveryInput, setPendingDeliveryInput] = useState('');
+
+  const [currentPage, setCurrentPage] = useState('first');
+
+  const formatDate = (date) => {
+    if (!date) return "";
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
   };
 
+  // Search Logic (Maintains the newest-to-oldest order)
   useEffect(() => {
-    handleSearch(); // Run search on initial mount to populate filteredOrders
-  },[searchInput, orders] );
-  
-  const [filterCompleted, setFilterCompleted] = useState(completedOrders);
-  const [completedInput, setCompletedInput] = useState('')
+    const filtered = orders.filter(order => {
+      const dateObj = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const formattedDate = formatDate(dateObj);
+      return order.id.toLowerCase().includes(searchInput.toLowerCase()) || 
+             formattedDate.toLowerCase().includes(searchInput.toLowerCase());
+    });
+    setFilteredOrders(filtered);
+  }, [searchInput, orders]);
 
-  const completedOrdersSearch = () => {
-    const filtered = currentPage ? 
-    completedOrders.filter(completedOrder => {
-      const formattedDate = formatDate(completedOrder.createdAt.toDate());
-      return completedOrder.id.includes(completedInput) || formattedDate.includes(completedInput);
-    }) :
-    completedOrders.filter(order => {
-      const formattedDate = formatDate(new Date(order.completionDate));
-      return order.id.includes(completedInput) || formattedDate.includes(completedInput);
+  useEffect(() => {
+    const filtered = completedOrders.filter(order => {
+      const formattedDate = order.completionDate ? formatDate(new Date(order.completionDate)) : "";
+      return order.id.toLowerCase().includes(completedInput.toLowerCase()) || 
+             formattedDate.toLowerCase().includes(completedInput.toLowerCase());
     });
     setFilterCompleted(filtered);
-  }
-
-  useEffect(() => {
-    completedOrdersSearch();
   }, [completedInput, completedOrders]);
 
-  //pendingPickup search
-
-  const [filterPendingPickup, setFilterPendingPickup] = useState(readyForPickup);
-  const [pendingPickupInput, setPendingPickupInput] = useState('')
-
-  const pendingPickupSearch = () => {
-    const filtered = currentPage ? 
-    readyForPickup.filter(pendingPickup => {
-      const formattedDate = formatDate(pendingPickup.createdAt.toDate());
-      return pendingPickup.id.includes(pendingPickupInput) || formattedDate.includes(pendingPickupInput);
-    }) :
-    completedOrders.filter(order => {
-      const formattedDate = formatDate(new Date(order.completionDate));
-      return order.id.includes(pendingPickupInput) || formattedDate.includes(pendingPickupInput);
+  useEffect(() => {
+    const filtered = readyForPickup.filter(order => {
+      const formattedDate = order.completionDate ? formatDate(new Date(order.completionDate)) : "";
+      return order.id.toLowerCase().includes(pendingPickupInput.toLowerCase()) || 
+             formattedDate.toLowerCase().includes(pendingPickupInput.toLowerCase());
     });
     setFilterPendingPickup(filtered);
-  }
-
-  useEffect(() => {
-    pendingPickupSearch();
   }, [pendingPickupInput, readyForPickup]);
 
-  //pending delivery search
-  const [filterPendingDelivery, setFilterPendingDelivery] = useState(readyForDelivery);
-  const [pendingDeliveryInput, setPendingDeliveryInput] = useState('')
-
-  const pendingDeliverySearch = () => {
-    const filtered = currentPage ? 
-    readyForDelivery.filter(pendingDelivery => {
-      const formattedDate = formatDate(pendingDelivery.createdAt.toDate());
-      return pendingDelivery.id.includes(pendingDeliveryInput) || formattedDate.includes(pendingDeliveryInput);
-    }) :
-    completedOrders.filter(order => {
-      const formattedDate = formatDate(new Date(order.completionDate));
-      return order.id.includes(pendingDeliveryInput) || formattedDate.includes(pendingDeliveryInput);
+  useEffect(() => {
+    const filtered = readyForDelivery.filter(order => {
+      const formattedDate = order.completionDate ? formatDate(new Date(order.completionDate)) : "";
+      return order.id.toLowerCase().includes(pendingDeliveryInput.toLowerCase()) || 
+             formattedDate.toLowerCase().includes(pendingDeliveryInput.toLowerCase());
     });
     setFilterPendingDelivery(filtered);
-  }
-
-  useEffect(() => {
-    pendingDeliverySearch();
   }, [pendingDeliveryInput, readyForDelivery]);
 
-  //modal
 
+  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -177,14 +152,17 @@ function Orders() {
     setIsModalOpen(false);
   };
 
-  const formatDate = (date) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
-  };
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => { document.body.style.overflow = "auto"; };
+  }, [isModalOpen]);
 
-  //completed?
-  const [currentPage, setCurrentPage] = useState('first');
 
+  // Logic: Mark as Completed
   const markAsCompleted = async () => {
     setIsLoggedIn(true);
     const userID = selectedOrder.userId;
@@ -196,1079 +174,551 @@ function Orders() {
       };
 
       try {
-
         await setDoc(doc(txtdb, "completed", selectedOrder.id), completedOrderData);
-              // Delete the order from the "orders" collection
-      // await deleteDoc(doc(txtdb, "orders", selectedOrder.id));
-      // addDoc(collection(txtdb, `userNotifications/${userID}/deliveredOrders`), {
-      //   orderRefId: selectedOrder.id,
-      //   satus: "pending",
-      //   cart: completedOrderData.cartItems,
-      //   state: completedOrderData.state,
-      //   totalPrice: completedOrderData.totalPrice,
-      //   completionDate: completedOrderData.completionDate,
-      //   addresss: completedOrderData.address
-      // });
-      //
-      const orderData = collection(txtdb, `userNotifications/${userID}/deliveredOrders`);
-      const orderDatadb = await getDocs(orderData);
-      const orderDataArray = orderDatadb.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      console.log("orderdata", orderDataArray[0].docRef);
-      
-      const selectedOrderId = selectedOrder.id;
-      console.log(selectedOrderId)
+        
+        const orderData = collection(txtdb, `userNotifications/${userID}/deliveredOrders`);
+        const orderDatadb = await getDocs(orderData);
+        const orderDataArray = orderDatadb.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const selectedOrderId = selectedOrder.id;
 
-// Loop through the orderDataArray and find the document with matching orderRefId
-      let foundDoc = null;
-      for (let doc of orderDataArray) {
-          if (doc.orderRefId === selectedOrderId) {
-              foundDoc = doc;
-              break;
-          }
-      }
+        let foundDoc = null;
+        for (let docItem of orderDataArray) {
+            if (docItem.orderRefId === selectedOrderId) {
+                foundDoc = docItem;
+                break;
+            }
+        }
 
-      if (foundDoc) {
-          console.log("Document containing matching order data:", foundDoc);
-      } else {
-          console.log("No document found containing the matching order ID.");
-          setIsLoggedIn(false);
-
-      }
-
-      const documentId = foundDoc.docRef;
-      console.log('documnet ref', documentId)
-            //
-            await deleteDoc(doc(txtdb, "pendingDelivery", selectedOrder.id)).then(() =>{
-        updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`),{
-          status: "Delivered",
-          date: completedOrderData.completionDate,
-          delivery: 'Delivered on'
-        })
-      }).finally(() => {
-        addDoc(collection(txtdb, `userNotifications/${userID}/deliverynotifications`), {
-          orderRefId: selectedOrderId,
-          timestamp:completedOrderData.completionDate,
-          userEmail: selectedOrder.userEmail,
-          username: selectedOrder.username
-        }).then(() => {
-          
-          emailjs.init("55KFb3ovp5zp-SlMq");
-
-          let emailContent = `
-          `;
-          // Loop through fetchedProducts array to include product name and quantity
-          selectedOrder.cartItems.forEach((product, index) => {
-          emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
-          });
-          ;
-
-          
-          const date = new Date();
-          const formattedDate = date.toISOString().split('T')[0];
-          const timestamp = formattedDate;
-          emailjs.send("service_r60nfme", "template_todl238", {
-            to_email: selectedOrder.userEmail,
-            userEmail: selectedOrder.userEmail,
-            message: emailContent,
-            orderRefId: selectedOrderId,
-            city: selectedOrder.city,
-            state: selectedOrder.state,
-            totalPrice: selectedOrder.totalPrice,
-            deliveryFee: selectedOrder.deliveryFee,
-            username: selectedOrder.username,
-            timestamp: timestamp,
-            from_name: "Evanis Interiors"
-            // other variables you want to include in your email template
-          })
-
-          //
-          addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
-            timestamp: timestamp
-          });
-
-        })
-      })    
-      
-            //
-            closeModal();
+        if (!foundDoc) {
+            console.log("No document found containing the matching order ID.");
             setIsLoggedIn(false);
+            return;
+        }
 
-              console.log("Order marked as completed and added to Firebase.");
-            } catch (error) {
-              console.error("Error adding document: ", error);
-              setIsLoggedIn(false);
+        const documentId = foundDoc.docRef;
+        
+        await deleteDoc(doc(txtdb, "pendingDelivery", selectedOrder.id)).then(() => {
+          updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`), {
+            status: "Delivered",
+            date: completedOrderData.completionDate,
+            delivery: 'Delivered on'
+          });
+        }).finally(() => {
+          addDoc(collection(txtdb, `userNotifications/${userID}/deliverynotifications`), {
+            orderRefId: selectedOrderId,
+            timestamp: completedOrderData.completionDate,
+            userEmail: selectedOrder.userEmail,
+            username: selectedOrder.username
+          }).then(() => {
+            emailjs.init("55KFb3ovp5zp-SlMq");
 
-            }
-          }
-        };
+            let emailContent = ``;
+            selectedOrder.cartItems.forEach((product) => {
+              emailContent += `\n    - ${product.txtVal} (x${product.quantity})`;
+            });
 
-
-        //mark as ready for delivery
-        const markAsReadyToDeliver = async () => {
-          setIsLoggedIn(true);
-          const userID = selectedOrder.userId;
-      
-          if (selectedOrder) {
-            const completedOrderData = {
-              ...selectedOrder,
-              completionDate: new Date().toISOString()
-            };
-      
-            try {
-
-              await setDoc(doc(txtdb, "pendingDelivery", selectedOrder.id), completedOrderData);
-                    // Delete the order from the "orders" collection
-            // await deleteDoc(doc(txtdb, "orders", selectedOrder.id));
-            // addDoc(collection(txtdb, `userNotifications/${userID}/deliveredOrders`), {
-            //   orderRefId: selectedOrder.id,
-            //   satus: "pending",
-            //   cart: completedOrderData.cartItems,
-            //   state: completedOrderData.state,
-            //   totalPrice: completedOrderData.totalPrice,
-            //   completionDate: completedOrderData.completionDate,
-            //   addresss: completedOrderData.address
-            // });
-            //
-            const orderData = collection(txtdb, `userNotifications/${userID}/deliveredOrders`);
-            const orderDatadb = await getDocs(orderData);
-            const orderDataArray = orderDatadb.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("orderdata", orderDataArray[0].docRef);
+            const date = new Date();
+            const formattedDate = date.toISOString().split('T')[0];
+            const timestamp = formattedDate;
             
-            const selectedOrderId = selectedOrder.id;
-            console.log(selectedOrderId)
-      
-      // Loop through the orderDataArray and find the document with matching orderRefId
-            let foundDoc = null;
-            for (let doc of orderDataArray) {
-                if (doc.orderRefId === selectedOrderId) {
-                    foundDoc = doc;
-                    break;
-                }
+            emailjs.send("service_r60nfme", "template_todl238", {
+              to_email: selectedOrder.userEmail,
+              userEmail: selectedOrder.userEmail,
+              message: emailContent,
+              orderRefId: selectedOrderId,
+              city: selectedOrder.city,
+              state: selectedOrder.state,
+              totalPrice: selectedOrder.totalPrice,
+              deliveryFee: selectedOrder.deliveryFee,
+              username: selectedOrder.username,
+              timestamp: timestamp,
+              from_name: "Evanis Interiors"
+            });
+
+            addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
+              timestamp: timestamp
+            });
+          });
+        });
+
+        closeModal();
+        setIsLoggedIn(false);
+      } catch (error) {
+        console.error("Error adding document: ", error);
+        setIsLoggedIn(false);
+      }
+    }
+  };
+
+  // Logic: Mark as Ready to Deliver
+  const markAsReadyToDeliver = async () => {
+    setIsLoggedIn(true);
+    const userID = selectedOrder.userId;
+
+    if (selectedOrder) {
+      const completedOrderData = {
+        ...selectedOrder,
+        completionDate: new Date().toISOString()
+      };
+
+      try {
+        await setDoc(doc(txtdb, "pendingDelivery", selectedOrder.id), completedOrderData);
+        
+        const orderData = collection(txtdb, `userNotifications/${userID}/deliveredOrders`);
+        const orderDatadb = await getDocs(orderData);
+        const orderDataArray = orderDatadb.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const selectedOrderId = selectedOrder.id;
+
+        let foundDoc = null;
+        for (let docItem of orderDataArray) {
+            if (docItem.orderRefId === selectedOrderId) {
+                foundDoc = docItem;
+                break;
             }
-      
-            if (foundDoc) {
-                console.log("Document containing matching order data:", foundDoc);
-            } else {
-                console.log("No document found containing the matching order ID.");
-                setIsLoggedIn(false);
-      
-            }
-      
-            const documentId = foundDoc.docRef;
-            console.log('documnet ref', documentId)
-                  //
-                  await deleteDoc(doc(txtdb, "pendingPickup", selectedOrder.id)).then(() =>{
-              updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`),{
-                status: "Ready for Delivery",
-                date: completedOrderData.completionDate,
-                delivery: 'Ready on'
-              })
-            }).finally(() => {
-              addDoc(collection(txtdb, `userNotifications/${userID}/pendingDeliveryNotification`), {
-                orderRefId: selectedOrderId,
-                timestamp:completedOrderData.completionDate,
-                userEmail: selectedOrder.userEmail,
-                username: selectedOrder.username
-              })
-              .then(() => {
+        }
 
-                emailjs.init("A7nlh5ZfZyzFdJHXR")
+        if (!foundDoc) {
+            console.log("No document found containing the matching order ID.");
+            setIsLoggedIn(false);
+            return;
+        }
 
-      
-                let emailContent = `
-                `;
-                // Loop through fetchedProducts array to include product name and quantity
-                selectedOrder.cartItems.forEach((product, index) => {
-                emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
-                });
-                ;
-      
-                
-                const date = new Date();
-                const formattedDate = date.toISOString().split('T')[0];
-                const timestamp = formattedDate;
-                emailjs.send("service_u30tu6h", "template_ztlhtio", {
-                  to_email: selectedOrder.userEmail,
-                  userEmail: selectedOrder.userEmail,
-                  message: emailContent,
-                  orderRefId: selectedOrderId,
-                  city: selectedOrder.city,
-                  state: selectedOrder.state,
-                  totalPrice: selectedOrder.totalPrice,
-                  deliveryFee: selectedOrder.deliveryFee,
-                  username: selectedOrder.username,
-                  timestamp: timestamp,
-                  from_name: "Evanis Interiors",
-                  date: completedOrderData.completionDate,
-                  // other variables you want to include in your email template
-                })
+        const documentId = foundDoc.docRef;
+        
+        await deleteDoc(doc(txtdb, "pendingPickup", selectedOrder.id)).then(() => {
+          updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`), {
+            status: "Ready for Delivery",
+            date: completedOrderData.completionDate,
+            delivery: 'Ready on'
+          });
+        }).finally(() => {
+          addDoc(collection(txtdb, `userNotifications/${userID}/pendingDeliveryNotification`), {
+            orderRefId: selectedOrderId,
+            timestamp: completedOrderData.completionDate,
+            userEmail: selectedOrder.userEmail,
+            username: selectedOrder.username
+          }).then(() => {
+            emailjs.init("A7nlh5ZfZyzFdJHXR");
 
-                addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
-                  timestamp: timestamp
-                });
-      
-              })
-            })    
+            let emailContent = ``;
+            selectedOrder.cartItems.forEach((product) => {
+              emailContent += `\n    - ${product.txtVal} (x${product.quantity})`;
+            });
+
+            const date = new Date();
+            const formattedDate = date.toISOString().split('T')[0];
+            const timestamp = formattedDate;
             
-                  //
-                  closeModal();
-                  setIsLoggedIn(false);
-      
-                    console.log("Order marked as completed and added to Firebase.");
-                  } catch (error) {
-                    console.error("Error adding document: ", error);
-                    setIsLoggedIn(false);
-      
-                  }
-                }
-              };
+            emailjs.send("service_u30tu6h", "template_ztlhtio", {
+              to_email: selectedOrder.userEmail,
+              userEmail: selectedOrder.userEmail,
+              message: emailContent,
+              orderRefId: selectedOrderId,
+              city: selectedOrder.city,
+              state: selectedOrder.state,
+              totalPrice: selectedOrder.totalPrice,
+              deliveryFee: selectedOrder.deliveryFee,
+              username: selectedOrder.username,
+              timestamp: timestamp,
+              from_name: "Evanis Interiors",
+              date: completedOrderData.completionDate,
+            });
 
-                //mark as shipped
-        const markAsShipped = async () => {
-          setIsLoggedIn(true);
-          const userID = selectedOrder.userId;
-      
-          if (selectedOrder) {
-            const completedOrderData = {
-              ...selectedOrder,
-              completionDate: new Date().toISOString()
-            };
-      
-            try {
+            addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
+              timestamp: timestamp
+            });
+          });
+        });
 
-              await setDoc(doc(txtdb, "pendingPickup", selectedOrder.id), completedOrderData);
-                    // Delete the order from the "orders" collection
-            // await deleteDoc(doc(txtdb, "orders", selectedOrder.id));
-            // addDoc(collection(txtdb, `userNotifications/${userID}/deliveredOrders`), {
-            //   orderRefId: selectedOrder.id,
-            //   satus: "pending",
-            //   cart: completedOrderData.cartItems,
-            //   state: completedOrderData.state,
-            //   totalPrice: completedOrderData.totalPrice,
-            //   completionDate: completedOrderData.completionDate,
-            //   addresss: completedOrderData.address
-            // });
-            //
-            const orderData = collection(txtdb, `userNotifications/${userID}/deliveredOrders`);
-            const orderDatadb = await getDocs(orderData);
-            const orderDataArray = orderDatadb.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log("orderdata", orderDataArray[0].docRef);
-            
-            const selectedOrderId = selectedOrder.id;
-            console.log(selectedOrderId)
-      
-      // Loop through the orderDataArray and find the document with matching orderRefId
-            let foundDoc = null;
-            for (let doc of orderDataArray) {
-                if (doc.orderRefId === selectedOrderId) {
-                    foundDoc = doc;
-                    break;
-                }
+        closeModal();
+        setIsLoggedIn(false);
+      } catch (error) {
+        console.error("Error adding document: ", error);
+        setIsLoggedIn(false);
+      }
+    }
+  };
+
+  // Logic: Mark as Shipped
+  const markAsShipped = async () => {
+    setIsLoggedIn(true);
+    const userID = selectedOrder.userId;
+
+    if (selectedOrder) {
+      const completedOrderData = {
+        ...selectedOrder,
+        completionDate: new Date().toISOString()
+      };
+
+      try {
+        await setDoc(doc(txtdb, "pendingPickup", selectedOrder.id), completedOrderData);
+        
+        const orderData = collection(txtdb, `userNotifications/${userID}/deliveredOrders`);
+        const orderDatadb = await getDocs(orderData);
+        const orderDataArray = orderDatadb.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const selectedOrderId = selectedOrder.id;
+
+        let foundDoc = null;
+        for (let docItem of orderDataArray) {
+            if (docItem.orderRefId === selectedOrderId) {
+                foundDoc = docItem;
+                break;
             }
-      
-            if (foundDoc) {
-                console.log("Document containing matching order data:", foundDoc);
-            } else {
-                console.log("No document found containing the matching order ID.");
-                setIsLoggedIn(false);
-      
-            }
-      
-            const documentId = foundDoc.docRef;
-            console.log('documnet ref', documentId)
-                  //
-                  await deleteDoc(doc(txtdb, "orders", selectedOrder.id)).then(() =>{
-              updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`),{
-                status: "Shipped",
-                date: completedOrderData.completionDate,
-                delivery: 'Shipped on'
-              })
-            }).finally(() => {
-              addDoc(collection(txtdb, `userNotifications/${userID}/pendingPickupNotification`), {
-                orderRefId: selectedOrderId,
-                timestamp:completedOrderData.completionDate,
-                userEmail: selectedOrder.userEmail,
-                username: selectedOrder.username
-              })
-              .then(() => {
-                emailjs.init("A7nlh5ZfZyzFdJHXR")
-      
-                let emailContent = `
-                `;
-                // Loop through fetchedProducts array to include product name and quantity
-                selectedOrder.cartItems.forEach((product, index) => {
-                emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
-                });
-                ;
-      
-                
-                const date = new Date();
-                const formattedDate = date.toISOString().split('T')[0];
-                const timestamp = formattedDate;
-                emailjs.send("service_u30tu6h", "template_5i66qbc", {
-                  to_email: selectedOrder.userEmail,
-                  userEmail: selectedOrder.userEmail,
-                  message: emailContent,
-                  orderRefId: selectedOrderId,
-                  city: selectedOrder.city,
-                  state: selectedOrder.state,
-                  totalPrice: selectedOrder.totalPrice,
-                  deliveryFee: selectedOrder.deliveryFee,
-                  username: selectedOrder.username,
-                  timestamp: timestamp,
-                  from_name: "Evanis Interiors",
-                  date: completedOrderData.completionDate,
-                  // other variables you want to include in your email template
-                })
-                
-                //
-                addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
-                  timestamp: timestamp
-                });
-              })
-            })    
+        }
+
+        if (!foundDoc) {
+            console.log("No document found containing the matching order ID.");
+            setIsLoggedIn(false);
+            return;
+        }
+
+        const documentId = foundDoc.docRef;
+        
+        await deleteDoc(doc(txtdb, "orders", selectedOrder.id)).then(() => {
+          updateDoc(doc(txtdb, `userNotifications/${userID}/deliveredOrders/${documentId}`), {
+            status: "Shipped",
+            date: completedOrderData.completionDate,
+            delivery: 'Shipped on'
+          });
+        }).finally(() => {
+          addDoc(collection(txtdb, `userNotifications/${userID}/pendingPickupNotification`), {
+            orderRefId: selectedOrderId,
+            timestamp: completedOrderData.completionDate,
+            userEmail: selectedOrder.userEmail,
+            username: selectedOrder.username
+          }).then(() => {
+            emailjs.init("A7nlh5ZfZyzFdJHXR");
+
+            let emailContent = ``;
+            selectedOrder.cartItems.forEach((product) => {
+              emailContent += `\n    - ${product.txtVal} (x ${product.quantity})`;
+            });
+
+            const date = new Date();
+            const formattedDate = date.toISOString().split('T')[0];
+            const timestamp = formattedDate;
             
-                  //
-                  closeModal();
-                  setIsLoggedIn(false);
-      
-                    console.log("Order marked as completed and added to Firebase.");
-                  } catch (error) {
-                    console.error("Error adding document: ", error);
-                    setIsLoggedIn(false);
-      
-                  }
-                }
-              };
+            emailjs.send("service_u30tu6h", "template_5i66qbc", {
+              to_email: selectedOrder.userEmail,
+              userEmail: selectedOrder.userEmail,
+              message: emailContent,
+              orderRefId: selectedOrderId,
+              city: selectedOrder.city,
+              state: selectedOrder.state,
+              totalPrice: selectedOrder.totalPrice,
+              deliveryFee: selectedOrder.deliveryFee,
+              username: selectedOrder.username,
+              timestamp: timestamp,
+              from_name: "Evanis Interiors",
+              date: completedOrderData.completionDate,
+            });
+            
+            addDoc(collection(txtdb, `userNotifications/${userID}/notificationCount`), {
+              timestamp: timestamp
+            });
+          });
+        });
 
+        closeModal();
+        setIsLoggedIn(false);
+      } catch (error) {
+        console.error("Error adding document: ", error);
+        setIsLoggedIn(false);
+      }
+    }
+  };
 
+  // Helper to render current input based on tab
+  const getCurrentInput = () => {
+    switch (currentPage) {
+      case 'first': return searchInput;
+      case 'fourth': return pendingPickupInput;
+      case 'third': return pendingDeliveryInput;
+      case 'second': return completedInput;
+      default: return searchInput;
+    }
+  };
 
-          //delivery or pickup
-          // const markAsPending = () => {
-          //   if (selectedOrder.shippingOption === 'DOOR DELIVERY') {
-          //     markAsReadyToDeliver();
-          //     console.log("DELIVERY");
-          //   } else {
-          //     // markAsReadyForPickup();
-          //     console.log("pickup");
-          //   }
-          // };
-  
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setTablePage(1); // Reset pagination to page 1 on search
+    switch (currentPage) {
+      case 'first': setSearchInput(val); break;
+      case 'fourth': setPendingPickupInput(val); break;
+      case 'third': setPendingDeliveryInput(val); break;
+      case 'second': setCompletedInput(val); break;
+      default: setSearchInput(val);
+    }
+  };
+
+  const handleTabSwitch = (tabName) => {
+    setCurrentPage(tabName);
+    setTablePage(1); // Reset pagination to page 1 on tab switch
+  };
+
+  const getCurrentData = () => {
+    switch (currentPage) {
+      case 'first': return { data: filteredOrders, label: "New Orders", emptyMsg: "No pending orders" };
+      case 'fourth': return { data: filterPendingPickup, label: "Shipped Orders", emptyMsg: "No shipped orders" };
+      case 'third': return { data: filterPendingDelivery, label: "Pending Delivery", emptyMsg: "No pending deliveries" };
+      case 'second': return { data: filterCompleted, label: "Completed Orders", emptyMsg: "Completed orders will show here" };
+      default: return { data: filteredOrders, label: "Orders", emptyMsg: "No orders found" };
+    }
+  };
+
+  const activeTabDetails = getCurrentData();
+
+  // --- PAGINATION SLICING ---
+  const totalPages = Math.ceil(activeTabDetails.data.length / ORDERS_PER_PAGE);
+  const paginatedOrders = activeTabDetails.data.slice(
+    (tablePage - 1) * ORDERS_PER_PAGE,
+    tablePage * ORDERS_PER_PAGE
+  );
+
+  // If deleting/moving an order leaves the current page empty, step back a page
+  useEffect(() => {
+    if (tablePage > totalPages && totalPages > 0) {
+      setTablePage(totalPages);
+    }
+  }, [activeTabDetails.data.length, totalPages, tablePage]);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [tablePage, isModalOpen]);
 
   return (
-    <div className="adminHome">
+    <div className="admin-layout-wrapper">
       <AdminDashboard />
 
-      <h2 className="admin-current-page mobile-content">Orders</h2>
-      
-      <div className="adminNotifications adminContent">
+      <div className="admin-page-content adminOrders">
 
-      <h2 className="admin-current-page desktop-content">Orders</h2>
-
-     
-
-         <div className='completed'>
-      <button className={currentPage === 'first' ? 'active' : ''} onClick={() => setCurrentPage('first')}>New Orders <span>{orders.length}</span></button>
-      <button className={currentPage === 'fourth' ? 'active' : ''} onClick={() => setCurrentPage('fourth')}>Shipped</button>
-      <button className={currentPage === 'third' ? 'active' : ''} onClick={() => setCurrentPage('third')}>Pending Delivery</button>
-      <button className={currentPage === 'second' ? 'active' : ''} onClick={() => setCurrentPage('second')}>Completed Orders</button>
-    </div>
-
-
-      {currentPage === 'first' && (
-     <div className="first">
-
-      <div className="search-bar" >
-        <input 
-          type="text" 
-          placeholder="Search by Order ID" 
-          value={searchInput} 
-          onChange={(e) => setSearchInput(e.target.value)} 
-        />
-        <button onClick={handleSearch}><FaSearch className="icon"/>Search</button>
-      </div>
-
-
-     {loading ? (
-        <div className="loading-message">
-        <div className="loading-card">
-          <div className="loading-img"></div>
-          <div className="loading-text"></div>
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Orders Management</h1>
+            <p className="page-subtitle">Track, update, and manage customer orders across all stages.</p>
+          </div>
         </div>
 
-        <div className="loading-card">
-          <div className="loading-img"></div>
-          <div className="loading-text"></div>
-         
+        {/* --- PREMIUM NAVIGATION CONTROLS --- */}
+        <div className="inventory-controls">
+          <div className="admin-search-bar">
+            <CiSearch className="icon" />
+            <input
+              type="text"
+              placeholder="Search by Order ID or Date..."
+              value={getCurrentInput()}
+              onChange={handleInputChange}
+            />
+          </div>
+
+          <div className="admin-category-tabs">
+            <button className={currentPage === 'first' ? 'tab active' : 'tab'} onClick={() => handleTabSwitch('first')}>
+              New Orders {orders.length > 0 && <span className="badge">{orders.length}</span>}
+            </button>
+            <button className={currentPage === 'fourth' ? 'tab active' : 'tab'} onClick={() => handleTabSwitch('fourth')}>Shipped</button>
+            <button className={currentPage === 'third' ? 'tab active' : 'tab'} onClick={() => handleTabSwitch('third')}>Pending Delivery</button>
+            <button className={currentPage === 'second' ? 'tab active' : 'tab'} onClick={() => handleTabSwitch('second')}>Completed</button>
+          </div>
         </div>
 
-        <div className="loading-card">
-          <div className="loading-img"></div>
-          <div className="loading-text"></div>
-        </div>
 
-        <div className="loading-card">
-          <div className="loading-img"></div>
-          <div className="loading-text"></div>
-        </div>
-
-        <div className="loading-card">
-          <div className="loading-img"></div>
-          <div className="loading-text"></div>
-        </div>
-
-        <div className="loading-card">
-          <div className="loading-img"></div>
-          <div className="loading-text"></div>
-        </div>
-      </div>
-     ) : (
-       <div className="orderList">
-         <div className="order head">
-           <div>Order ID</div>
-           <div>Username</div>
-           <div className="desktop">Total</div>
-           <div className="date">Date Ordered</div>
-         </div>
-         {filteredOrders.map(order => (
-           <div className="order" key={order.id} onClick={() => openModal(order)} style={{ cursor: "pointer" }}>
-             <p className="orderID">{order.id}</p>
-             <p>{order.username}</p>
-             <p className="desktop">{parseFloat(order.totalPrice).toLocaleString('en-US')}</p>
-             <p>{formatDate(order.createdAt.toDate())}</p>
-
-           </div>
-         ))}
-
-         {orders.length === 0 ? (
-         <p className="no-notifications">No pending orders</p> 
-           ) : null}
-       </div>
-     )}
-
-
-     <div className={`product-modal ${isModalOpen ? "open" : ""}`}>
-     {selectedOrder && (
-       <div className="modal-container">
-
-         <div className="modal-details">
-         <button onClick={closeModal} className="back"><MdOutlineKeyboardArrowLeft /> Orders</button>
-
-         <div className="head">
-
-           <div className="route"><p>Dashboard</p><MdOutlineKeyboardArrowRight className="icon"/><p>Orders</p><MdOutlineKeyboardArrowRight className="icon"/><p className='id'>ID {selectedOrder.id}</p></div>
-
-           <div className="header">
-             <span>
-             <h1>Order ID: {selectedOrder.id}</h1>
-               <button onClick={markAsShipped} > {isLoggedIn ? (
-               <ImSpinner8 className="login-spinner" />
-             ) : (
-               "Mark as Shipped"
-             )} <FaCheck className="icon"/></button>
-             </span>
-
-             <div className="dates">
-               <div className="p first">Order Date: <h4>{formatDate(selectedOrder.createdAt.toDate())}</h4></div>
-               <div className="p second"><FaTruck className="icon"/> Estimated delivery between: {selectedOrder.formattedDate15DaysFromNow} - {selectedOrder.formattedDate20DaysFromNow} </div>
-             </div>
-           </div>
-         </div>
-
-         <div className="cart-details">
-         
-           {selectedOrder.cartItems.map((item, index) => (
-             <div className='cart' key={index}>
-
-               <div className="left">
-                 <span><img src={item.imgUrl} alt='description'/></span>
-
-                 <span>
-               <p className="name">{item.txtVal}</p>
-               <p>{item.color}</p>
-               <p>{item.size}</p>
-               </span>
-               
-
-               </div>
-
-               <div className="right">
-               <p className="price">&#8358;{parseFloat(item.price).toLocaleString('en-US')}</p>
-               <p>Qty: {item.quantity}</p>
-               </div>
-
-             </div>
-           ))}
-         
-         </div>
-
-           <div className="bottom">
-
-
-           <div className="left">
-             <h2>Customer Profile</h2>
-            <p>Email: <span>{selectedOrder.userEmail}</span> </p>
-            <p>Username: <span>{selectedOrder.username}</span> </p>
-            <p className="elip">User ID: <span>{selectedOrder.userId}</span> </p>
-
-           </div>
-
-           <div className="right">
-         <h2>Delivery</h2>
-         <h3>Address</h3>
-         <p> {selectedOrder.address}</p>
-         <p> {selectedOrder.shippingOption}/{selectedOrder.state}</p>
-          <p>{selectedOrder.callLine}</p>
-
-           <span>
-          <h3>Items Price: </h3>
-         <p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
-           </span>
-
-         <span>
-          <h3>Amount Paid: </h3>
-         <p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
-         </span>
-
-
-           </div>
-           </div>
-
-       
-
-         </div>
-
-       </div>
-     )}
-     </div>
-     </div>
-    )}
-    
-      {currentPage === 'second' && (
-        <div className="second">
-
-      <div className="search-bar" >
-        <input 
-          type="text" 
-          placeholder="Search by Order ID" 
-          value={completedInput} 
-          onChange={(e) => setCompletedInput(e.target.value)} 
-        />
-        <button onClick={completedOrdersSearch}><FaSearch className="icon"/>Search</button>
-      </div>
-
+        {/* --- ORDER TABLE --- */}
         {loading ? (
-            <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-  
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            
-            </div>
-  
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-  
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-  
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
-  
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-            </div>
+          <div className="table-skeleton">
+            {[1, 2, 3, 4, 5].map(i => <div key={i} className="skel-row"></div>)}
           </div>
         ) : (
-          <div className="orderList">
-            <div className="order head">
-              <div>Order ID</div>
-              <div>Username</div>
-              <div className="desktop">Total</div>
-              <div className="date">Delivered On</div>
-            </div>
-            {filterCompleted.map(order => (
-              <div className="order" key={order.id} onClick={() => openModal(order)} style={{ cursor: "pointer" }}>
-                <p className="orderID">{order.id}</p>
-                <p>{order.username}</p>
-                <p className="desktop">{parseFloat(order.totalPrice).toLocaleString('en-US')}</p>
-                <p>{order.completionDate ? formatDate(new Date(order.completionDate)) : ""}
-  </p>
+          <>
+            <div className="premium-data-table">
+              <div className="table-header">
+                <div className="col id-col">Order ID</div>
+                <div className="col user-col">Customer</div>
+                <div className="col price-col">Total</div>
+                <div className="col date-col">Date</div>
+                <div className="col action-col">Action</div>
               </div>
-            ))}
-  
-            {completedOrders.length === 0 ? (
-              <p className="no-notifications">Completed orders will show here</p> 
-                ) : null}
-          </div>
-        )}
-  
-  
-        <div className={`product-modal ${isModalOpen ? "open" : ""}`}>
-        {selectedOrder && (
-          <div className="modal-container">
-  
-            <div className="modal-details">
-            <button onClick={closeModal} className="back"><MdOutlineKeyboardArrowLeft /> Orders</button>
-  
-            <div className="head">
-  
-              <div className="route"><p>Dashboard</p><MdOutlineKeyboardArrowRight className="icon"/><p>Orders</p><MdOutlineKeyboardArrowRight className="icon"/><p className='id'>ID {selectedOrder.id}</p></div>
-  
-              <div className="header">
-                <span>
-                <h1>Order ID: {selectedOrder.id}</h1>
-                  <button>Completed<FaCheckDouble className="icon"/></button>
-                </span>
-  
-                <div className="dates">
-                  <div className="p first">Order Date: <h4>{formatDate(selectedOrder.createdAt.toDate())}</h4></div>
-                  <div className="p second"><FaTruck className="icon"/> Delivered on: {selectedOrder.completionDate ? formatDate(new Date(selectedOrder.completionDate)) : ""}
-    </div>
+
+              {paginatedOrders.length === 0 ? (
+                <div className="empty-state">{activeTabDetails.emptyMsg}</div>
+              ) : (
+                paginatedOrders.map(order => (
+                  <div className="table-row" key={order.id} onClick={() => openModal(order)}>
+                    <div className="col id-col">#{order.id.substring(0, 8)}...</div>
+                    <div className="col user-col">{order.username}</div>
+                    <div className="col price-col">₦{parseFloat(order.totalPrice).toLocaleString('en-US')}</div>
+                    <div className="col date-col">
+                      {currentPage === 'first' 
+                        ? formatDate(order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt)) 
+                        : (order.completionDate ? formatDate(new Date(order.completionDate)) : "N/A")}
+                    </div>
+                    <div className="col action-col">
+                      <button className="view-btn">View</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* --- PAGINATION CONTROLS --- */}
+            {totalPages > 1 && (
+              <div className="pagination-wrapper">
+                <button 
+                  className="page-nav-btn" 
+                  onClick={() => setTablePage(prev => Math.max(prev - 1, 1))}
+                  disabled={tablePage === 1}
+                >
+                  Prev
+                </button>
+                
+                <div className="page-numbers">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      className={`page-num-btn ${tablePage === pageNum ? "active" : ""}`}
+                      onClick={() => setTablePage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
                 </div>
+
+                <button 
+                  className="page-nav-btn" 
+                  onClick={() => setTablePage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={tablePage === totalPages}
+                >
+                  Next
+                </button>
               </div>
-            </div>
-  
-            <div className="cart-details">
+            )}
+          </>
+        )}
+
+      </div>
+
+      {/* --- REDESIGNED ORDER MODAL --- */}
+      {isModalOpen && selectedOrder && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="order-modal-content" onClick={(e) => e.stopPropagation()}>
             
-              {selectedOrder.cartItems.map((item, index) => (
-                <div className='cart' key={index}>
-  
-                  <div className="left">
-                    <span><img src={item.imgUrl} alt='description'/></span>
-  
-                    <span>
-                  <p className="name">{item.txtVal}</p>
-                  <p>{item.color}</p>
-                  <p>{item.size}</p>
+            <div className="modal-header">
+              <div className="header-text">
+                <h2>Order Details</h2>
+                <p>ID: #{selectedOrder.id}</p>
+              </div>
+              <MdCancel className="close-icon" onClick={closeModal} />
+            </div>
+
+            <div className="modal-body">
+              
+              <div className="status-banner">
+                <div className="status-info">
+                  <span className="label">Order Placed</span>
+                  <span className="value">
+                    {formatDate(selectedOrder.createdAt?.toDate ? selectedOrder.createdAt.toDate() : new Date(selectedOrder.createdAt))}
                   </span>
-                  
-  
+                </div>
+                <div className="status-info">
+                  <span className="label">Timeline</span>
+                  <span className="value highlight">
+                    <FaTruck className="inline-icon"/> {selectedOrder.formattedDate15DaysFromNow} - {selectedOrder.formattedDate20DaysFromNow}
+                  </span>
+                </div>
+              </div>
+
+              <div className="order-split-layout">
+                {/* LEFT: CART ITEMS */}
+                <div className="cart-section">
+                  <h3 className="section-title">Items Ordered</h3>
+                  <div className="cart-list">
+                    {selectedOrder.cartItems.map((item, index) => (
+                      <div className="cart-item" key={index}>
+                        <img src={Array.isArray(item.imgUrl) ? item.imgUrl[0] : item.imgUrl} alt={item.txtVal} />
+                        <div className="item-details">
+                          <p className="item-name">{item.txtVal}</p>
+                          <p className="item-meta">Color: {item.color} | Size: {item.size}</p>
+                          <p className="item-meta">Qty: {item.quantity}</p>
+                        </div>
+                        <div className="item-price">
+                          ₦{parseFloat(item.price).toLocaleString('en-US')}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-  
-                  <div className="right">
-                  <p className="price">&#8358;{parseFloat(item.price).toLocaleString('en-US')}</p>
-                  <p>Qty: {item.quantity}</p>
+                </div>
+
+                {/* RIGHT: CUSTOMER & DELIVERY */}
+                <div className="details-section">
+                  <div className="detail-block">
+                    <h3 className="section-title">Customer Profile</h3>
+                    <p><strong>Name:</strong> {selectedOrder.username}</p>
+                    <p><strong>Email:</strong> {selectedOrder.userEmail}</p>
+                    <p><strong>Phone:</strong> {selectedOrder.callLine}</p>
                   </div>
-  
-                </div>
-              ))}
-            
-            </div>
-  
-              <div className="bottom">
-  
-  
-              <div className="left">
-                <h2>Customer Profile</h2>
-                <p>Email: <span>{selectedOrder.userEmail}</span> </p>
-                <p>Username: <span>{selectedOrder.username}</span> </p>
-                <p className="elip">User ID: <span>{selectedOrder.userId}</span> </p>
-  
-              </div>
-  
-              <div className="right">
-            <h2>Delivery</h2>
-            <h3>Address</h3>
-            <p> {selectedOrder.address}</p>
-            <p> {selectedOrder.shippingOption}/{selectedOrder.state}</p>
-              <p>{selectedOrder.callLine}</p>
-            
-              <span>
-                <h3>Items Price: </h3>
-              <p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
-                </span>
-  
-                <span>
-                <h3>Delivery Fee:</h3>
-              <p>&#8358;{parseFloat(selectedOrder.deliveryFee).toLocaleString('en-US')}</p>
-              </span>
-  
-              <span>
-                <h3>Total: </h3>
-              <p>&#8358;{parseFloat(selectedOrder.totalPrice + selectedOrder.deliveryFee).toLocaleString('en-US')}</p>
-              </span>
-              </div>
-              </div>
-  
-          
-  
-            </div>
-  
-          </div>
-        )}
-        </div>
-        </div>
-      )}
-    
-    {currentPage === 'third' && (
-       <div className="third">
 
-       <div className="search-bar" >
-         <input 
-           type="text" 
-           placeholder="Search by Order ID" 
-           value={pendingDeliveryInput} 
-           onChange={(e) => setPendingDeliveryInput(e.target.value)} 
-         />
-         <button onClick={pendingDeliverySearch}><FaSearch className="icon"/>Search</button>
-       </div>
- 
- 
-      {loading ? (
-         <div className="loading-message">
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-          
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
-       </div>
-      ) : (
-        <div className="orderList">
-          <div className="order head">
-            <div>Order ID</div>
-            <div>Username</div>
-            <div className="desktop">Total</div>
-            <div className="date">Date Ready</div>
-          </div>
-          {filterPendingDelivery.map(order => (
-            <div className="order" key={order.id} onClick={() => openModal(order)} style={{ cursor: "pointer" }}>
-              <p className="orderID">{order.id}</p>
-              <p className='username'>{order.username}</p>
-              <p className="desktop">{parseFloat(order.totalPrice).toLocaleString('en-US')}</p>
-              <p>{order.completionDate ? formatDate(new Date(order.completionDate)) : ""}</p>
- 
-            </div>
-          ))}
- 
-          {readyForDelivery.length === 0 ? (
-          <p className="no-notifications">No pending Deliveries</p> 
-            ) : null}
-        </div>
-      )}
- 
- 
-      <div className={`product-modal ${isModalOpen ? "open" : ""}`}>
-      {selectedOrder && (
-        <div className="modal-container">
- 
-          <div className="modal-details">
-          <button onClick={closeModal} className="back"><MdOutlineKeyboardArrowLeft /> Orders</button>
- 
-          <div className="head">
- 
-            <div className="route"><p>Dashboard</p><MdOutlineKeyboardArrowRight className="icon"/><p>Orders</p><MdOutlineKeyboardArrowRight className="icon"/><p className='id'>ID {selectedOrder.id}</p></div>
- 
-            <div className="header">
-              <span>
-              <h1>Order ID: {selectedOrder.id}</h1>
-                <button onClick={markAsCompleted} > {isLoggedIn ? (
-                <ImSpinner8 className="login-spinner" />
-              ) : (
-                "Mark as Delivered"
-              )} <FaCheck className="icon"/></button>
-              </span>
- 
-              <div className="dates">
-                <div className="p first">Ready On: <h4>{selectedOrder.completionDate ? formatDate(new Date(selectedOrder.completionDate)) : ""}</h4></div>
-                <div className="p second"><FaTruck className="icon"/> Estimated Delivery between: {selectedOrder.formattedDate15DaysFromNow} - {selectedOrder.formattedDate20DaysFromNow} </div>
-              </div>
-            </div>
-          </div>
- 
-          <div className="cart-details">
-          
-            {selectedOrder.cartItems.map((item, index) => (
-              <div className='cart' key={index}>
- 
-                <div className="left">
-                  <span><img src={item.imgUrl} alt='description'/></span>
- 
-                  <span>
-                <p className="name">{item.txtVal}</p>
-                <p>{item.color}</p>
-                <p>{item.size}</p>
-                </span>
-                
- 
-                </div>
- 
-                <div className="right">
-                <p className="price">&#8358;{parseFloat(item.price).toLocaleString('en-US')}</p>
-                <p>Qty: {item.quantity}</p>
-                </div>
- 
-              </div>
-            ))}
-          
-          </div>
- 
-            <div className="bottom">
- 
- 
-            <div className="left">
-              <h2>Customer Profile</h2>
-             <p>Email: <span>{selectedOrder.userEmail}</span> </p>
-             <p>Username: <span>{selectedOrder.username}</span> </p>
-             <p className="elip">User ID: <span>{selectedOrder.userId}</span> </p>
- 
-            </div>
- 
-            <div className="right">
-          <h2>Delivery</h2>
-          <h3>Address</h3>
-          <p> {selectedOrder.address}</p>
-          <p> {selectedOrder.shippingOption}/{selectedOrder.state}</p>
-           <p>{selectedOrder.callLine}</p>
- 
-            <span>
-           <h3>Items Price: </h3>
-          <p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
-            </span>
- 
-            <span>
-           <h3>Delivery Fee:</h3>
-          <p>&#8358;{parseFloat(selectedOrder.deliveryFee).toLocaleString('en-US')}</p>
-          </span>
- 
-          <span>
-           <h3>Total: </h3>
-          <p>&#8358;{parseFloat(selectedOrder.totalPrice + selectedOrder.deliveryFee).toLocaleString('en-US')}</p>
-          </span>
- 
- 
-            </div>
-            </div>
- 
-        
- 
-          </div>
- 
-        </div>
-      )}
-      </div>
-      </div>
-    )}
-    
-    {currentPage === 'fourth' && (
-       <div className="fourth">
+                  <div className="detail-block">
+                    <h3 className="section-title">Delivery Info</h3>
+                    <p><strong>Method:</strong> {selectedOrder.shippingOption}</p>
+                    <p><strong>Address:</strong> {selectedOrder.address}</p>
+                    <p><strong>Location:</strong> {selectedOrder.city}, {selectedOrder.state}</p>
+                  </div>
 
-       <div className="search-bar" >
-         <input 
-           type="text" 
-           placeholder="Search by Order ID" 
-           value={pendingPickupInput} 
-           onChange={(e) => setPendingPickupInput(e.target.value)} 
-         />
-         <button onClick={pendingPickupSearch}><FaSearch className="icon"/>Search</button>
-       </div>
- 
- 
-      {loading ? (
-         <div className="loading-message">
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-          
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
- 
-         <div className="loading-card">
-           <div className="loading-img"></div>
-           <div className="loading-text"></div>
-         </div>
-       </div>
-      ) : (
-        <div className="orderList">
-          <div className="order head">
-            <div>Order ID</div>
-            <div>Username</div>
-            <div className="desktop">Total</div>
-            <div className="date">Date Ready</div>
-          </div>
-          {filterPendingPickup.map(order => (
-            <div className="order" key={order.id} onClick={() => openModal(order)} style={{ cursor: "pointer" }}>
-              <p className="orderID">{order.id}</p>
-              <p className='username'>{order.username}</p>
-              <p className="desktop">{parseFloat(order.totalPrice).toLocaleString('en-US')}</p>
-              <p>{order.completionDate ? formatDate(new Date(order.completionDate)) : ""}</p>
- 
+                  <div className="detail-block total-block">
+                    <div className="price-row">
+                      <span>Subtotal:</span>
+                      <span>₦{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</span>
+                    </div>
+                    <div className="price-row">
+                      <span>Delivery Fee:</span>
+                      <span>₦{parseFloat(selectedOrder.deliveryFee || 0).toLocaleString('en-US')}</span>
+                    </div>
+                    <div className="price-row grand-total">
+                      <span>Total Paid:</span>
+                      <span>₦{parseFloat(Number(selectedOrder.totalPrice) + Number(selectedOrder.deliveryFee || 0)).toLocaleString('en-US')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-          ))}
- 
-          {readyForPickup.length === 0 ? (
-          <p className="no-notifications">No Shipped Orders</p> 
-            ) : null}
+
+            <div className="form-actions">
+              <button className="cancel-btn" onClick={closeModal} disabled={isLoggedIn}>Close</button>
+              
+              {/* Dynamic Action Button based on Tab */}
+              {currentPage === 'first' && (
+                <button className="primary-btn action" onClick={markAsShipped} disabled={isLoggedIn}>
+                  {isLoggedIn ? "Processing..." : "Mark as Shipped"} <FaCheck className="icon"/>
+                </button>
+              )}
+              {currentPage === 'fourth' && (
+                <button className="primary-btn action" onClick={markAsReadyToDeliver} disabled={isLoggedIn}>
+                  {isLoggedIn ? "Processing..." : "Ready to Deliver"} <FaCheck className="icon"/>
+                </button>
+              )}
+              {currentPage === 'third' && (
+                <button className="primary-btn action" onClick={markAsCompleted} disabled={isLoggedIn}>
+                  {isLoggedIn ? "Processing..." : "Mark as Delivered"} <FaCheckDouble className="icon"/>
+                </button>
+              )}
+              {currentPage === 'second' && (
+                <button className="primary-btn success" disabled>
+                  Completed <FaCheckDouble className="icon"/>
+                </button>
+              )}
+            </div>
+
+          </div>
         </div>
       )}
- 
- 
-      <div className={`product-modal ${isModalOpen ? "open" : ""}`}>
-      {selectedOrder && (
-        <div className="modal-container">
- 
-          <div className="modal-details">
-          <button onClick={closeModal} className="back"><MdOutlineKeyboardArrowLeft /> Orders</button>
- 
-          <div className="head">
- 
-            <div className="route"><p>Dashboard</p><MdOutlineKeyboardArrowRight className="icon"/><p>Orders</p><MdOutlineKeyboardArrowRight className="icon"/><p className='id'>ID {selectedOrder.id}</p></div>
- 
-            <div className="header">
-              <span>
-              <h1>Order ID: {selectedOrder.id}</h1>
-                <button onClick={markAsReadyToDeliver} > {isLoggedIn ? (
-                <ImSpinner8 className="login-spinner" />
-              ) : (
-                "Ready to Deliver"
-              )} <FaCheck className="icon"/></button>
-              </span>
- 
-              <div className="dates">
-                <div className="p first">Ready On: <h4>{selectedOrder.completionDate ? formatDate(new Date(selectedOrder.completionDate)) : ""}</h4></div>
-                <div className="p second"><FaTruck className="icon"/> Estimated Delivery between: {selectedOrder.formattedDate15DaysFromNow} - {selectedOrder.formattedDate20DaysFromNow} </div>
-              </div>
-            </div>
-          </div>
- 
-          <div className="cart-details">
-          
-            {selectedOrder.cartItems.map((item, index) => (
-              <div className='cart' key={index}>
- 
-                <div className="left">
-                  <span><img src={item.imgUrl} alt='description'/></span>
- 
-                  <span>
-                <p className="name">{item.txtVal}</p>
-                <p>{item.color}</p>
-                <p>{item.size}</p>
-                </span>
-                
- 
-                </div>
- 
-                <div className="right">
-                <p className="price">&#8358;{parseFloat(item.price).toLocaleString('en-US')}</p>
-                <p>Qty: {item.quantity}</p>
-                </div>
- 
-              </div>
-            ))}
-          
-          </div>
- 
-            <div className="bottom">
- 
- 
-            <div className="left">
-              <h2>Customer Profile</h2>
-             <p>Email: <span>{selectedOrder.userEmail}</span> </p>
-             <p>Username: <span>{selectedOrder.username}</span> </p>
-             <p className="elip">User ID: <span>{selectedOrder.userId}</span> </p>
- 
-            </div>
- 
-            <div className="right">
-          <h2>Delivery</h2>
-          <h3>Address</h3>
-          <p> {selectedOrder.address}</p>
-          <p> {selectedOrder.shippingOption}/{selectedOrder.state}</p>
-           <p>{selectedOrder.callLine}</p>
- 
-            <span>
-           <h3>Items Price: </h3>
-          <p>&#8358;{parseFloat(selectedOrder.totalPrice).toLocaleString('en-US')}</p>
-            </span>
- 
-            <span>
-           <h3>Delivery Fee:</h3>
-          <p>&#8358;{parseFloat(selectedOrder.deliveryFee).toLocaleString('en-US')}</p>
-          </span>
- 
-          <span>
-           <h3>Total: </h3>
-          <p>&#8358;{parseFloat(selectedOrder.totalPrice + selectedOrder.deliveryFee).toLocaleString('en-US')}</p>
-          </span>
- 
- 
-            </div>
-            </div>
- 
-        
- 
-          </div>
- 
-        </div>
-      )}
-      </div>
-      </div>
-    )}
-      
-       
-      </div>
-
- 
-
 
     </div>
   );
 }
-
 
 export default Orders;

@@ -9,13 +9,54 @@ import { FaCloud } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 import { FaCheckDouble } from "react-icons/fa6";
 import { MdClose } from "react-icons/md";
-import { FiUploadCloud, FiTrash2 } from "react-icons/fi";
+import { FiUploadCloud, FiTrash2, FiCheck } from "react-icons/fi";
+
+// Categories shown in the picker (alphabetical)
+const CATEGORIES = [
+  "Accent Chairs",
+  "Bedsides",
+  "Concierge Desks",
+  "Console",
+  "Credenza",
+  "Dining",
+  "Lights",
+  "Room",
+  "Sitting",
+  "Storage",
+  "Tables",
+  "Vanity",
+];
+
+// Colors shown in the checklist (the hex is only used for the little swatch)
+const COLORS = [
+  { name: "White", hex: "#ffffff" },
+  { name: "Cream", hex: "#f5ecd7" },
+  { name: "Beige", hex: "#d9c7a5" },
+  { name: "Tan", hex: "#c19a6b" },
+  { name: "Brown", hex: "#7b4a2d" },
+  { name: "Grey", hex: "#9ca3af" },
+  { name: "Charcoal", hex: "#374151" },
+  { name: "Black", hex: "#111111" },
+  { name: "Silver", hex: "#c0c0c0" },
+  { name: "Gold", hex: "#c9a227" },
+  { name: "Yellow", hex: "#f2c230" },
+  { name: "Orange", hex: "#e8710a" },
+  { name: "Red", hex: "#c62828" },
+  { name: "Burgundy", hex: "#6d1a2b" },
+  { name: "Pink", hex: "#e58aa8" },
+  { name: "Purple", hex: "#6a3fa0" },
+  { name: "Blue", hex: "#1e66d0" },
+  { name: "Navy", hex: "#14213d" },
+  { name: "Teal", hex: "#14797a" },
+  { name: "Green", hex: "#2e7d32" },
+  { name: "Olive", hex: "#6b6b2a" },
+];
 
 function Post() {
   const [txt, setTxt] = useState("");
   const [desc, setDescTxt] = useState("");
   const [category, setCategory] = useState("");
-  const [color, setColor] = useState("");
+  const [color, setColor] = useState([]);
   const [sizes, setSize] = useState("");
   const [price, setPrice] = useState("");
   const [isInStock, setIsInStock] = useState(true);
@@ -86,15 +127,9 @@ function Post() {
     dragOverItem.current = null;
   };
 
-  const handleColor = (event) => {
-    const options = event.target.options;
-    const selectedColor = [];
-    for (let i = 0; i < options.length; i++) {
-      if (options[i].selected) {
-        selectedColor.push(options[i].value);
-      }
-    }
-    setColor(selectedColor);
+  // Tick / untick a color in the checklist
+  const toggleColor = (name) => {
+    setColor(prev => (prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]));
   };
 
   // Main Upload Function
@@ -148,7 +183,7 @@ function Post() {
     setDescTxt("");
     setCategory("");
     setPrice("");
-    setColor("");
+    setColor([]);
     setSize("");
     setSelectedFiles([]);
     
@@ -212,75 +247,98 @@ function Post() {
             </div>
 
             {/* --- PRODUCT DETAILS SECTION --- */}
-            <div className="input-row">
-              <div className="input-group">
-                <label>Product Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Modern Oak Dining Table"
-                  value={txt}
-                  onChange={(e) => setTxt(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="form-section">
+              <span className="section-label">Product Details</span>
+              <p className="section-subtext">The name, price and description customers will see in the store.</p>
 
-              <div className="input-group">
-                <label>Price (₦)</label>
-                <input
-                  type="number"
-                  placeholder="Without commas"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  required
-                />
+              <div className="section-fields">
+                <div className="input-row">
+                  <div className="input-group">
+                    <label>Product Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Modern Oak Dining Table"
+                      value={txt}
+                      onChange={(e) => setTxt(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label>Price (₦)</label>
+                    <input
+                      type="number"
+                      placeholder="Without commas"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label>Description</label>
+                  <textarea
+                    rows="4"
+                    placeholder="Detailed description of the product..."
+                    value={desc}
+                    onChange={(e) => setDescTxt(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="input-group">
-              <label>Description</label>
-              <textarea
-                rows="4"
-                placeholder="Detailed description of the product..."
-                value={desc}
-                onChange={(e) => setDescTxt(e.target.value)}
-                required
-              />
+            {/* --- CATEGORY SECTION --- */}
+            <div className="form-section">
+              <span className="section-label">Category</span>
+              <p className="section-subtext">Pick the one that fits best.</p>
+
+              <div className="category-chips" role="radiogroup" aria-label="Category">
+                {CATEGORIES.map(c => (
+                  <button
+                    type="button"
+                    key={c}
+                    role="radio"
+                    aria-checked={category === c}
+                    className={`category-chip ${category === c ? "selected" : ""}`}
+                    onClick={() => setCategory(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="input-row">
-              <div className="input-group">
-                <label>Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                >
-                  <option value="">Select Category</option>
-                  <option value="Sitting">Sitting</option>
-                  <option value="Room">Room</option>
-                  <option value="Tables">Tables</option>
-                  <option value="Lights">Lights</option>
-                  <option value="Storage">Storage</option>
-                </select>
+            {/* --- COLORS SECTION --- */}
+            <div className="form-section no-divider">
+              <div className="section-head">
+                <span className="section-label">Available Colors</span>
+                <span className="selected-info">
+                  {color.length > 0 ? `${color.length} selected` : "None selected"}
+                  {color.length > 0 && (
+                    <button type="button" className="clear-link" onClick={() => setColor([])}>Clear</button>
+                  )}
+                </span>
               </div>
+              <p className="section-subtext">Tick every color this product comes in.</p>
 
-              <div className="input-group">
-                <label>Available Colors (Hold Ctrl/Cmd to multi-select)</label>
-                <select
-                  value={color}
-                  onChange={handleColor}
-                  multiple
-                  className="multi-select"
-                >
-                  <option value="White">White</option>
-                  <option value="Black">Black</option>
-                  <option value="Red">Red</option>
-                  <option value="Purple">Purple</option>
-                  <option value="Pink">Pink</option>
-                  <option value="Blue">Blue</option>
-                  <option value="Brown">Brown</option>
-                  <option value="Beige">Beige</option>
-                </select>
+              <div className="color-grid">
+                {COLORS.map(c => {
+                  const checked = color.includes(c.name);
+                  return (
+                    <label key={c.name} className={`color-option ${checked ? "checked" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleColor(c.name)}
+                      />
+                      <span className="color-swatch" style={{ backgroundColor: c.hex }} />
+                      <span className="color-name">{c.name}</span>
+                      <FiCheck className="color-check" />
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

@@ -7,15 +7,37 @@ import { v4 } from "uuid";
 import { CiSearch } from "react-icons/ci";
 import { MdCancel } from "react-icons/md";
 import { IoCloudUploadOutline } from "react-icons/io5";
-import { FiUploadCloud, FiTrash2 } from "react-icons/fi";
+import { FiUploadCloud, FiTrash2, FiFilter, FiChevronDown, FiCheck, FiX } from "react-icons/fi";
+
+// Status tabs (always visible)
+const STOCK_TABS = ["All", "In Stock", "Out of Stock"];
+
+// Categories shown in the filter menu (any other category found in your products is added automatically)
+const CATEGORY_LIST = [
+  "Accent Chairs",
+  "Bedsides",
+  "Concierge Desks",
+  "Console",
+  "Credenza",
+  "Dining",
+  "Lights",
+  "Room",
+  "Sitting",
+  "Storage",
+  "Tables",
+  "Vanity",
+];
 
 function Uploads() {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredData, setFilteredData] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef(null);
 
   const [selectedPost, setSelectedPost] = useState(null); 
   const [showModal, setShowModal] = useState(false); 
@@ -38,12 +60,31 @@ function Uploads() {
     return () => { document.body.style.overflow = "auto"; };
   }, [showModal]);
 
+  // Close the category menu when clicking elsewhere or pressing Escape
+  useEffect(() => {
+    if (!isFilterOpen) return;
+    const handleClickOutside = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setIsFilterOpen(false);
+    };
+    const handleKey = (e) => { if (e.key === "Escape") setIsFilterOpen(false); };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isFilterOpen]);
+
+  // Back to page 1 whenever a filter or the search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [stockFilter, categoryFilter, appliedSearch]);
+
   const getData = async () => {
     const valRef = collection(txtdb, "txtData");
     const dataDb = await getDocs(valRef);
     const allData = dataDb.docs.map((val) => ({ ...val.data(), id: val.id }));
     setData(allData);
-    setFilteredData(allData);
   };
 
   const deleteItem = async (itemId) => {
@@ -51,7 +92,6 @@ function Uploads() {
       try {
         await deleteDoc(doc(txtdb, "txtData", itemId));
         setData(data.filter((item) => item.id !== itemId));
-        setFilteredData(filteredData.filter((item) => item.id !== itemId)); 
       } catch (error) {
         console.error("Error deleting document: ", error);
       }
@@ -59,14 +99,7 @@ function Uploads() {
   };
 
   const handleSearchClick = () => {
-    const filtered = data.filter(
-      (value) =>
-        value.txtVal &&
-        value.txtVal.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredData(filtered);
-    setSelectedCategory("All"); 
-    setCurrentPage(1); 
+    setAppliedSearch(searchTerm.trim());
   };
 
   useEffect(() => {
@@ -75,20 +108,6 @@ function Uploads() {
       setIsLoading(false); 
     });
   }, []);
-
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    if (category === "All") {
-      setFilteredData(data);
-    } else if (category === "In Stock") {
-      setFilteredData(data.filter((item) => item.isInStock === true));
-    } else if (category === "Out of Stock") {
-      setFilteredData(data.filter((item) => item.isInStock === false));
-    } else {
-      setFilteredData(data.filter((item) => item.category === category));
-    }
-    setCurrentPage(1); 
-  };
 
   const handleEditClick = (post) => {
     setSelectedPost(post);
@@ -205,6 +224,41 @@ function Uploads() {
     setShowModal(false);
   };
 
+  // --- FILTERING (search + status + category all work together) ---
+  const matchesStock = (item, stock) =>
+    stock === "All" ||
+    (stock === "In Stock" ? item.isInStock === true : item.isInStock === false);
+
+  const searchedData = data.filter(
+    (item) =>
+      !appliedSearch ||
+      (item.txtVal && item.txtVal.toLowerCase().includes(appliedSearch.toLowerCase()))
+  );
+
+  const filteredData = searchedData.filter(
+    (item) =>
+      matchesStock(item, stockFilter) &&
+      (categoryFilter === "All" || item.category === categoryFilter)
+  );
+
+  // Counts shown on the tabs and in the category menu
+  const stockCount = (stock) =>
+    searchedData.filter(
+      (item) =>
+        matchesStock(item, stock) &&
+        (categoryFilter === "All" || item.category === categoryFilter)
+    ).length;
+
+  const categoryCount = (cat) =>
+    searchedData.filter(
+      (item) =>
+        matchesStock(item, stockFilter) && (cat === "All" || item.category === cat)
+    ).length;
+
+  const categoryOptions = Array.from(
+    new Set([...CATEGORY_LIST, ...data.map((item) => item.category).filter(Boolean)])
+  ).sort((a, b) => a.localeCompare(b));
+
   const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const currentData = filteredData.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -216,8 +270,6 @@ function Uploads() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [currentPage, showModal]);
-
-  const categories = ["All", "In Stock", "Out of Stock", "Sitting", "Tables", "Room", "Lights", "Storage"];
 
   return (
     <div className="admin-layout-wrapper">
@@ -239,21 +291,84 @@ function Uploads() {
               type="text"
               placeholder="Search by product name..."
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                if (event.target.value === "") setAppliedSearch("");
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
             />
           </div>
 
-          <div className="admin-category-tabs">
-            {categories.map(cat => (
-              <button 
-                key={cat}
-                className={selectedCategory === cat ? "tab active" : "tab"}
-                onClick={() => handleCategoryClick(cat)}
+          <div className="filter-group">
+            {/* Status tabs: always visible */}
+            <div className="admin-category-tabs">
+              {STOCK_TABS.map(tab => (
+                <button 
+                  key={tab}
+                  className={stockFilter === tab ? "tab active" : "tab"}
+                  onClick={() => setStockFilter(tab)}
+                >
+                  {tab}
+                  <span className="count">{stockCount(tab)}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Category filter: one button, menu with every category */}
+            <div className="category-filter" ref={filterRef}>
+              <button
+                type="button"
+                className={`category-filter-btn ${categoryFilter !== "All" ? "active" : ""} ${isFilterOpen ? "open" : ""}`}
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                aria-haspopup="listbox"
+                aria-expanded={isFilterOpen}
               >
-                {cat}
+                <FiFilter />
+                <span>{categoryFilter === "All" ? "Category" : categoryFilter}</span>
+                <FiChevronDown className="chevron" />
               </button>
-            ))}
+
+              {categoryFilter !== "All" && (
+                <button
+                  type="button"
+                  className="filter-clear"
+                  onClick={() => setCategoryFilter("All")}
+                  aria-label="Clear category filter"
+                >
+                  <FiX />
+                </button>
+              )}
+
+              {isFilterOpen && (
+                <div className="category-filter-menu" role="listbox">
+                  <div className="menu-title">Filter by category</div>
+
+                  {["All", ...categoryOptions].map(cat => {
+                    const selected = categoryFilter === cat;
+                    const count = categoryCount(cat);
+                    return (
+                      <button
+                        type="button"
+                        key={cat}
+                        role="option"
+                        aria-selected={selected}
+                        className={`menu-item ${selected ? "selected" : ""} ${count === 0 && !selected ? "empty" : ""}`}
+                        onClick={() => {
+                          setCategoryFilter(cat);
+                          setIsFilterOpen(false);
+                        }}
+                      >
+                        <span className="menu-label">
+                          <FiCheck className="menu-check" />
+                          {cat === "All" ? "All Categories" : cat}
+                        </span>
+                        <span className="menu-count">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -274,7 +389,7 @@ function Uploads() {
             <div className="compact-grid">
               {currentData.length === 0 ? (
                 <div className="no-results">
-                  <p>No products found in this category.</p>
+                  <p>No products match your filters.</p>
                 </div>
               ) : (
                 currentData.map((value) => (

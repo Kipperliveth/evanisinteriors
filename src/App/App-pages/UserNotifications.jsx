@@ -1,707 +1,447 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import UserNav from "../App-components/UserNav";
-import { collection, query, orderBy, deleteDoc, addDoc,doc, onSnapshot, getDocs } from "firebase/firestore";
-import { txtdb } from "../../firebase-config";
+import { collection, deleteDoc, doc, onSnapshot, getDocs, writeBatch } from "firebase/firestore";
+import { txtdb, auth } from "../../firebase-config";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../../firebase-config";
 import { PiNotePencilLight } from "react-icons/pi";
 import { CiDeliveryTruck } from "react-icons/ci";
 import { LuPackage } from "react-icons/lu";
 import { TbTruckDelivery } from "react-icons/tb";
+import { FiBellOff, FiFilter, FiChevronDown, FiChevronRight, FiCheck, FiX } from "react-icons/fi";
 
+// How each kind of notification looks
+const TYPE_META = {
+  confirmed: { label: "Order Confirmed", Icon: PiNotePencilLight },
+  shipped: { label: "Shipped", Icon: LuPackage },
+  delivery: { label: "Out for Delivery", Icon: TbTruckDelivery },
+  delivered: { label: "Delivered", Icon: CiDeliveryTruck },
+};
+
+// Where each kind lives in Firestore: unread collection -> read collection
+const SOURCES = [
+  { type: "confirmed", unread: "inbox", read: "read" },
+  { type: "shipped", unread: "pendingPickupNotification", read: "ReadPickupNotification" },
+  { type: "delivery", unread: "pendingDeliveryNotification", read: "ReadDeliveryNotification" },
+  { type: "delivered", unread: "deliverynotifications", read: "deliveredread" },
+];
+
+const VIEW_TABS = [
+  { value: "all", label: "All" },
+  { value: "new", label: "New" },
+  { value: "older", label: "Older" },
+];
+
+// Helper to safely parse dates for display and sorting
+const parseTimestamp = (rawTimestamp) => {
+  if (!rawTimestamp) return { formatted: "", rawMs: 0 };
+  let dateObj;
+  if (typeof rawTimestamp.toDate === "function") {
+    dateObj = rawTimestamp.toDate();
+  } else if (rawTimestamp instanceof Date) {
+    dateObj = rawTimestamp;
+  } else {
+    dateObj = new Date(rawTimestamp);
+  }
+  const isValid = !isNaN(dateObj.getTime());
+  return {
+    formatted: isValid
+      ? dateObj.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
+      : String(rawTimestamp),
+    rawMs: isValid ? dateObj.getTime() : 0,
+  };
+};
+
+// Title, one-line preview and full body for each notification
+const getContent = (item) => {
+  const ref = <span className="order-ref">#{item.orderRefId}</span>;
+
+  switch (item.notifType) {
+    case "delivered":
+      return {
+        title: <>Your order {ref} has been delivered</>,
+        preview: `Delivered on ${item.timestamp}`,
+        body: (
+          <p>
+            Delivered on <strong>{item.timestamp}</strong>. Use the live chat feature to reach us if you have any
+            questions about your order. Thank you for shopping with Evanis Interiors!
+          </p>
+        ),
+      };
+    case "delivery":
+      return {
+        title: <>Your order {ref} is ready for delivery</>,
+        preview: "Our dispatch team will contact you shortly.",
+        body: <p>Our dispatch team will contact you shortly to coordinate the drop-off.</p>,
+      };
+    case "shipped":
+      return {
+        title: <>Your order {ref} has been shipped</>,
+        preview: "Your items are in transit.",
+        body: <p>Your items are in transit. We will notify you as soon as your order is out for local delivery.</p>,
+      };
+    default: {
+      const hasEstimate = item.state && item.formattedDate15DaysFromNow;
+      return {
+        title: <>Your order {ref} has been confirmed</>,
+        preview: hasEstimate
+          ? `Estimated delivery to ${item.state}: ${item.formattedDate15DaysFromNow} to ${item.formattedDate20DaysFromNow}`
+          : "Tap to see the details.",
+        body: (
+          <>
+            {hasEstimate && (
+              <p>
+                Estimated delivery to <strong>{item.state}</strong> is between{" "}
+                <strong>{item.formattedDate15DaysFromNow}</strong> and{" "}
+                <strong>{item.formattedDate20DaysFromNow}</strong>.
+              </p>
+            )}
+            <p className="note-box">
+              Please note that delivery fees are handled separately. Use the live chat feature or contact us via
+              email to inquire about shipping rates and order tracking.
+            </p>
+          </>
+        ),
+      };
+    }
+  }
+};
 
 function UserNotifications() {
-  const [notifications, setNotifications] = useState([]);
-  const currentUser = auth.currentUser;
-  const [user, setUser] = useState({})
+  // { "confirmed:unread": [...], "confirmed:read": [...], ... }
+  const [lists, setLists] = useState({});
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [readNotifications, setReadNotifications] = useState([]);
-  // pop up spinner
-const [showPopup, setShowPopup] = useState(false);
 
+  const [viewFilter, setViewFilter] = useState("all"); // all | new | older
+  const [typeFilter, setTypeFilter] = useState("all"); // all | confirmed | shipped | delivery | delivered
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selected, setSelected] = useState(null); // the notification that is open
 
-  
+  const filterRef = useRef(null);
+  const seenSources = useRef(new Set());
+  const markingIds = useRef(new Set());
+
   useEffect(() => {
     document.title = "Notifications - Evanis Interiors";
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (currentUserObj) => {
+      setUser(currentUserObj);
+      if (!currentUserObj) setIsLoading(false);
     });
-  
     return () => unsubscribe();
-  }, []); // Run only once when the component mounts
-  
+  }, []);
+
+  // Clear notification badge counter once when user loads the page
   useEffect(() => {
-    if (!user) return; // Return early if user is null
-  
-    const userId = user.uid;
-    const q = query(
-      collection(txtdb, `userNotifications/${userId}/inbox`),
-      orderBy("timestamp", "desc")
-    );
-  
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newNotifications = snapshot.docs.map((doc) => {
-        let timestamp;
-        if (doc.data().timestamp instanceof Date) {
-          timestamp = doc.data().timestamp;
-        } else {
-          timestamp = new Date(doc.data().timestamp);
-        }
-        return {
-          id: doc.id,
-          ...doc.data(),
-          timestamp: timestamp.toLocaleString([], {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-        };
-      });
-      // Count the number of unread notifications
-      // const unreadNotifications = newNotifications.filter((notification) => !notification.read);
-      // setUnreadCount(unreadNotifications.length);
-      setNotifications(newNotifications);
-      setIsLoading(false);
-
-
-    });
-  
-    return () => unsubscribe();
-  }, [user]); // Run whenever the user object changes
- 
-  //read notifs
-
-  useEffect(() => {
-    if (!user) return; // Return early if user is null
-  
-    const userId = user.uid;
-    const q = query(
-      collection(txtdb, `userNotifications/${userId}/read`),
-      orderBy("timestamp", "desc")
-    );
-  
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newwNotifications = snapshot.docs.map((doc) => {
-        let timestamp;
-        if (doc.data().timestamp instanceof Date) {
-          timestamp = doc.data().timestamp;
-        } else {
-          timestamp = new Date(doc.data().timestamp);
-        }
-        return {
-          id: doc.id,
-          ...doc.data(),
-          timestamp: timestamp.toLocaleString([], {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-        };
-      });
-      // Count the number of unread notifications
-      setReadNotifications(newwNotifications);
-      setIsLoading(false);
-
-
-    });
-  
-    return () => unsubscribe();
-  }, [user]);
-
-  //delete function
-  const handleDeleteNotification = async (notificationId) => {
-    try {
-      const userId = currentUser.uid;
-      await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/inbox`), notificationId));
-      // console.log("Notification deleted");
-    } catch (error) {
-      // console.error("Error deleting notification:", error);
-    }
-  };
-  
-
-  const handleMarkNotificationAsRead = async (notification) => {
-setShowPopup(true);
-
-    try {
-      const userId = currentUser.uid;
-      const readNotificationData = {
-          orderRefId: notification.orderRefId,
-      state: notification.state,
-      formattedDate15DaysFromNow: notification.formattedDate15DaysFromNow,
-      formattedDate20DaysFromNow: notification.formattedDate20DaysFromNow,
-      timestamp: notification.timestamp
-      };
-  
-      // Only add state and formattedDate fields if they are defined in the notification
-      if (notification.state) {
-        readNotificationData.state = notification.state;
-      }
-      if (notification.formattedDate15DaysFromNow) {
-        readNotificationData.formattedDate15DaysFromNow = notification.formattedDate15DaysFromNow;
-      }
-      if (notification.formattedDate20DaysFromNow) {
-        readNotificationData.formattedDate20DaysFromNow = notification.formattedDate20DaysFromNow;
-      }
-  
-      await addDoc(collection(txtdb, `userNotifications/${userId}/read`), readNotificationData);
-      // console.log("Notification marked as read and moved to read notifications");
-      await handleDeleteNotification(notification.id);
-      setShowPopup(false);
-      
-    } catch (error) {
-      // console.error("Error marking notification as read:", error);
-      setShowPopup(false);
-
-    }
-  };
-
-  //delivered notifs
-
- const [deliveredNotifications, setDeliveredNotifications] = useState([])
-
-  useEffect(() => {
-    if (!user) return; // Return early if user is null
-  
-    const userId = user.uid;
-    const q = query(
-      collection(txtdb, `userNotifications/${userId}/deliverynotifications`),
-      orderBy("timestamp", "desc")
-    );
-  
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newDeliveredNotifications = snapshot.docs.map((doc) => {
-        let timestamp;
-        if (doc.data().timestamp instanceof Date) {
-          timestamp = doc.data().timestamp;
-        } else {
-          timestamp = new Date(doc.data().timestamp);
-        }
-        return {
-          id: doc.id,
-          ...doc.data(),
-          timestamp: timestamp.toLocaleString([], {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            // hour: "2-digit",
-            // minute: "2-digit",
-          }),
-        };
-      });
- 
-      setDeliveredNotifications(newDeliveredNotifications);
-      setIsLoading(false);
-
-
-    });
-  
-    return () => unsubscribe();
-  }, [user]); // Run whenever the user object changes
-
-  const handleDeleteDeliveredNotification = async (deliveredId) => {
-    try {
-      const userId = currentUser.uid;
-      await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/deliverynotifications`), deliveredId));
-      // console.log("Notification deleted");
-    } catch (error) {
-      // console.error("Error deleting notification:", error);
-    }
-  };
-  
-
-  const handleMarkDeliveredNotificationAsRead = async (delivered) => {
-    setShowPopup(true);
-    
-        try {
-          const userId = currentUser.uid;
-          const readDeliveredNotificationData = {
-              orderRefId: delivered.orderRefId,
-          timestamp: delivered.timestamp
-          };
-      
-          await addDoc(collection(txtdb, `userNotifications/${userId}/deliveredread`), readDeliveredNotificationData);
-          // console.log("Notification marked as read and moved to read notifications");
-          await handleDeleteDeliveredNotification(delivered.id);
-          setShowPopup(false);
-          
-        } catch (error) {
-          // console.error("Error marking notification as read:", error);
-          setShowPopup(false);
-    
-        }
-      };
-
-// read delivered notifs
-
-const [readDeliveredNotifications, setReadDeliveredNotifications] = useState([]);
-
-
-useEffect(() => {
-  if (!user) return; // Return early if user is null
-
-  const userId = user.uid;
-  const q = query(
-    collection(txtdb, `userNotifications/${userId}/deliveredread`),
-    orderBy("timestamp", "desc")
-  );
-
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const readDelivNotifications = snapshot.docs.map((doc) => {
-      let timestamp;
-      if (doc.data().timestamp instanceof Date) {
-        timestamp = doc.data().timestamp;
-      } else {
-        timestamp = new Date(doc.data().timestamp);
-      }
-      return {
-        id: doc.id,
-        ...doc.data(),
-        timestamp: timestamp.toLocaleString([], {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        }),
-      };
-    });
-    // Count the number of unread notifications
-    setReadDeliveredNotifications(readDelivNotifications);
-    setIsLoading(false);
-
-
-  });
-
-  return () => unsubscribe();
-}, [user]);
-
-//pickup notification
-
-const [readyForPickup, setReadyForPickup] = useState([])
-
-useEffect(() => {
-  if (!user) return; // Return early if user is null
-
-  const userId = user.uid;
-  const q = query(
-    collection(txtdb, `userNotifications/${userId}/pendingPickupNotification`),
-    orderBy("timestamp", "desc")
-  );
-
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const readDelivNotifications = snapshot.docs.map((doc) => {
-      let timestamp;
-      if (doc.data().timestamp instanceof Date) {
-        timestamp = doc.data().timestamp;
-      } else {
-        timestamp = new Date(doc.data().timestamp);
-      }
-      return {
-        id: doc.id,
-        ...doc.data(),
-        timestamp: timestamp.toLocaleString([], {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        }),
-      };
-    });
-    // Count the number of unread notifications
-    setReadyForPickup(readDelivNotifications);
-    // console.log(readyForPickup, 'ready')
-    setIsLoading(false);
-  });
-
-  return () => unsubscribe();
-}, [user]);
-
-//read pickup notification
-
-const handleDeleteReadyForPickupNotification = async (forPickupId) => {
-  try {
-    const userId = currentUser.uid;
-    await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/pendingPickupNotification`), forPickupId));
-    // console.log("Notification deleted");
-  } catch (error) {
-    // console.error("Error deleting notification:", error);
-  }
-};
-
-const handleMarkPickupNotificationAsRead = async (forPickup) => {
-  setShowPopup(true);
-  
-      try {
-        const userId = currentUser.uid;
-        const readDeliveredNotificationData = {
-            orderRefId: forPickup.orderRefId,
-        timestamp: forPickup.timestamp
-        };
-    
-        await addDoc(collection(txtdb, `userNotifications/${userId}/ReadPickupNotification`), readDeliveredNotificationData);
-        // console.log("Notification marked as read and moved to read notifications");
-        await handleDeleteReadyForPickupNotification(forPickup.id);
-        setShowPopup(false);
-        
-      } catch (error) {
-        // console.error("Error marking notification as read:", error);
-        setShowPopup(false);
-      }
-    };
-
-//delivery notification
-
-const [readyForDelivery, setReadyForDelivery] = useState([])
-
-useEffect(() => {
-  if (!user) return; // Return early if user is null
-
-  const userId = user.uid;
-  const q = query(
-    collection(txtdb, `userNotifications/${userId}/pendingDeliveryNotification`),
-    orderBy("timestamp", "desc")
-  );
-
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const readDelivNotifications = snapshot.docs.map((doc) => {
-      let timestamp;
-      if (doc.data().timestamp instanceof Date) {
-        timestamp = doc.data().timestamp;
-      } else {
-        timestamp = new Date(doc.data().timestamp);
-      }
-      return {
-        id: doc.id,
-        ...doc.data(),
-        timestamp: timestamp.toLocaleString([], {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        }),
-      };
-    });
-    // Count the number of unread notifications
-    setReadyForDelivery(readDelivNotifications);
-    setIsLoading(false);
-  });
-
-  return () => unsubscribe();
-}, [user]);
-
-const handleDeleteReadyForDeliveryNotification = async (forDeliveryId) => {
-  try {
-    const userId = currentUser.uid;
-    await deleteDoc(doc(collection(txtdb, `userNotifications/${userId}/pendingDeliveryNotification`), forDeliveryId));
-    // console.log("Notification deleted");
-  } catch (error) {
-    // console.error("Error deleting notification:", error);
-  }
-};
-
-const handleMarkDeliveryNotificationAsRead = async (forDelivery) => {
-  setShowPopup(true);
-  
-      try {
-        const userId = currentUser.uid;
-        const readDeliveredNotificationData = {
-            orderRefId: forDelivery.orderRefId,
-        timestamp: forDelivery.timestamp
-        };
-    
-        await addDoc(collection(txtdb, `userNotifications/${userId}/ReadDeliveryNotification`), readDeliveredNotificationData);
-        // console.log("Notification marked as read and moved to read notifications");
-        await handleDeleteReadyForDeliveryNotification(forDelivery.id);
-        setShowPopup(false);
-        
-      } catch (error) {
-        // console.error("Error marking notification as read:", error);
-        setShowPopup(false);
-      }
-    };
-
-//read pickup notifications
-    const [readPickupNotification, setReadPickupNotification] = useState([])
-
-    useEffect(() => {
-      if (!user) return; // Return early if user is null
-    
-      const userId = user.uid;
-      const q = query(
-        collection(txtdb, `userNotifications/${userId}/ReadPickupNotification`),
-        orderBy("timestamp", "desc")
-      );
-    
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const readDelivNotifications = snapshot.docs.map((doc) => {
-          let timestamp;
-          if (doc.data().timestamp instanceof Date) {
-            timestamp = doc.data().timestamp;
-          } else {
-            timestamp = new Date(doc.data().timestamp);
-          }
-          return {
-            id: doc.id,
-            ...doc.data(),
-            timestamp: timestamp.toLocaleString([], {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-          };
-        });
-        // Count the number of unread notifications
-        setReadPickupNotification(readDelivNotifications);
-        setIsLoading(false);
-    
-    
-      });
-    
-      return () => unsubscribe();
-    }, [user]);
-
-//read delivery notifications
-    const [readDeliveryNotification, setreadDeliveryNotification] = useState([])    
-
-    useEffect(() => {
-      if (!user) return; // Return early if user is null
-    
-      const userId = user.uid;
-      const q = query(
-        collection(txtdb, `userNotifications/${userId}/ReadDeliveryNotification`),
-        orderBy("timestamp", "desc")
-      );
-    
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const readDelivNotifications = snapshot.docs.map((doc) => {
-          let timestamp;
-          if (doc.data().timestamp instanceof Date) {
-            timestamp = doc.data().timestamp;
-          } else {
-            timestamp = new Date(doc.data().timestamp);
-          }
-          return {
-            id: doc.id,
-            ...doc.data(),
-            timestamp: timestamp.toLocaleString([], {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-          };
-        });
-        // Count the number of unread notifications
-        setreadDeliveryNotification(readDelivNotifications);
-        setIsLoading(false);
-    
-    
-      });
-    
-      return () => unsubscribe();
-    }, [user]);
-
-//notification count
+    if (!user?.uid) return;
     const deleteAllNotifications = async () => {
-      const userId = user.uid;
-
-      const notificationCollectionRef = collection(txtdb, `userNotifications/${userId}/notificationCount`);
-      
+      const notificationCollectionRef = collection(txtdb, `userNotifications/${user.uid}/notificationCount`);
       try {
         const querySnapshot = await getDocs(notificationCollectionRef);
-        querySnapshot.forEach((doc) => {
-          deleteDoc(doc.ref);
+        querySnapshot.forEach((docSnap) => {
+          deleteDoc(docSnap.ref);
         });
-        console.log('All documents in notificationCount deleted successfully');
       } catch (error) {
-        console.error('Error deleting documents:', error);
+        console.error("Error clearing notification count:", error);
       }
     };
+    deleteAllNotifications();
+  }, [user?.uid]);
 
-    useEffect(() => {
-      deleteAllNotifications();
-    },);
+  // Listen to all 8 collections (4 types x unread/read)
+  useEffect(() => {
+    if (!user?.uid) return;
 
+    seenSources.current = new Set();
+    const totalSources = SOURCES.length * 2;
+    const unsubscribers = [];
+
+    const markLoaded = (key) => {
+      seenSources.current.add(key);
+      if (seenSources.current.size === totalSources) setIsLoading(false);
+    };
+
+    SOURCES.forEach(({ type, unread, read }) => {
+      [[unread, false], [read, true]].forEach(([collectionName, isRead]) => {
+        const key = `${type}:${isRead ? "read" : "unread"}`;
+        const unsubscribe = onSnapshot(
+          collection(txtdb, `userNotifications/${user.uid}/${collectionName}`),
+          (snapshot) => {
+            const list = snapshot.docs.map((docSnap) => {
+              const raw = docSnap.data();
+              const { formatted, rawMs } = parseTimestamp(raw.timestamp);
+              return { id: docSnap.id, ...raw, raw, timestamp: formatted, rawMs, notifType: type, isRead };
+            });
+            setLists((prev) => ({ ...prev, [key]: list }));
+            markLoaded(key);
+          },
+          (error) => {
+            console.error(`Error loading ${collectionName}:`, error);
+            markLoaded(key);
+          }
+        );
+        unsubscribers.push(unsubscribe);
+      });
+    });
+
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [user?.uid]);
+
+  // Close the type menu when clicking elsewhere
+  useEffect(() => {
+    if (!isFilterOpen) return;
+    const handleClickOutside = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setIsFilterOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isFilterOpen]);
+
+  // Escape closes whatever is open, and the page doesn't scroll behind an open message
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key !== "Escape") return;
+      setSelected(null);
+      setIsFilterOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = selected ? "hidden" : "auto";
+    return () => { document.body.style.overflow = "auto"; };
+  }, [selected]);
+
+  // Move a notification from its unread collection to its read collection (same document id)
+  const markAsRead = async (item) => {
+    if (!user?.uid || item.isRead || markingIds.current.has(item.id)) return;
+    const source = SOURCES.find((s) => s.type === item.notifType);
+    if (!source) return;
+
+    markingIds.current.add(item.id);
+    try {
+      const batch = writeBatch(txtdb);
+      batch.set(doc(txtdb, `userNotifications/${user.uid}/${source.read}`, item.id), item.raw);
+      batch.delete(doc(txtdb, `userNotifications/${user.uid}/${source.unread}`, item.id));
+      await batch.commit();
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    } finally {
+      markingIds.current.delete(item.id);
+    }
+  };
+
+  // Opening a message marks it as read; it then drops into "Older" behind the open message
+  const openNotification = (item) => {
+    setSelected(item);
+    markAsRead(item);
+  };
+
+  // --- FILTERING ---
+  const allItems = Object.values(lists).flat();
+
+  const matchesType = (item, type) => type === "all" || item.notifType === type;
+  const matchesView = (item, view) => view === "all" || (view === "new" ? !item.isRead : item.isRead);
+
+  const viewCount = (view) => allItems.filter((i) => matchesType(i, typeFilter) && matchesView(i, view)).length;
+  const typeCount = (type) => allItems.filter((i) => matchesType(i, type) && matchesView(i, viewFilter)).length;
+
+  const visible = allItems
+    .filter((i) => matchesType(i, typeFilter) && matchesView(i, viewFilter))
+    .sort((a, b) => b.rawMs - a.rawMs);
+
+  const newItems = visible.filter((i) => !i.isRead);
+  const olderItems = visible.filter((i) => i.isRead);
+  const totalNew = allItems.filter((i) => !i.isRead).length;
+
+  const typeOptions = [["all", "All Types"], ...Object.entries(TYPE_META).map(([key, meta]) => [key, meta.label])];
+
+  const emptyText = {
+    all: "You're all caught up! Order updates and delivery alerts will appear here.",
+    new: "You have no new notifications.",
+    older: "Notifications you've opened will show up here.",
+  }[viewFilter];
+
+  // --- ONE ROW ---
+  const renderRow = (item) => {
+    const { Icon, label } = TYPE_META[item.notifType];
+    const { title, preview } = getContent(item);
+
+    return (
+      <button
+        type="button"
+        key={`${item.notifType}-${item.id}`}
+        className={`notif-row ${item.notifType} ${item.isRead ? "read" : "unread"}`}
+        onClick={() => openNotification(item)}
+      >
+        <span className="row-icon"><Icon /></span>
+
+        <span className="row-main">
+          <span className="row-top">
+            <span className="row-status">{label}</span>
+            <span className="row-date">{item.timestamp}</span>
+          </span>
+          <span className="row-title">{title}</span>
+          <span className="row-preview">{preview}</span>
+        </span>
+
+        <span className="row-end">
+          {!item.isRead && <span className="unread-dot" aria-label="New" />}
+          <FiChevronRight className="row-chevron" />
+        </span>
+      </button>
+    );
+  };
+
+  const selectedMeta = selected ? TYPE_META[selected.notifType] : null;
+  const selectedContent = selected ? getContent(selected) : null;
 
   return (
-    <div>
-
+    <div className="user-notifications-wrapper">
       <UserNav />
 
-      <div  className="notification-page">
-
+      <div className="notification-page">
         <div className="notification-container page">
 
-        <h1>Notifications</h1>
+          {/* --- PAGE HEADER --- */}
+          <div className="notif-header">
+            <div>
+              <h1>Notifications</h1>
+              <p className="notif-subtitle">Real-time updates on your orders and deliveries.</p>
+            </div>
+            {totalNew > 0 && (
+              <span className="new-count"><span className="dot" /> {totalNew} new</span>
+            )}
+          </div>
 
-        <div>
-        {isLoading ? (
-          <div className="loading-message">
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
+          {/* --- TABS + TYPE FILTER --- */}
+          <div className="notif-controls">
+            <div className="notif-tabs">
+              {VIEW_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  className={viewFilter === tab.value ? "notif-tab active" : "notif-tab"}
+                  onClick={() => setViewFilter(tab.value)}
+                >
+                  {tab.label}
+                  <span className="count">{viewCount(tab.value)}</span>
+                </button>
+              ))}
             </div>
 
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
+            <div className="notif-filter" ref={filterRef}>
+              <button
+                type="button"
+                className={`notif-filter-btn ${typeFilter !== "all" ? "active" : ""} ${isFilterOpen ? "open" : ""}`}
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                aria-haspopup="listbox"
+                aria-expanded={isFilterOpen}
+              >
+                <FiFilter />
+                <span>{typeFilter === "all" ? "Type" : TYPE_META[typeFilter].label}</span>
+                <FiChevronDown className="chevron" />
+              </button>
 
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
-            </div>
-
-            <div className="loading-card">
-              <div className="loading-img"></div>
-              <div className="loading-text"></div>
-              <div className="loading-text-III"></div>
-              <div className="loading-text-II"></div>
+              {isFilterOpen && (
+                <div className="notif-filter-menu" role="listbox">
+                  <div className="menu-title">Filter by type</div>
+                  {typeOptions.map(([value, label]) => {
+                    const isSelected = typeFilter === value;
+                    const count = typeCount(value);
+                    return (
+                      <button
+                        type="button"
+                        key={value}
+                        role="option"
+                        aria-selected={isSelected}
+                        className={`menu-item ${isSelected ? "selected" : ""} ${count === 0 && !isSelected ? "empty" : ""}`}
+                        onClick={() => {
+                          setTypeFilter(value);
+                          setIsFilterOpen(false);
+                        }}
+                      >
+                        <span className="menu-label">
+                          <FiCheck className="menu-check" />
+                          {label}
+                        </span>
+                        <span className="menu-count">{count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="new-notifications">
 
-        <div className="delivered notifications">
-            
-            {deliveredNotifications.map((delivered) => (
+          {/* --- LIST --- */}
+          {isLoading ? (
+            <div className="notif-list" aria-busy="true">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <div className="notif-skeleton-row" key={n}>
+                  <span className="notif-skeleton icon" />
+                  <div className="lines">
+                    <span className="notif-skeleton line-sm" />
+                    <span className="notif-skeleton line-lg" />
+                    <span className="notif-skeleton line-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="empty-notifications">
+              <FiBellOff className="empty-icon" />
+              <h3>No notifications here</h3>
+              <p>{emptyText}</p>
+            </div>
+          ) : viewFilter === "all" ? (
+            <>
+              {newItems.length > 0 && (
+                <div className="notif-section">
+                  <h2 className="notif-section-title">New</h2>
+                  <div className="notif-list">{newItems.map(renderRow)}</div>
+                </div>
+              )}
+              {olderItems.length > 0 && (
+                <div className="notif-section">
+                  <h2 className="notif-section-title">Older</h2>
+                  <div className="notif-list">{olderItems.map(renderRow)}</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="notif-list">{visible.map(renderRow)}</div>
+          )}
 
-                <div className="container notification" key={delivered.id}>
-                        <div className="left"> <CiDeliveryTruck className="icon"/></div>
+        </div>
 
-            <div className="right">
-                <h4>Your order with ID: {delivered.orderRefId} has been Delivered </h4>
-                <p style={{ fontWeight: '500' }}>on {delivered.timestamp} </p>
-                <p>Use the live chat feature to reach us if you have any queries about this order</p>
-                <h5>Thank You!</h5>
-                <span>
-
-                <p className="date">{delivered.timestamp}</p> 
-                
+        {/* --- OPEN MESSAGE --- */}
+        {selected && (
+          <div className="notif-modal-overlay" onClick={() => setSelected(null)}>
+            <div
+              className={`notif-modal ${selected.notifType}`}
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="notif-modal-header">
+                <span className="modal-status">
+                  <selectedMeta.Icon className="modal-icon" />
+                  {selectedMeta.label}
                 </span>
-            </div>
-            
-                </div>
+                <button type="button" className="modal-close" onClick={() => setSelected(null)} aria-label="Close">
+                  <FiX />
+                </button>
+              </div>
 
-            ))}
+              <div className="notif-modal-body">
+                <span className="modal-date">{selected.timestamp}</span>
+                <h2>{selectedContent.title}</h2>
+                {selectedContent.body}
+              </div>
+            </div>
           </div>
-
-          <div className="delivery notifications"> 
-            {readyForDelivery.map((forDelivery) => (
-
-              <div className="notification" key={forDelivery.id}>
-
-                <div className="left"> <TbTruckDelivery  className="icon"/></div>
-
-                <div className="right">
-                    <h4>Your order with ID: {forDelivery.orderRefId} is out for Delivery </h4>
-                    <p>We will contact you soon for the drop-off.</p>
-                    <span>
-
-                    <p className="date">{forDelivery.timestamp}</p>
-                    
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
-
-           <div className="pickup notifications"> 
-            {readyForPickup.map((forPickup) => (
-
-              <div className="notification" key={forPickup.id}>
-
-                <div className="left"> <LuPackage  className="icon"/></div>
-
-                <div className="right">
-                    <h4>Your order with ID: {forPickup.orderRefId} has been Shipped </h4>
-                    <p>We will contact you when it's ready to be delivered.</p>
-                    <span>
-
-                    <p className="date">{forPickup.timestamp}</p> 
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
-        
-            <div className="notifications">
-            {notifications.map((notification) => (
-
-              <div className="notification" key={notification.id}>
-
-                <div className="left"> <PiNotePencilLight className="icon"/></div>
-
-                <div className="right">
-                    <h4>Your order with ID: {notification.orderRefId} has been confirmed </h4>
-                    <p>Expected delivery for this item to {notification.state} is between {notification.formattedDate15DaysFromNow} and {notification.formattedDate20DaysFromNow}</p>
-                    <p>Please note that delivery fees are paid for seperately</p>
-                    <p>Use the live chat feature to inquire shipping fees</p>
-                    <h5>To track your order please contact Evanis Interiors via Email</h5>
-                    <span>
-
-                    <p className="date">{notification.timestamp}</p> 
-                    
-                    </span>
-                </div>
-
-              </div>
-              
-            ))}
-            </div>
-
-            </div>
         )}
-
-        </div>
-
-
       </div>
-
-      
-
-      {showPopup && (
-        <div className="popup">
-
-          <div className="spinner">
-            <div></div>   
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-            <div></div>    
-          </div>
-
-
-        </div>
-      )}
-      </div>
-      
     </div>
   );
 }

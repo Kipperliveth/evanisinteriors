@@ -706,7 +706,7 @@ $overlay-bg: rgba(0, 0, 0, 0.6);
   animation: tx-shimmer 1.5s linear infinite;
 
   &.tx-skeleton-circle {
-    border-radius: 51%;
+    border-radius: 50%;
     flex-shrink: 0;
   }
 }
