@@ -11,7 +11,7 @@ function Footer() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const hiddenPaths = ["/adminHome", "/post", "/uploads", "/orders", "/adminNotifications"];
+  const hiddenPaths = ["/adminHome", "/post", "/uploads", "/orders", "/adminNotifications", "/adminlog"];
   const allPaths = [
     "/", "/marketplace", "/store", "/address", "/userDashboard",
     "/adminHome", "/adminNotifications", "/post", "/orders", "/cart", "/userProfile",

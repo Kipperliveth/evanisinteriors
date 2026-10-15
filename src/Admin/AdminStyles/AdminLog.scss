@@ -1,51 +1,132 @@
-.adminHome{
+.adminHome {
+  // Defensive rule in case any parent/global class renders the mobile header
+  .admin-current-page {
+    display: none !important;
+  }
 
-    .adminlog{
+  .adminlog {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    padding: 1.5rem;
+    box-sizing: border-box;
 
-        .body{
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
-            gap: 1.6rem;
-            text-align: center;
-            margin-block: 9rem;
-            
+    .logout-minimal {
+      width: 100%;
+      max-width: 360px;
+      text-align: left;
 
+      .eyebrow {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #a1a1aa;
+        margin-bottom: 0.65rem;
+      }
 
-            button{
-                width: fit-content;
-                background: black;
-                color: white;
-                border: none;
-                padding: 10px 18px;
-                border-radius: 5px;
-                cursor: pointer;
-                transition: .2s ease-in-out;
-                grid-column: span 2; /* Span the button across both columns */
-                place-self: center;
-                width: 250px;
-    
-                &:hover{
-                    transform: scale(.95);
-                }
-                .login-spinner{
-                    animation: spin 2s linear infinite;
-                    width: 3.5rem;
-                    transition: .2s ease-in-out;
-    
-                }
-    
-                @keyframes spin {
-                    from {
-                      transform: rotate(0deg);
-                    }
-                    to {
-                      transform: rotate(360deg);
-                    }
-                  }
-            }
+      h3 {
+        font-size: 1.45rem;
+        font-weight: 500;
+        color: #111111;
+        margin: 0 0 0.5rem 0;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+      }
 
+      .subtitle {
+        font-size: 0.875rem;
+        color: #71717a;
+        margin: 0 0 1.75rem 0;
+        line-height: 1.6;
+        padding-bottom: 1.75rem;
+        border-bottom: 1px solid #f4f4f5;
+        word-break: break-word;
 
+        .email {
+          color: #18181b;
+          font-weight: 500;
         }
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        button {
+          flex: 1; // Equal 50/50 button width for cleaner visual symmetry
+          height: 42px;
+          border-radius: 5px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+
+          &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+          }
+        }
+
+        .btn-primary {
+          background: #111111;
+          color: #ffffff;
+          border: 1px solid #111111;
+
+          &:hover:not(:disabled) {
+            background: #27272a;
+            border-color: #27272a;
+          }
+
+          .login-spinner {
+            animation: spin 0.9s linear infinite;
+            font-size: 1rem;
+          }
+        }
+
+        .btn-secondary {
+          background: transparent;
+          color: #52525b;
+          border: 1px solid #e4e4e7;
+
+          &:hover:not(:disabled) {
+            color: #111111;
+            border-color: #a1a1aa;
+            background: #fafafa;
+          }
+        }
+      }
+
+      @media (max-width: 480px) {
+        max-width: 100%;
+        padding-inline: 0.5rem;
+
+        .actions {
+          flex-direction: column;
+
+          button {
+            width: 100%;
+            flex: none;
+          }
+        }
+      }
     }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
