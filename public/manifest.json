@@ -1,6 +1,7 @@
 {
+  "name": "Evanis Interiors",
   "short_name": "Evanis Interiors",
-  "name": "Interior Design Services, Furniture Wholsale and Retail",
+  "description": "Interior Design Services, Furniture Wholesale and Retail",
   "icons": [
     {
       "src": "favicon.png",
@@ -18,7 +19,8 @@
       "sizes": "512x512"
     }
   ],
-"start_url": "./?utm_source=pwa",
+  "start_url": "/financetracking",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#000000",
   "background_color": "#ffffff"
