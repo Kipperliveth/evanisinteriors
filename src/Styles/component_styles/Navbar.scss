@@ -1,13 +1,13 @@
-$text-dark: #1a1a1a;
+$text-dark: #111111;
 $text-gray: #555555;
-$bg-white: rgba(255, 255, 255, 0.95);
+$bg-white: rgba(255, 255, 255, 0.96);
 $hover-bg: #f3f4f6;
 $transition-speed: 0.3s;
 $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
 /* BULLETPROOF HELPER VISIBILITY CLASSES */
-.mobile-only { display: none !important; } 
-.desktop-only { display: flex !important; } 
+.mobile-only { display: none !important; }
+.desktop-only { display: flex !important; }
 
 @media screen and (max-width: 900px) {
   .desktop-only { display: none !important; }
@@ -15,40 +15,40 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .minimalist-header {
-  position: fixed; 
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   background-color: $bg-white;
   backdrop-filter: blur(8px);
-  padding: 0.5rem 0; 
+  padding: 0.65rem 0;
   z-index: 1000;
-  box-sizing: border-box; 
+  box-sizing: border-box;
   transition: background-color 0.4s ease, box-shadow 0.4s ease, border-bottom 0.4s ease;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 
   // --- Dynamic Scroll & Page States ---
   &.default-mode {
     background-color: $bg-white;
-    
+
     &.scrolled {
       background-color: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       border-bottom: 1px solid transparent;
     }
 
-    .nav-link, .action-icon, .mobile-toggle, .mobile-cart-btn {
+    .nav-link, .action-icon, .mobile-toggle, .mobile-icon-btn {
       color: $text-dark;
-      transition: color 0.4s ease;
+      transition: color 0.3s ease;
     }
-    
+
     .solid-btn {
       background-color: $text-dark;
       color: #ffffff;
     }
 
     .brand-logo img {
-      filter: none; 
+      filter: none;
       transition: filter 0.4s ease;
     }
   }
@@ -61,14 +61,12 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     backdrop-filter: none;
 
     .nav-link {
-      color: #ffffff !important; 
-      
-      /* Force underline to be white */
+      color: #ffffff !important;
+
       &::after {
         background-color: #ffffff !important;
       }
-      
-      /* Force text and underline to be soft white on hover */
+
       &:hover {
         color: rgba(255, 255, 255, 0.8) !important;
         &::after {
@@ -76,7 +74,6 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
       }
 
-      /* Force active link to be white */
       &.active {
         color: #ffffff !important;
         &::after {
@@ -85,13 +82,13 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
       }
     }
 
-    .action-icon, .mobile-toggle, .mobile-cart-btn {
-      color: #ffffff !important; 
+    .action-icon, .mobile-toggle, .mobile-icon-btn {
+      color: #ffffff !important;
     }
 
     /* Force the icon inside the grey circle to go dark on hover */
     .desktop-actions .icon-wrapper:hover .action-icon {
-      color: #1a1a1a !important; 
+      color: #111111 !important;
     }
 
     .solid-btn {
@@ -100,7 +97,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .brand-logo img {
-      filter: brightness(0) invert(1); 
+      filter: brightness(0) invert(1);
     }
   }
 
@@ -109,7 +106,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 5%; 
+    padding: 0 5%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -118,7 +115,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   // --- Left Side: Logo ---
   .nav-left {
-    flex: 1; 
+    flex: 1;
     display: flex;
     justify-content: flex-start;
     min-width: max-content;
@@ -129,9 +126,9 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
       text-decoration: none;
 
       img {
-        width: 120px; 
+        width: 120px;
         height: auto;
-        object-fit: contain; 
+        object-fit: contain;
       }
     }
   }
@@ -141,7 +138,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     flex: 2;
     display: flex;
     justify-content: center;
-    gap: 2.5rem; 
+    gap: 2.5rem;
 
     .nav-link {
       text-decoration: none;
@@ -160,16 +157,18 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         transform: translateX(-50%);
         width: 0;
         height: 2px;
-        background-color: $text-dark; 
+        background-color: $text-dark;
         transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         border-radius: 2px;
       }
 
       &:hover {
+        color: $text-dark;
         &::after { width: 100%; }
       }
 
       &.active {
+        color: $text-dark;
         font-weight: 600;
         &::after { width: 100%; }
       }
@@ -178,7 +177,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   // --- Right Side: Actions ---
   .nav-right {
-    flex: 1; 
+    flex: 1;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -186,7 +185,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     .desktop-actions {
       display: flex;
       align-items: center;
-      gap: 1rem; 
+      gap: 0.85rem;
 
       .icon-wrapper {
         display: flex;
@@ -197,25 +196,26 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         border-radius: 50%;
         cursor: pointer;
         position: relative;
-        overflow: visible; // Changed to visible so badge can sit outside
+        overflow: visible;
         z-index: 1;
 
         &::before {
           content: '';
           position: absolute;
-          top: 50%; 
+          top: 50%;
           left: 50%;
-          width: 100%; 
+          width: 100%;
           height: 100%;
           background-color: $hover-bg;
           border-radius: 50%;
           transform: translate(-50%, -50%) scale(0);
-          transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
           z-index: -1;
         }
 
         .action-icon {
           font-size: 1.4rem;
+          stroke-width: 1.8;
           color: $text-dark;
           transition: transform $transition-speed $transition-bounce, color $transition-speed;
         }
@@ -223,8 +223,8 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         /* --- CART BADGE (DESKTOP) --- */
         .cart-badge {
           position: absolute;
-          top: -2px;
-          right: -2px;
+          top: 2px;
+          right: 0px;
           background-color: $text-dark;
           color: #fff;
           font-size: 0.6rem;
@@ -235,6 +235,7 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 0;
           border: 2px solid #fff;
           z-index: 2;
         }
@@ -242,23 +243,22 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         &:hover {
           &::before { transform: translate(-50%, -50%) scale(1); }
           .action-icon {
-            transform: scale(1.1) rotate(5deg); 
-            color: #000;
+            transform: scale(1.06);
           }
         }
       }
 
       .solid-btn {
         border: none;
-        padding: 0.7rem 1.6rem;
-        border-radius: 50px; 
-        font-size: 0.9rem;
+        padding: 0.7rem 1.5rem;
+        border-radius: 50px;
+        font-size: 0.88rem;
         font-weight: 500;
         cursor: pointer;
-        margin-left: 0.5rem;
-        white-space: nowrap; 
+        margin-left: 0.4rem;
+        white-space: nowrap;
         transition: all 0.3s $transition-bounce;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         position: relative;
         overflow: hidden;
         z-index: 1;
@@ -266,21 +266,21 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
         &::before {
           content: '';
           position: absolute;
-          top: 0; 
+          top: 0;
           left: -100%;
-          width: 100%; 
+          width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
           transition: left 0.6s ease;
           z-index: -1;
         }
 
         &:hover {
-          transform: translateY(-2px); 
+          transform: translateY(-2px);
           box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
           &::before { left: 100%; }
         }
-        
+
         &:active { transform: translateY(0); }
       }
     }
@@ -295,23 +295,23 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   width: 100vw;
   height: 100vh;
   z-index: 1500;
-  background: rgba(0,0,0,0.1); 
+  background: rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(2px);
 }
 
 // --- Floating Popover Menu ---
 .mobile-popover-menu {
   position: absolute;
-  top: 110%; 
-  right: 5%; 
-  width: 245px; 
-  background-color: #ffffff; 
-  border-radius: 16px; 
-  padding: 0.65rem; 
-  border: 1px solid rgba(0, 0, 0, 0.06); 
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04); 
+  top: 110%;
+  right: 5%;
+  width: 245px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 0.65rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
   z-index: 2000;
-  
+
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px) scale(0.95);
@@ -327,83 +327,86 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   .popover-group {
     display: flex;
     flex-direction: column;
-    gap: 4px; 
+    gap: 4px;
   }
 
   .popover-link {
     display: flex;
     align-items: center;
-    gap: 13px; 
-    padding: 11px 14px; 
+    gap: 13px;
+    padding: 11px 14px;
     border-radius: 10px;
-    color: $text-dark; 
+    color: $text-dark;
     text-decoration: none;
-    font-size: 0.98rem; 
+    font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.25s ease; 
+    transition: all 0.2s ease;
 
     .popover-icon {
-      font-size: 1.35rem; 
-      color: $text-gray; 
-      transition: all 0.25s ease;
+      font-size: 1.25rem;
+      color: $text-gray;
+      transition: all 0.2s ease;
     }
 
     &:hover, &.active {
-      background-color: $hover-bg; 
+      background-color: $hover-bg;
       color: #000;
-      transform: translateX(4px); 
 
       .popover-icon {
-        color: #000; 
-        transform: scale(1.1); 
+        color: #000;
       }
     }
   }
 
   .popover-divider {
     height: 1px;
-    background-color: rgba(0, 0, 0, 0.06); 
-    margin: 0.65rem 0; 
+    background-color: rgba(0, 0, 0, 0.06);
+    margin: 0.6rem 0;
     width: 100%;
   }
 }
 
-// --- Responsive Rules ---
+// --- Responsive Rules (Matches UserNav & Reference Layout) ---
 @media screen and (max-width: 900px) {
   .minimalist-header {
-    overflow: visible; 
-    
+    overflow: visible;
+    padding: 0.75rem 0;
+
     .nav-container {
-      padding: 0 1.5rem;
-      position: relative; 
-    }
-    
-    .nav-left .brand-logo img {
-       width: 100px;
+      padding: 0 1.25rem;
+      position: relative;
     }
 
-    // Mobile Header Actions (Cart + Menu)
+    .nav-left .brand-logo img {
+      width: 105px;
+    }
+
     .nav-right .mobile-header-actions {
-      display: flex; /* Ensures the wrapper uses flex layout */
+      display: flex;
       align-items: center;
-      gap: 1.8rem;
+      gap: 1.35rem; // Identical spacing to UserNav
       z-index: 2100;
 
-      .mobile-cart-btn {
-        font-size: 1.5rem;
+      .mobile-icon-btn,
+      .mobile-toggle {
+        font-size: 1.45rem;
         cursor: pointer;
         display: flex;
         align-items: center;
-        position: relative; /* Crucial for absolute positioning of badge */
-        transition: transform 0.2s ease;
+        justify-content: center;
+        position: relative;
         color: $text-dark;
-        
+
+        svg {
+          stroke-width: 1.8;
+        }
+
         /* --- CART BADGE (MOBILE) --- */
         .cart-badge {
           position: absolute;
-          top: -4px;
-          right: -5px;
+          top: -5px;
+          right: -6px;
           background-color: $text-dark;
           color: #fff;
           font-size: 0.55rem;
@@ -414,22 +417,14 @@ $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 2px solid #fff;
+          padding: 0;
+          border: 1.5px solid #fff;
           z-index: 2;
         }
-
-        &:hover { transform: scale(1.1); }
       }
 
-      .mobile-toggle {
-        font-size: 1.8rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        color: $text-dark;
-        transition: transform 0.2s ease;
-        
-        &:hover { transform: scale(1.1); }
+      .mobile-toggle svg {
+        stroke-width: 1.6; // Keeps the 3-line FiMenu icon crisp and thin
       }
     }
   }

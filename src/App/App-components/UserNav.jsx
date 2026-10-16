@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import logo from "../../stock/new-logo.svg"; 
+import logo from "../../stock/new-logo.svg";
 import { IoIosNotificationsOutline } from "react-icons/io";
-import { AiOutlineShoppingCart } from "react-icons/ai";
-import { CiUser } from "react-icons/ci";
+import { LuUserCircle2 } from "react-icons/lu";
+import { FiHeart, FiShoppingBag, FiMenu, FiX } from "react-icons/fi";
+import { RxHamburgerMenu } from "react-icons/rx";
 import { BsBox2 } from "react-icons/bs";
 import { LiaUserEditSolid } from "react-icons/lia";
-import { RiMenu4Fill, RiCloseFill } from "react-icons/ri";
+import { RiCloseFill } from "react-icons/ri";
 import { auth, txtdb } from "../../firebase-config";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, query, orderBy, onSnapshot, getDocs } from "firebase/firestore";
@@ -15,7 +16,7 @@ function UserNav() {
   const [user, setUser] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
-  const profileDropdownRef = useRef(null); 
+  const profileDropdownRef = useRef(null);
 
   // UI States
   const [isScrolled, setIsScrolled] = useState(false);
@@ -43,7 +44,7 @@ function UserNav() {
   }, []);
 
   // ==========================================
-  // SCROLL & MENU LOGIC 
+  // SCROLL & MENU LOGIC
   // ==========================================
   useEffect(() => {
     const handleScroll = () => {
@@ -60,7 +61,9 @@ function UserNav() {
     } else {
       document.body.style.overflow = "auto";
     }
-    return () => { document.body.style.overflow = "auto"; };
+    return () => {
+      document.body.style.overflow = "auto";
+    };
   }, [isMobileMenuOpen]);
 
   const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -145,7 +148,13 @@ function UserNav() {
         return {
           id: doc.id,
           ...doc.data(),
-          timestamp: timestamp.toLocaleString([], { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+          timestamp: timestamp.toLocaleString([], {
+            day: "numeric",
+            month: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
         };
       });
 
@@ -181,32 +190,23 @@ function UserNav() {
           <NavLink to="/store" className={({ isActive }) => (isActive ? "active nav-link" : "nav-link")}>
             <span className="link-text">Collection</span>
           </NavLink>
-          
+
           <NavLink to="/gethelp" className={({ isActive }) => (isActive ? "active nav-link" : "nav-link")}>
-             <span className="link-text">Support</span>
+            <span className="link-text">Support</span>
           </NavLink>
         </nav>
 
         {/* Right: Actions & Profile */}
         <div className="nav-right">
           
-          {/* Desktop Actions */}
+          {/* Desktop Actions: User Circle -> Heart (/saved) -> Shopping Bag (/cart) */}
           <div className="desktop-actions desktop-only">
             
-            <div className="icon-wrapper" onClick={() => handleActionClick("/notifications")}>
-              <IoIosNotificationsOutline className="action-icon" title="Notifications" />
-              {unreadCount > 0 && <span className="action-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
-            </div>
-
-            <div className="icon-wrapper" onClick={() => handleActionClick("/cart")}>
-              <AiOutlineShoppingCart className="action-icon" title="Cart" />
-              {cartItemCount > 0 && <span className="action-badge">{cartItemCount > 99 ? '99+' : cartItemCount}</span>}
-            </div>
-
-            {/* Profile Dropdown Toggle & Menu Wrapper */}
+            {/* 1. Profile Dropdown Toggle & Menu Wrapper */}
             <div className="profile-wrapper" ref={profileDropdownRef}>
               <div className="icon-wrapper user-icon-toggle" onClick={toggleUserInfo}>
-                <CiUser className="action-icon" title="Profile" />
+                <LuUserCircle2 className="action-icon" title="Profile" />
+                {unreadCount > 0 && <span className="action-dot"></span>}
               </div>
 
               {/* Profile Dropdown Menu */}
@@ -223,6 +223,17 @@ function UserNav() {
                     <BsBox2 className="popover-icon" />
                     <span>My Orders</span>
                   </NavLink>
+                  <NavLink to="/saved" onClick={() => setShowUserInfo(false)} className="popover-link">
+                    <FiHeart className="popover-icon" />
+                    <span>Saved Products</span>
+                  </NavLink>
+                  <NavLink to="/notifications" onClick={() => setShowUserInfo(false)} className="popover-link">
+                    <IoIosNotificationsOutline className="popover-icon" />
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="inline-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+                    )}
+                  </NavLink>
                 </div>
                 <div className="popover-divider"></div>
                 <div className="popover-group">
@@ -232,25 +243,43 @@ function UserNav() {
                 </div>
               </div>
             </div>
-            
+
+            {/* 2. Saved Products (Heart) */}
+            <div className="icon-wrapper" onClick={() => handleActionClick("/saved")}>
+              <FiHeart className="action-icon" title="Saved Products" />
+            </div>
+
+            {/* 3. Shopping Bag (Cart) */}
+            <div className="icon-wrapper" onClick={() => handleActionClick("/cart")}>
+              <FiShoppingBag className="action-icon" title="Bag" />
+              {cartItemCount > 0 && (
+                <span className="action-badge">{cartItemCount > 99 ? "99+" : cartItemCount}</span>
+              )}
+            </div>
+
           </div>
 
-          {/* Mobile Actions */}
+          {/* Mobile Actions: User Circle -> Heart (/saved) -> Shopping Bag (/cart) -> Hamburger */}
           <div className="mobile-header-actions mobile-only">
             
-            <div className="mobile-icon-btn" onClick={() => handleActionClick("/notifications")}>
-              <IoIosNotificationsOutline />
-              {unreadCount > 0 && <span className="action-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            <div className="mobile-icon-btn" onClick={() => handleActionClick("/userProfile")} aria-label="Account">
+              <LuUserCircle2 />
             </div>
 
-            <div className="mobile-icon-btn" onClick={() => handleActionClick("/cart")}>
-              <AiOutlineShoppingCart />
-              {cartItemCount > 0 && <span className="action-badge">{cartItemCount > 99 ? '99+' : cartItemCount}</span>}
+            <div className="mobile-icon-btn" onClick={() => handleActionClick("/saved")} aria-label="Saved Products">
+              <FiHeart />
             </div>
 
-            <div className="mobile-toggle" onClick={toggleMenu}>
-              {isMobileMenuOpen ? <RiCloseFill /> : <RiMenu4Fill />}
+            <div className="mobile-icon-btn" onClick={() => handleActionClick("/cart")} aria-label="Shopping Bag">
+              <FiShoppingBag />
+              {cartItemCount > 0 && (
+                <span className="action-badge">{cartItemCount > 99 ? "99+" : cartItemCount}</span>
+              )}
             </div>
+
+        <div className="mobile-toggle" onClick={toggleMenu} aria-label="Menu">
+          {isMobileMenuOpen ? <FiX /> : <FiMenu />}
+        </div>
 
           </div>
 
@@ -265,6 +294,9 @@ function UserNav() {
         <div className="popover-group">
           <NavLink to="/store" onClick={closeMenu} className="popover-link">
             <span>Collection</span>
+          </NavLink>
+          <NavLink to="/saved" onClick={closeMenu} className="popover-link">
+            <span>Saved Products</span>
           </NavLink>
           <NavLink to="/gethelp" onClick={closeMenu} className="popover-link">
             <span>Support</span>
@@ -282,8 +314,15 @@ function UserNav() {
             <BsBox2 className="popover-icon" />
             <span>Order History</span>
           </NavLink>
+          <NavLink to="/notifications" onClick={closeMenu} className="popover-link">
+            <IoIosNotificationsOutline className="popover-icon" />
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span className="inline-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+            )}
+          </NavLink>
         </div>
-        
+
         <div className="popover-divider"></div>
 
         <div className="popover-group">

@@ -45,6 +45,7 @@ import Purchases from "../Admin/Accounting/pages/Purchases";
 import Reports from "../Admin/Accounting/pages/Reports";
 import Transactions from "../Admin/Accounting/pages/Transactions";
 import Vendors from "../Admin/Accounting/pages/Vendors";
+import Saved from "../App/App-pages/Saved";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -87,6 +88,7 @@ function AnimatedRoutes() {
         <Route path="/myorders" element={<ProtectedRoute><Myorders /></ProtectedRoute>} />
         <Route path='/gethelp' element={<ProtectedRoute><GetHelp /></ProtectedRoute>}/>
         <Route path="/userMasterclass" element={<ProtectedRoute><MasterclassMain /></ProtectedRoute>} />
+        <Route path="/saved" element={<ProtectedRoute><Saved /></ProtectedRoute>}/>
 
         {/* ADMIN ROUTES */}
         <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />

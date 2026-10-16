@@ -1,252 +1,288 @@
 import React, { useState, useEffect } from "react";
-import { doc, collection, getDoc } from "firebase/firestore";
+import { doc, collection, onSnapshot } from "firebase/firestore";
 import { auth, txtdb } from "../../firebase-config";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useNavigate, NavLink } from "react-router-dom";
 import UserNav from "../App-components/UserNav";
 import { ImSpinner8 } from "react-icons/im";
-import { RiAccountPinCircleLine } from "react-icons/ri";
-import { BsArrowRight, BsBox2, BsHeart, BsShieldLock } from "react-icons/bs";
+import {
+  FiPackage,
+  FiBell,
+  FiShoppingBag,
+  FiShield,
+  FiMapPin,
+  FiLogOut,
+  FiChevronRight,
+  FiEdit2,
+} from "react-icons/fi";
 
-import "aos/dist/aos.css";
-import AOS from "aos";
+const QUICK_LINKS = [
+  {
+    to: "/myorders",
+    label: "Order History",
+    preview: "Track active shipments and view past order receipts",
+    Icon: FiPackage,
+  },
+  {
+    to: "/notifications",
+    label: "Notifications",
+    preview: "Delivery alerts, dispatch updates, and order confirmations",
+    Icon: FiBell,
+  },
+  {
+    to: "/store",
+    label: "Browse Catalog",
+    preview: "Explore bespoke furniture collections and saved pieces",
+    Icon: FiShoppingBag,
+  },
+  {
+    to: "/editprofile",
+    label: "Address & Security",
+    preview: "Update your default delivery address, phone number, and credentials",
+    Icon: FiShield,
+  },
+];
 
 function UserProfile() {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({});
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
   const [isSubscribed, setIsSubscribed] = useState(true);
 
-  const [addressData, setAddressData] = useState({
-    addressLine1: "",
-    addressPhone: "",
-    state: "",
-    city: ""
+  const [addressData, setAddressData] = useState(() => {
+    try {
+      const cached = localStorage.getItem("addressData");
+      return cached
+        ? JSON.parse(cached)
+        : { addressLine1: "", addressPhone: "", state: "", city: "" };
+    } catch {
+      return { addressLine1: "", addressPhone: "", state: "", city: "" };
+    }
   });
 
-  // ==========================================
-  // AOS FIX FOR REACT ROUTER NAVIGATION
-  // ==========================================
   useEffect(() => {
-    AOS.init({ delay: 100, once: true });
-    AOS.refresh(); // This forces AOS to scan the DOM again when navigating from other pages
+    document.title = "My Account - Evanis Interiors";
+
+    let unsubDoc = null;
+
+    const unsubAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser || null);
+
+      if (unsubDoc) {
+        unsubDoc();
+        unsubDoc = null;
+      }
+
+      if (currentUser?.uid) {
+        const userRef = doc(collection(txtdb, "users"), currentUser.uid);
+        unsubDoc = onSnapshot(
+          userRef,
+          (userSnap) => {
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              const nextAddress = userData.address || {
+                addressLine1: "",
+                addressPhone: "",
+                state: "",
+                city: "",
+              };
+              setAddressData(nextAddress);
+              localStorage.setItem("addressData", JSON.stringify(nextAddress));
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error fetching user profile:", error);
+            setLoading(false);
+          }
+        );
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      if (unsubDoc) unsubDoc();
+    };
   }, []);
 
-  // ==========================================
-  // AUTH & LOGOUT LOGIC
-  // ==========================================
   const logout = async () => {
-    setIsLoggedIn(true);
+    setIsLoggingOut(true);
     try {
       if (auth.currentUser) {
         await signOut(auth);
       }
       localStorage.clear();
-      setIsLoggedIn(false);
+      setIsLoggingOut(false);
       navigate("/login");
     } catch (error) {
       console.error("Error logging out:", error);
-      setIsLoggedIn(false);
+      setIsLoggingOut(false);
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser || null);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // ==========================================
-  // FETCH ADDRESS LOGIC
-  // ==========================================
-  useEffect(() => {
-    document.title = "My Account - Evanis Interiors";
-
-    const fetchAddressData = async () => {
-      const currentUserObj = auth.currentUser;
-      if (currentUserObj) {
-        const userId = currentUserObj.uid;
-        const userRef = doc(collection(txtdb, "users"), userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          setAddressData(userData.address || { addressLine1: "" });
-        } else {
-          console.log("No address data found for the current user.");
-        }
-      } else {
-        console.log("No authenticated user found.");
-      }
-      
-      setTimeout(() => {
-        setLoading(false);
-        AOS.refresh(); // Refresh one more time after loading state changes
-      }, 500); 
-    };
-
-    fetchAddressData();
-  }, []);
-
-  useEffect(() => {
-    const cachedAddressData = localStorage.getItem("addressData");
-    if (cachedAddressData) {
-      setAddressData(JSON.parse(cachedAddressData));
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      localStorage.setItem("addressData", JSON.stringify(addressData));
-    }
-  }, [addressData, loading]);
+  const hasAddress = Boolean(addressData?.addressLine1?.trim());
+  const displayName = user?.displayName || "Evanis Client";
+  const userInitial = (displayName.trim()[0] || user?.email?.[0] || "E").toUpperCase();
 
   return (
-    <div className="profile-editorial-wrapper">
+    <div className="user-profile-wrapper">
       <UserNav />
 
-      <div className="profile-container">
-        
-        {/* Header Section */}
-        <div className="profile-header" data-aos="fade" data-aos-duration="800">
-          <h1>My Account</h1>
-          <p>Manage your profile, track orders, and update delivery preferences.</p>
-        </div>
-
-        <div className="profile-bento-grid">
+      <div className="profile-page">
+        <div className="profile-container page">
           
-          {/* =========================================
-              LEFT COLUMN: DASHBOARD HUB
-              ========================================= */}
-          <div className="left-column" data-aos="fade" data-aos-duration="1000" data-aos-delay="100">
-            <div className="bento-card user-card">
-              
-              {loading ? (
-                <div className="card-top skeleton-mode">
-                  <div className="skeleton-avatar"></div>
-                  <div className="skeleton-text title"></div>
-                  <div className="skeleton-text sub"></div>
-                </div>
+          {/* --- PAGE HEADER --- */}
+          <div className="profile-header">
+            <div>
+              <h1>My Account</h1>
+              <p className="profile-subtitle">
+                Manage your profile, delivery address, and communication preferences.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="logout-btn"
+              onClick={logout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <ImSpinner8 className="spinner" />
               ) : (
-                <div className="card-top">
-                  <div className="avatar-wrapper">
-                    <RiAccountPinCircleLine className="avatar-icon" />
-                  </div>
-                  <div className="user-text">
-                    <h2>{user?.displayName || "Evanis Client"}</h2>
-                    <p>{user?.email}</p>
-                  </div>
-                </div>
+                <>
+                  <FiLogOut />
+                  <span>Log Out</span>
+                </>
               )}
+            </button>
+          </div>
 
-              {/* Dashboard Navigation Menu */}
-              <div className="dashboard-menu">
-                <NavLink to="/myorders" className="dash-link">
-                  <BsBox2 className="icon" /> Order History
-                </NavLink>
-                <NavLink to="/store" className="dash-link">
-                  <BsHeart className="icon" /> Saved Items
-                </NavLink>
-                <NavLink to="/editprofile" className="dash-link">
-                  <BsShieldLock className="icon" /> Account Security
-                </NavLink>
+          {/* --- IDENTITY BAR --- */}
+          {loading ? (
+            <div className="profile-identity-row" aria-busy="true">
+              <span className="profile-skeleton avatar" />
+              <div className="identity-lines">
+                <span className="profile-skeleton line-md" />
+                <span className="profile-skeleton line-sm" />
               </div>
+            </div>
+          ) : (
+            <div className="profile-identity-row">
+              <div className="avatar-monogram" aria-hidden="true">
+                {userInitial}
+              </div>
+              <div className="identity-main">
+                <span className="identity-label">Signed in as</span>
+                <h2 className="identity-name">{displayName}</h2>
+                {user?.email && <span className="identity-email">{user.email}</span>}
+              </div>
+              <NavLink to="/editprofile" className="identity-edit-btn">
+                <FiEdit2 />
+                <span>Edit Profile</span>
+              </NavLink>
+            </div>
+          )}
 
-              <div className="card-bottom">
-                <button className="logout-btn" onClick={logout}>
-                  {isLoggedIn ? <ImSpinner8 className="login-spinner" /> : "Log Out"}
-                </button>
-              </div>
+          {/* --- SECTION 1: WORKSPACE NAVIGATION --- */}
+          <div className="profile-section">
+            <h2 className="profile-section-title">Account & Orders</h2>
+            <div className="profile-list">
+              {QUICK_LINKS.map(({ to, label, preview, Icon }) => (
+                <NavLink to={to} key={to} className="profile-row">
+                  <span className="row-icon">
+                    <Icon />
+                  </span>
+                  <span className="row-main">
+                    <span className="row-title">{label}</span>
+                    <span className="row-preview">{preview}</span>
+                  </span>
+                  <span className="row-end">
+                    <FiChevronRight className="row-chevron" />
+                  </span>
+                </NavLink>
+              ))}
             </div>
           </div>
 
-          {/* =========================================
-              RIGHT COLUMN: ACCOUNT DETAILS
-              ========================================= */}
-          <div className="right-column">
-            
-            {/* 1. Address Book Card */}
-            <div className="bento-card address-card" data-aos="fade" data-aos-duration="1000" data-aos-delay="200">
-              <div className="address-header">
-                <h3>Address Book</h3>
-                <NavLink className="edit-link" to="/editprofile">
-                  {addressData.addressLine1?.length === 0 ? "Add Address" : "Edit Addresses"} <BsArrowRight className="icon" />
-                </NavLink>
-              </div>
-
-              <div className="address-content">
-                {loading ? (
-                  <div className="address-split-grid skeleton-mode">
-                    <div className="address-block">
-                      <div className="skeleton-text label"></div>
-                      <div className="skeleton-text line"></div>
-                      <div className="skeleton-text line short"></div>
-                      <div className="skeleton-text line"></div>
-                    </div>
-                    <div className="address-block">
-                      <div className="skeleton-text label"></div>
-                      <div className="skeleton-text line short"></div>
-                    </div>
-                  </div>
-                ) : addressData.addressLine1?.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No shipping address on file.</p>
-                    <span>Please add an address to ensure seamless delivery for your bespoke furniture.</span>
-                  </div>
-                ) : (
-                  <div className="address-split-grid">
-                    
-                    {/* Shipping Address */}
-                    <div className="address-block">
-                      <p className="block-title">Default Shipping Address</p>
-                      <div className="info-group">
-                        <p className="value">{addressData.addressLine1}</p>
-                        <p className="value">{addressData.city}, {addressData.state}</p>
-                        <p className="value">{addressData.addressPhone || "—"}</p>
-                      </div>
-                    </div>
-
-                    {/* Billing Address */}
-                    <div className="address-block">
-                      <p className="block-title">Default Billing Address</p>
-                      <div className="info-group">
-                        <p className="value light-text">Same as shipping address</p>
-                      </div>
-                    </div>
-
-                  </div>
-                )}
-              </div>
+          {/* --- SECTION 2: ADDRESS BOOK --- */}
+          <div className="profile-section">
+            <div className="section-title-row">
+              <h2 className="profile-section-title">Address Book</h2>
+              <NavLink to="/editprofile" className="section-action-link">
+                {hasAddress ? "Edit Address" : "Add Address"}
+                <FiChevronRight />
+              </NavLink>
             </div>
 
-            {/* 2. Communication Preferences Card */}
-            <div className="bento-card pref-card" data-aos="fade" data-aos-duration="1000" data-aos-delay="300">
-              <div className="pref-header">
-                <h3>Communications</h3>
-              </div>
-              <div className="pref-content">
-                <div className="pref-row">
-                  <div className="pref-text">
-                    <h4>The Evanis Newsletter</h4>
-                    <p>Receive exclusive insights, updates, and early access to bespoke furniture releases.</p>
-                  </div>
-                  <div className="pref-toggle">
-                    <label className="switch">
-                      <input 
-                        type="checkbox" 
-                        checked={isSubscribed} 
-                        onChange={() => setIsSubscribed(!isSubscribed)} 
-                      />
-                      <span className="slider round"></span>
-                    </label>
-                  </div>
+            {loading ? (
+              <div className="address-grid">
+                <div className="address-col">
+                  <span className="profile-skeleton line-sm" />
+                  <span className="profile-skeleton line-lg" />
+                  <span className="profile-skeleton line-md" />
+                </div>
+                <div className="address-col">
+                  <span className="profile-skeleton line-sm" />
+                  <span className="profile-skeleton line-md" />
                 </div>
               </div>
-            </div>
+            ) : !hasAddress ? (
+              <div className="empty-address">
+                <FiMapPin className="empty-icon" />
+                <div className="empty-text">
+                  <h3>No shipping address on file</h3>
+                  <p>
+                    Add a default delivery address to speed up checkout for your bespoke furniture orders.
+                  </p>
+                </div>
+                <NavLink to="/editprofile" className="add-address-btn">
+                  Add Address
+                </NavLink>
+              </div>
+            ) : (
+              <div className="address-grid">
+                <div className="address-col">
+                  <span className="address-label">Default Shipping Address</span>
+                  <p className="address-line primary">{addressData.addressLine1}</p>
+                  <p className="address-line">
+                    {[addressData.city, addressData.state].filter(Boolean).join(", ")}
+                  </p>
+                  <p className="address-line muted">
+                    {addressData.addressPhone || "No phone number provided"}
+                  </p>
+                </div>
 
+                <div className="address-col">
+                  <span className="address-label">Default Billing Address</span>
+                  <p className="address-line muted">Same as default shipping address</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* --- SECTION 3: COMMUNICATIONS --- */}
+          <div className="profile-section">
+            <h2 className="profile-section-title">Communications</h2>
+            <div className="pref-row">
+              <div className="pref-main">
+                <span className="pref-title">The Evanis Newsletter</span>
+                <p className="pref-desc">
+                  Receive curated interior insights, order notifications, and early access to new collections.
+                </p>
+              </div>
+
+              <label className="editorial-switch" aria-label="Toggle newsletter subscription">
+                <input
+                  type="checkbox"
+                  checked={isSubscribed}
+                  onChange={() => setIsSubscribed(!isSubscribed)}
+                />
+                <span className="slider" />
+              </label>
+            </div>
           </div>
 
         </div>

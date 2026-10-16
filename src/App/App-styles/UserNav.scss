@@ -1,14 +1,14 @@
-$text-dark: #1a1a1a;
+$text-dark: #111111;
 $text-gray: #555555;
-$bg-white: rgba(255, 255, 255, 0.95);
+$bg-white: rgba(255, 255, 255, 0.96);
 $hover-bg: #f3f4f6;
 $transition-speed: 0.3s;
 $transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-$brand-accent: #d15b40; 
+$brand-accent: #d15b40;
 
 /* BULLETPROOF HELPER VISIBILITY CLASSES */
-.mobile-only { display: none !important; } 
-.desktop-only { display: flex !important; } 
+.mobile-only { display: none !important; }
+.desktop-only { display: flex !important; }
 
 @media screen and (max-width: 900px) {
   .desktop-only { display: none !important; }
@@ -16,30 +16,30 @@ $brand-accent: #d15b40;
 }
 
 .minimalist-header {
-  position: fixed; 
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   background-color: $bg-white;
   backdrop-filter: blur(8px);
-  padding: 0.5rem 0; 
+  padding: 0.65rem 0;
   z-index: 1000;
-  box-sizing: border-box; 
+  box-sizing: border-box;
   transition: background-color 0.4s ease, box-shadow 0.4s ease, border-bottom 0.4s ease;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 
   &.default-mode {
     background-color: $bg-white;
-    
+
     &.scrolled {
       background-color: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       border-bottom: 1px solid transparent;
     }
 
     .nav-link, .action-icon, .mobile-toggle, .mobile-icon-btn {
       color: $text-dark;
-      transition: color 0.4s ease;
+      transition: color 0.3s ease;
     }
   }
 
@@ -48,7 +48,7 @@ $brand-accent: #d15b40;
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0 5%; 
+    padding: 0 5%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -57,7 +57,7 @@ $brand-accent: #d15b40;
 
   // --- Left Side: Logo ---
   .nav-left {
-    flex: 1; 
+    flex: 1;
     display: flex;
     justify-content: flex-start;
     min-width: max-content;
@@ -68,9 +68,9 @@ $brand-accent: #d15b40;
       text-decoration: none;
 
       img {
-        width: 120px; 
+        width: 120px;
         height: auto;
-        object-fit: contain; 
+        object-fit: contain;
       }
     }
   }
@@ -80,7 +80,7 @@ $brand-accent: #d15b40;
     flex: 2;
     display: flex;
     justify-content: center;
-    gap: 2.5rem; 
+    gap: 2.5rem;
 
     .nav-link {
       text-decoration: none;
@@ -105,10 +105,12 @@ $brand-accent: #d15b40;
       }
 
       &:hover {
+        color: $text-dark;
         &::after { width: 100%; }
       }
 
       &.active {
+        color: $text-dark;
         font-weight: 600;
         &::after { width: 100%; }
       }
@@ -117,7 +119,7 @@ $brand-accent: #d15b40;
 
   // --- Right Side: Actions ---
   .nav-right {
-    flex: 1; 
+    flex: 1;
     display: flex;
     justify-content: flex-end;
     align-items: center;
@@ -125,8 +127,8 @@ $brand-accent: #d15b40;
     .desktop-actions {
       display: flex;
       align-items: center;
-      gap: 1rem; 
-      position: relative; 
+      gap: 0.85rem;
+      position: relative;
 
       .profile-wrapper {
         position: relative;
@@ -144,53 +146,67 @@ $brand-accent: #d15b40;
         border-radius: 50%;
         cursor: pointer;
         position: relative;
-        overflow: visible; 
+        overflow: visible;
         z-index: 1;
 
         &::before {
           content: '';
           position: absolute;
-          top: 50%; 
+          top: 50%;
           left: 50%;
-          width: 100%; 
+          width: 100%;
           height: 100%;
           background-color: $hover-bg;
           border-radius: 50%;
           transform: translate(-50%, -50%) scale(0);
-          transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
           z-index: -1;
         }
 
         .action-icon {
-          font-size: 1.5rem;
+          font-size: 1.4rem;
+          stroke-width: 1.8;
           color: $text-dark;
           transition: transform $transition-speed $transition-bounce, color $transition-speed;
         }
 
-        /* FIXED: Perfect Circle Desktop Badge */
+        /* Subtle unread dot on Profile icon when notifications exist */
+        .action-dot {
+          position: absolute;
+          top: 6px;
+          right: 6px;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background-color: $brand-accent;
+          border: 1.5px solid #fff;
+          z-index: 2;
+        }
+
+        /* Perfect Circle Desktop Badge */
         .action-badge {
           position: absolute;
-          top: 0px;
-          right: -2px;
+          top: 2px;
+          right: 0px;
           background-color: $text-dark;
           color: #fff;
           font-size: 0.6rem;
           font-weight: 600;
-          width: 16px;  /* Locked width */
-          height: 16px; /* Locked height */
-          border-radius: 50%; /* Perfect circle */
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0; /* Removed padding */
-          border: 2px solid #fff; 
+          padding: 0;
+          border: 2px solid #fff;
           z-index: 2;
         }
 
         &:hover {
           &::before { transform: translate(-50%, -50%) scale(1); }
           .action-icon {
-            transform: scale(1.1); 
+            transform: scale(1.06);
           }
         }
       }
@@ -201,16 +217,16 @@ $brand-accent: #d15b40;
 // --- Profile Dropdown (Desktop) ---
 .profile-dropdown-menu {
   position: absolute;
-  top: calc(100% + 15px);
-  right: 0; 
-  width: 220px; 
-  background-color: #ffffff; 
-  border-radius: 12px; 
-  padding: 0.5rem; 
-  border: 1px solid rgba(0, 0, 0, 0.06); 
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04); 
+  top: calc(100% + 14px);
+  right: 0;
+  width: 225px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
   z-index: 2000;
-  
+
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px) scale(0.95);
@@ -224,44 +240,54 @@ $brand-accent: #d15b40;
   }
 
   .dropdown-header {
-    padding: 0.8rem 1rem;
+    padding: 0.75rem 0.9rem 0.5rem;
     p {
       margin: 0;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 600;
       color: #999;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
     }
   }
 
   .popover-group {
     display: flex;
     flex-direction: column;
-    gap: 2px; 
+    gap: 2px;
   }
 
   .popover-link {
     display: flex;
     align-items: center;
-    gap: 12px; 
-    padding: 10px 12px; 
+    gap: 12px;
+    padding: 10px 12px;
     border-radius: 8px;
-    color: $text-dark; 
+    color: $text-dark;
     text-decoration: none;
-    font-size: 0.95rem; 
+    font-size: 0.92rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease; 
+    transition: all 0.2s ease;
 
     .popover-icon {
-      font-size: 1.2rem; 
-      color: $text-gray; 
+      font-size: 1.15rem;
+      color: $text-gray;
       transition: all 0.2s ease;
     }
 
+    .inline-badge {
+      margin-left: auto;
+      background-color: $text-dark;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
     &:hover {
-      background-color: $hover-bg; 
+      background-color: $hover-bg;
       .popover-icon { color: $text-dark; }
     }
 
@@ -273,8 +299,8 @@ $brand-accent: #d15b40;
 
   .popover-divider {
     height: 1px;
-    background-color: rgba(0, 0, 0, 0.06); 
-    margin: 0.5rem 0; 
+    background-color: rgba(0, 0, 0, 0.06);
+    margin: 0.45rem 0;
     width: 100%;
   }
 }
@@ -283,13 +309,13 @@ $brand-accent: #d15b40;
 .mobile-popover-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
-  z-index: 1500; background: rgba(0,0,0,0.1); backdrop-filter: blur(2px);
+  z-index: 1500; background: rgba(0, 0, 0, 0.1); backdrop-filter: blur(2px);
 }
 
 .mobile-popover-menu {
-  position: absolute; top: 110%; right: 5%; width: 245px; 
-  background-color: #ffffff; border-radius: 16px; padding: 0.65rem; 
-  border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08); 
+  position: absolute; top: 110%; right: 5%; width: 245px;
+  background-color: #ffffff; border-radius: 16px; padding: 0.65rem;
+  border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
   z-index: 2000;
   opacity: 0; visibility: hidden; transform: translateY(-10px) scale(0.95);
   transform-origin: top right; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -299,56 +325,80 @@ $brand-accent: #d15b40;
   .popover-group { display: flex; flex-direction: column; gap: 4px; }
 
   .popover-link {
-    display: flex; align-items: center; gap: 13px; padding: 11px 14px; 
+    display: flex; align-items: center; gap: 13px; padding: 11px 14px;
     border-radius: 10px; color: $text-dark; text-decoration: none;
-    font-size: 0.98rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; 
+    font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease;
 
-    .popover-icon { font-size: 1.35rem; color: $text-gray; transition: all 0.2s ease; }
+    .popover-icon { font-size: 1.25rem; color: $text-gray; transition: all 0.2s ease; }
+
+    .inline-badge {
+      margin-left: auto;
+      background-color: $text-dark;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
     &:hover { background-color: $hover-bg; }
     &.logout-link { color: #d9534f; &:hover { background-color: #fdf2f2; } }
   }
-  .popover-divider { height: 1px; background-color: rgba(0, 0, 0, 0.06); margin: 0.65rem 0; }
+  .popover-divider { height: 1px; background-color: rgba(0, 0, 0, 0.06); margin: 0.6rem 0; }
 }
 
-// --- Responsive Rules ---
+// --- Responsive Rules (Matches Reference Mobile Layout) ---
 @media screen and (max-width: 900px) {
   .minimalist-header {
-    overflow: visible; 
-    
-    .nav-container { padding: 0 1.5rem; position: relative; }
-    .nav-left .brand-logo img { width: 100px; }
+    overflow: visible;
+    padding: 0.75rem 0;
+
+    .nav-container {
+      padding: 0 1.25rem;
+      position: relative;
+    }
+
+    .nav-left .brand-logo img {
+      width: 105px;
+    }
 
     .nav-right .mobile-header-actions {
       display: flex;
       align-items: center;
-      gap: 1.8rem; /* Restored: proper spacing between icons */
+      gap: 1.35rem; // Even, clean spacing across the 4 icons
       z-index: 2100;
 
-      .mobile-icon-btn, .mobile-toggle {
-        font-size: 1.7rem; /* Restored: proper icon scale */
+      .mobile-icon-btn,
+      .mobile-toggle {
+        font-size: 1.45rem;
         cursor: pointer;
         display: flex;
         align-items: center;
+        justify-content: center;
         position: relative;
         color: $text-dark;
-        
-        /* FIXED: Perfect Circle Mobile Badge */
+
+        svg {
+          stroke-width: 1.8;
+        }
+
+        /* Perfect Circle Mobile Badge */
         .action-badge {
           position: absolute;
-          top: -4px;
-          right: -5px;
+          top: -5px;
+          right: -6px;
           background-color: $text-dark;
           color: #fff;
           font-size: 0.55rem;
           font-weight: 600;
-          width: 15px;  /* Locked width */
-          height: 15px; /* Locked height */
-          border-radius: 50%; /* Perfect circle */
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0; /* Removed padding */
-          border: 2px solid #fff;
+          padding: 0;
+          border: 1.5px solid #fff;
         }
       }
     }

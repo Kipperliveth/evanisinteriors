@@ -6,7 +6,7 @@ import {
   collection,
   getDocs,
   deleteDoc,
-  doc, updateDoc,
+  doc, updateDoc, setDoc,
   onSnapshot, query, where
 } from "firebase/firestore";
 import { CiSearch } from "react-icons/ci";
@@ -18,7 +18,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { IoIosArrowBack, IoIosArrowUp } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
 import { MdCancel } from "react-icons/md";
-import { FaRegShareFromSquare } from "react-icons/fa6";
+import { FaRegShareFromSquare, FaHeart, FaRegHeart } from "react-icons/fa6";
 
 function Store() {
   const { productId } = useParams();
@@ -56,6 +56,10 @@ function Store() {
   // HYBRID CART STATE
   const [currentUser, setCurrentUser] = useState(null);
   const [cartItems, setCartItems] = useState([]);
+
+  // SAVED PRODUCTS STATE (list of saved product ids)
+  const [savedIds, setSavedIds] = useState([]);
+  const [savedMessage, setSavedMessage] = useState("");
 
   // Load recently viewed from local storage on mount
   useEffect(() => {
@@ -105,6 +109,57 @@ function Store() {
 
     return () => unsubscribeAuth();
   }, []);
+
+  // HYBRID SAVED LISTENER (Firebase / LocalStorage)
+  useEffect(() => {
+    if (currentUser) {
+      // Logged-in User: saved products live at users/{uid}/saved/{productId}
+      const savedRef = collection(txtdb, `users/${currentUser.uid}/saved`);
+      const unsubscribeSaved = onSnapshot(savedRef, (snapshot) => {
+        setSavedIds(snapshot.docs.map((d) => d.id));
+      });
+      return () => unsubscribeSaved();
+    } else {
+      // Guest: Read from LocalStorage
+      const loadGuestSaved = () => {
+        setSavedIds(JSON.parse(localStorage.getItem("evanis_guest_saved")) || []);
+      };
+      loadGuestSaved();
+      window.addEventListener('storage', loadGuestSaved);
+      return () => window.removeEventListener('storage', loadGuestSaved);
+    }
+  }, [currentUser]);
+
+  // HYBRID SAVE / UNSAVE TOGGLE
+  const toggleSaved = async (productId) => {
+    const alreadySaved = savedIds.includes(productId);
+
+    if (currentUser) {
+      // FIREBASE (LOGGED IN USER)
+      const savedDocRef = doc(txtdb, `users/${currentUser.uid}/saved/${productId}`);
+      try {
+        if (alreadySaved) {
+          await deleteDoc(savedDocRef);
+        } else {
+          await setDoc(savedDocRef, { productId, savedAt: Date.now() });
+        }
+      } catch (error) {
+        console.error("Error updating saved products:", error);
+        return;
+      }
+    } else {
+      // LOCALSTORAGE (GUEST USER)
+      let guestSaved = JSON.parse(localStorage.getItem("evanis_guest_saved")) || [];
+      guestSaved = alreadySaved
+        ? guestSaved.filter((id) => id !== productId)
+        : [...guestSaved, productId];
+      localStorage.setItem("evanis_guest_saved", JSON.stringify(guestSaved));
+      setSavedIds(guestSaved);
+    }
+
+    setSavedMessage(alreadySaved ? "Removed from saved" : "Saved for later");
+    setTimeout(() => setSavedMessage(""), 3000);
+  };
 
   // HYBRID ADD TO CART LOGIC
   const handleAddToCartLogic = async (productData, colorVal, sizeVal, navigateAfter = false) => {
@@ -409,11 +464,23 @@ function Store() {
                 currentData.map((product) => {
                   // Check if item exists in hybrid cart
                   const isInCart = cartItems.some((item) => item.productId === product.id || item.productnumber === product.id);
+                  const isSaved = savedIds.includes(product.id);
                   
                   return (
                     <div className="editorial-product-card" key={product.id}>
                       <div className="card-image-box" onClick={() => handleProductClick(product)}>
                         <img src={Array.isArray(product.imgUrl) ? product.imgUrl[0] : product.imgUrl} alt="product" />
+                        <button
+                          className={`save-btn ${isSaved ? "active" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSaved(product.id);
+                          }}
+                          title={isSaved ? "Remove from saved" : "Save for later"}
+                          aria-label={isSaved ? "Remove from saved" : "Save for later"}
+                        >
+                          {isSaved ? <FaHeart /> : <FaRegHeart />}
+                        </button>
                       </div>
                       
                       <div className="card-details">
@@ -564,9 +631,18 @@ function Store() {
 
                     <div className="header-actions">
                        <h2 className="modal-title">{selectedProductData.txtVal}</h2>
-                       <button className="share-btn-icon" onClick={handleShare} title={buttonText}>
-                          <FaRegShareFromSquare />
-                       </button>
+                       <div className="header-icon-group">
+                         <button
+                           className={`save-btn-icon ${savedIds.includes(selectedProductData.id) ? "active" : ""}`}
+                           onClick={() => toggleSaved(selectedProductData.id)}
+                           title={savedIds.includes(selectedProductData.id) ? "Remove from saved" : "Save for later"}
+                         >
+                           {savedIds.includes(selectedProductData.id) ? <FaHeart /> : <FaRegHeart />}
+                         </button>
+                         <button className="share-btn-icon" onClick={handleShare} title={buttonText}>
+                           <FaRegShareFromSquare />
+                         </button>
+                       </div>
                     </div>
                     
                     <p className="modal-price">&#8358; {parseFloat(selectedProductData.price).toLocaleString('en-us')}</p>
@@ -704,6 +780,14 @@ function Store() {
           <div className="status-toast error">
             <div className="toast-content" onClick={() => setremovedPopup(false)}>
               <MdCancel className='icon' /> Item removed from cart
+            </div>
+          </div>
+        )}
+
+        {savedMessage && (
+          <div className="status-toast success">
+            <div className="toast-content" onClick={() => setSavedMessage("")}>
+              <FaHeart className='icon' /> {savedMessage}
             </div>
           </div>
         )}
