@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 import UserNav from "../App-components/UserNav";
 import {
@@ -10,15 +10,31 @@ import {
   onSnapshot, query, where
 } from "firebase/firestore";
 import { CiSearch } from "react-icons/ci";
-import { BiGridAlt, BiCabinet } from "react-icons/bi";
-import { MdOutlineChair, MdOutlineBed, MdOutlineTableBar, MdOutlineLightbulb } from "react-icons/md";
 
 import { auth, txtdb } from "../../firebase-config";
 import { onAuthStateChanged } from "firebase/auth";
-import { IoIosArrowBack, IoIosArrowUp } from "react-icons/io";
+import { IoIosArrowBack, IoIosArrowForward, IoIosArrowUp } from "react-icons/io";
 import { useNavigate, useParams } from "react-router-dom";
-import { MdCancel } from "react-icons/md";
+import { MdCancel, MdClose } from "react-icons/md";
 import { FaRegShareFromSquare, FaHeart, FaRegHeart } from "react-icons/fa6";
+
+
+// Order of the category filter in the store (these are the categories admins can pick in Post.jsx).
+// All of them always show, even before any products have been uploaded to a category.
+const STORE_CATEGORIES = [
+  "Sitting",
+  "Accent Chairs",
+  "Dining",
+  "Tables",
+  "Console",
+  "Credenza",
+  "Storage",
+  "Bedsides",
+  "Room",
+  "Vanity",
+  "Concierge Desks",
+  "Lights",
+];
 
 function Store() {
   const { productId } = useParams();
@@ -34,6 +50,8 @@ function Store() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const categoryRailRef = useRef(null);
+  const [railArrows, setRailArrows] = useState({ left: false, right: false });
 
   const [data, setData] = useState([]);
 
@@ -320,26 +338,61 @@ function Store() {
     });
   }, []);
 
-  const handleSearchClick = () => {
-    const filtered = data.filter(
-      (value) =>
-        value.txtVal &&
-        value.txtVal.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // Search + category work together, so results always reflect both filters
+  useEffect(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const filtered = data.filter((item) => {
+      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+      const matchesSearch =
+        !term ||
+        (item.txtVal && item.txtVal.toLowerCase().includes(term)) ||
+        (item.category && item.category.toLowerCase().includes(term));
+      return matchesCategory && matchesSearch;
+    });
     setFilteredData(filtered);
-    setCurrentPage(1); 
+    setCurrentPage(1);
+  }, [data, searchTerm, selectedCategory]);
+
+  const handleCategoryClick = (category, e) => {
+    setSelectedCategory(category);
+    // Keep the chosen chip in view when the row is scrolled
+    e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   };
 
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    if (category === "All") {
-      setFilteredData(data);
-    } else {
-      const filtered = data.filter((item) => item.category === category);
-      setFilteredData(filtered);
-    }
-    setCurrentPage(1); 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("All");
   };
+
+  // Category row: show the arrows only when there is more to scroll to
+  const updateRailArrows = () => {
+    const el = categoryRailRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 4;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    setRailArrows((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  };
+
+  const scrollRail = (direction) => {
+    categoryRailRef.current?.scrollBy({ left: direction * 280, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    updateRailArrows();
+    window.addEventListener("resize", updateRailArrows);
+    return () => window.removeEventListener("resize", updateRailArrows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isLoading]);
+
+  // Every category is always listed; counts show how many products each has right now
+  const categoryCounts = data.reduce((acc, item) => {
+    if (item.category) acc[item.category] = (acc[item.category] || 0) + 1;
+    return acc;
+  }, {});
+  const allCategories = [
+    ...STORE_CATEGORIES,
+    ...Object.keys(categoryCounts).filter((c) => !STORE_CATEGORIES.includes(c)),
+  ];
 
   function handleColorSelect(color) {
     setSelectedColor(color);
@@ -401,39 +454,73 @@ function Store() {
       {currentUser && <UserNav />}
 
       <div className="store-main-container page">
-        
+
         <div className="store-hero-section">
           <div className="editorial-search">
             <CiSearch className="search-icon" />
             <input
               className="searchInput"
               type="text"
-              placeholder="Search for something..."
+              placeholder="Search furniture, lighting, decor..."
+              aria-label="Search products"
+              value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
+              onKeyDown={(e) => e.key === "Escape" && setSearchTerm("")}
             />
-            <button className="search-action-btn" onClick={handleSearchClick}>Search</button>
+            {searchTerm && (
+              <button className="search-clear-btn" onClick={() => setSearchTerm("")} aria-label="Clear search">
+                <MdClose />
+              </button>
+            )}
           </div>
 
-          <div className="editorial-categories">
-            {[
-              { name: "All", icon: <BiGridAlt /> },
-              { name: "Sitting", icon: <MdOutlineChair /> },
-              { name: "Tables", icon: <MdOutlineTableBar /> },
-              { name: "Room", icon: <MdOutlineBed /> },
-              { name: "Lights", icon: <MdOutlineLightbulb /> },
-              { name: "Storage", icon: <BiCabinet /> }
-            ].map((cat) => (
-              <button 
-                key={cat.name} 
-                className={`category-pill ${selectedCategory === cat.name ? "active" : ""}`}
-                onClick={() => handleCategoryClick(cat.name)}
-              >
-                <span className="icon">{cat.icon}</span>
-                <p>{cat.name}</p>
+          <div className={`category-rail ${railArrows.left ? "has-left" : ""} ${railArrows.right ? "has-right" : ""}`}>
+            {railArrows.left && (
+              <button className="rail-arrow left" onClick={() => scrollRail(-1)} aria-label="Scroll categories left">
+                <IoIosArrowBack />
               </button>
-            ))}
+            )}
+
+            <div className="editorial-categories" ref={categoryRailRef} onScroll={updateRailArrows}>
+              {["All", ...allCategories].map((cat) => {
+                const count = cat === "All" ? data.length : categoryCounts[cat] || 0;
+                const isEmpty = !isLoading && count === 0;
+                return (
+                  <button
+                    key={cat}
+                    className={`category-pill ${selectedCategory === cat ? "active" : ""} ${isEmpty ? "empty" : ""}`}
+                    aria-pressed={selectedCategory === cat}
+                    onClick={(e) => handleCategoryClick(cat, e)}
+                  >
+                    {cat}
+                    {!isLoading && !isEmpty && <span className="count">{count}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {railArrows.right && (
+              <button className="rail-arrow right" onClick={() => scrollRail(1)} aria-label="Scroll categories right">
+                <IoIosArrowForward />
+              </button>
+            )}
           </div>
+        </div>
+
+        <div className="collection-heading">
+          <h2 className="collection-title">{selectedCategory === "All" ? "All Pieces" : selectedCategory}</h2>
+          {!isLoading && (
+            <>
+              <span className="divider" />
+              <span className="collection-meta">
+                {filteredData.length} {filteredData.length === 1 ? "piece" : "pieces"}
+                {searchTerm.trim() && <> for &ldquo;{searchTerm.trim()}&rdquo;</>}
+              </span>
+            </>
+          )}
+          {(searchTerm.trim() || selectedCategory !== "All") && (
+            <button className="clear-filters-btn" onClick={clearFilters}>Clear filters</button>
+          )}
         </div>
 
         {isLoading ? (
@@ -503,7 +590,12 @@ function Store() {
                 })
               ) : (
                 <div className="no-results">
-                  <p>No products found matching your search.</p>
+                  <p>
+                    {searchTerm.trim()
+                      ? "No products found matching your search."
+                      : `No ${selectedCategory} pieces yet. New items are added regularly, so check back soon.`}
+                  </p>
+                  <button className="clear-filters-btn" onClick={clearFilters}>View all pieces</button>
                 </div>
               )}
             </div>
