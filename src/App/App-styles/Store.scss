@@ -1011,6 +1011,12 @@ $brand-accent: #bba58f;
       max-width: 90vw; /* Prevents overflow on extremely small screens */
 
       .icon { font-size: 1.2rem; }
+
+      .toast-action {
+        font-weight: 700;
+        text-decoration: underline;
+        margin-left: 0.4rem;
+      }
     }
 
     &.warning .toast-content { background: #f39c12; }

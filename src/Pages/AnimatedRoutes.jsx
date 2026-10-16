@@ -75,6 +75,7 @@ function AnimatedRoutes() {
 
         {/* --- PUBLIC CART ROUTE (Guests need to be able to see their cart to hit checkout) --- */}
         <Route path="/cart" element={<Cart />} />
+        <Route path="/saved" element={<Saved />}/>
 
         {/* PROTECTED ROUTES (Requires Login) */}
         <Route path="/userProfile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
@@ -88,7 +89,7 @@ function AnimatedRoutes() {
         <Route path="/myorders" element={<ProtectedRoute><Myorders /></ProtectedRoute>} />
         <Route path='/gethelp' element={<ProtectedRoute><GetHelp /></ProtectedRoute>}/>
         <Route path="/userMasterclass" element={<ProtectedRoute><MasterclassMain /></ProtectedRoute>} />
-        <Route path="/saved" element={<ProtectedRoute><Saved /></ProtectedRoute>}/>
+        {/* <Route path="/saved" element={<ProtectedRoute><Saved /></ProtectedRoute>}/> */}
 
         {/* ADMIN ROUTES */}
         <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />

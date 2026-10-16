@@ -55,11 +55,13 @@ function Store() {
 
   // HYBRID CART STATE
   const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
   // SAVED PRODUCTS STATE (list of saved product ids)
   const [savedIds, setSavedIds] = useState([]);
   const [savedMessage, setSavedMessage] = useState("");
+  const [loginPrompt, setLoginPrompt] = useState(false);
 
   // Load recently viewed from local storage on mount
   useEffect(() => {
@@ -85,6 +87,7 @@ function Store() {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setAuthChecked(true);
       
       if (user) {
         // Logged-in User: Listen to Firebase Cart
@@ -110,51 +113,43 @@ function Store() {
     return () => unsubscribeAuth();
   }, []);
 
-  // HYBRID SAVED LISTENER (Firebase / LocalStorage)
+  // SAVED LISTENER (logged-in users only)
   useEffect(() => {
-    if (currentUser) {
-      // Logged-in User: saved products live at users/{uid}/saved/{productId}
-      const savedRef = collection(txtdb, `users/${currentUser.uid}/saved`);
-      const unsubscribeSaved = onSnapshot(savedRef, (snapshot) => {
-        setSavedIds(snapshot.docs.map((d) => d.id));
-      });
-      return () => unsubscribeSaved();
-    } else {
-      // Guest: Read from LocalStorage
-      const loadGuestSaved = () => {
-        setSavedIds(JSON.parse(localStorage.getItem("evanis_guest_saved")) || []);
-      };
-      loadGuestSaved();
-      window.addEventListener('storage', loadGuestSaved);
-      return () => window.removeEventListener('storage', loadGuestSaved);
+    if (!currentUser) {
+      setSavedIds([]);
+      return;
     }
+
+    // saved products live at users/{uid}/saved/{productId}
+    const savedRef = collection(txtdb, `users/${currentUser.uid}/saved`);
+    const unsubscribeSaved = onSnapshot(savedRef, (snapshot) => {
+      setSavedIds(snapshot.docs.map((d) => d.id));
+    });
+    return () => unsubscribeSaved();
   }, [currentUser]);
 
-  // HYBRID SAVE / UNSAVE TOGGLE
+  // SAVE / UNSAVE TOGGLE (requires login)
   const toggleSaved = async (productId) => {
-    const alreadySaved = savedIds.includes(productId);
+    if (!authChecked) return; // still finding out whether someone is logged in
 
-    if (currentUser) {
-      // FIREBASE (LOGGED IN USER)
-      const savedDocRef = doc(txtdb, `users/${currentUser.uid}/saved/${productId}`);
-      try {
-        if (alreadySaved) {
-          await deleteDoc(savedDocRef);
-        } else {
-          await setDoc(savedDocRef, { productId, savedAt: Date.now() });
-        }
-      } catch (error) {
-        console.error("Error updating saved products:", error);
-        return;
+    if (!currentUser) {
+      setLoginPrompt(true);
+      setTimeout(() => setLoginPrompt(false), 4000);
+      return;
+    }
+
+    const alreadySaved = savedIds.includes(productId);
+    const savedDocRef = doc(txtdb, `users/${currentUser.uid}/saved/${productId}`);
+
+    try {
+      if (alreadySaved) {
+        await deleteDoc(savedDocRef);
+      } else {
+        await setDoc(savedDocRef, { productId, savedAt: Date.now() });
       }
-    } else {
-      // LOCALSTORAGE (GUEST USER)
-      let guestSaved = JSON.parse(localStorage.getItem("evanis_guest_saved")) || [];
-      guestSaved = alreadySaved
-        ? guestSaved.filter((id) => id !== productId)
-        : [...guestSaved, productId];
-      localStorage.setItem("evanis_guest_saved", JSON.stringify(guestSaved));
-      setSavedIds(guestSaved);
+    } catch (error) {
+      console.error("Error updating saved products:", error);
+      return;
     }
 
     setSavedMessage(alreadySaved ? "Removed from saved" : "Saved for later");
@@ -788,6 +783,15 @@ function Store() {
           <div className="status-toast success">
             <div className="toast-content" onClick={() => setSavedMessage("")}>
               <FaHeart className='icon' /> {savedMessage}
+            </div>
+          </div>
+        )}
+
+        {loginPrompt && (
+          <div className="status-toast">
+            <div className="toast-content" onClick={() => { setLoginPrompt(false); navigate('/login'); }}>
+              <FaRegHeart className='icon' /> Please log in to save products
+              <span className="toast-action">Log in</span>
             </div>
           </div>
         )}
