@@ -76,7 +76,7 @@ function AdminDashboard() {
   const renderNav = (onNavigate) => (
     <>
       <div className="sidebar-header">
-        <NavLink to="/adminHome" className="logo-container" onClick={onNavigate}>
+        <NavLink to="/admin" className="logo-container" onClick={onNavigate}>
           <img src={logo} alt="Evanis Interiors" />
         </NavLink>
         {onNavigate && (
@@ -90,7 +90,7 @@ function AdminDashboard() {
         <div className="sidebar-nav-group">
           <h4 className="group-title">Overview</h4>
 
-          <NavLink to="/adminHome" onClick={onNavigate} className={linkClass}>
+          <NavLink to="/admin" onClick={onNavigate} className={linkClass}>
             <MdOutlineDashboard className="nav-icon" />
             <span>Dashboard</span>
           </NavLink>

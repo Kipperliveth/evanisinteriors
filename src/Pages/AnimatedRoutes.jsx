@@ -89,7 +89,7 @@ function AnimatedRoutes() {
         <Route path="/userMasterclass" element={<ProtectedRoute><MasterclassMain /></ProtectedRoute>} />
 
         {/* ADMIN ROUTES */}
-        <Route path="/adminHome" element={<AdminRoute><AdminHome /></AdminRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />
         <Route path="/adminNotifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />
         <Route path="/post" element={<AdminRoute><Post /></AdminRoute>} />
         <Route path='/orders' element={<AdminRoute><Orders /></AdminRoute>} />
